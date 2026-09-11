@@ -38,7 +38,11 @@ class PolicyEngine(
     }
 
     fun stop() = emergencyStop.activate()
-    fun resume() = emergencyStop.reset()
+
+    /** Resume is intentionally explicit and must be confirmed by the user. */
+    fun resumeAfterExplicitUserConfirmation(confirmed: Boolean) =
+        emergencyStop.resetAfterExplicitUserConfirmation(confirmed)
+
     fun emergencyStopController() = emergencyStop
 
     private fun deny(required: AuthorizationLevel, reason: String) =
