@@ -1,7 +1,7 @@
 # Ritav.ai — Persistent Project State
 
 ## Current phase
-Phase 0 — Architecture, threat model and secure foundation.
+Phase 0 — Architecture, threat model and secure foundation; beginning security/runtime integration.
 
 ## Source of truth
 - `RITAV_BLUEPRINT.md` — engineering implementation contract.
@@ -19,6 +19,12 @@ Implemented baseline deterministic security gates:
 - Local audit event contract with secret-safe action logging.
 - Unit tests covering permission boundaries, authorization, finance blocking, emergency stop and secret detection.
 
+## Security/runtime integration completed
+- Emergency stop is now represented by a centralized process-local `SecurityRuntimeState`.
+- Main UI is wired to the same runtime safety state rather than maintaining an unrelated UI-only boolean.
+- Emergency stop activation is immediate and does not depend on the AI/model.
+- Resume is no longer an unrestricted `reset()` call; it requires an explicit user-confirmation signal through the security controller API.
+
 ## Important security assessment
 This is a hardened **foundation**, not a claim of mathematically bug-free or production-complete security. The architecture still requires implementation and testing of Android secure storage/key management, screen/input isolation, identity, accessibility boundaries, network enforcement, app capability registry, confirmation UI/device-auth integration, encrypted audit persistence, prompt-injection defenses, dependency/security scanning, and real-device testing before release.
 
@@ -31,13 +37,14 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 6. Execution requires valid scoped permission + explicit intent where required + risk-appropriate authorization.
 7. Uncertainty blocks or asks; it never guesses.
 8. Security policy is deterministic and independent of the AI model.
+9. Emergency stop must be authoritative over AI-driven actions in the process.
+10. Resuming from emergency stop must never be an AI/model decision.
 
 ## Architecture invariant
 USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUTHORIZATION → EXECUTION → VERIFICATION → AUDIT
 
 ## Next implementation target
-- Integrate security gates with Safe Mode/Emergency Stop UI state.
-- Encrypted local persistence and Android Keystore-backed key management.
+- Android Keystore-backed key management and encrypted local persistence.
 - App capability registry and Android capability adapters.
 - Orchestrator contracts with strictly scoped agent capabilities.
 - Confirmation/read-back and device-auth flow.
