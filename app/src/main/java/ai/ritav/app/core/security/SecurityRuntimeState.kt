@@ -1,15 +1,35 @@
 package ai.ritav.app.core.security
 
+import android.content.Context
+import ai.ritav.app.core.storage.SecureLocalStore
+
 /**
- * Single process-local source of truth for the user-visible security mode.
+ * Runtime security composition root.
  *
- * This state is deliberately small. Persistent security settings will later be
- * backed by encrypted storage; an emergency stop remains fail-closed in the
- * current process until explicitly resumed by the user.
+ * Production Android code should obtain permissions through the encrypted local
+ * store rather than the in-memory fallback. Emergency stop remains process-local
+ * and fail-closed until explicitly resumed by the user.
  */
-class SecurityRuntimeState(
-    private val emergencyStopController: EmergencyStopController = EmergencyStopController()
+class SecurityRuntimeState private constructor(
+    private val emergencyStopController: EmergencyStopController,
+    val policyEngine: PolicyEngine
 ) {
+    constructor(context: Context) : this(
+        emergencyStopController = EmergencyStopController(),
+        policyEngine = PolicyEngine(
+            permissionStore = SecurePermissionStore(
+                SecureLocalStore(context.applicationContext)
+            ),
+            emergencyStop = EmergencyStopController()
+        )
+    )
+
+    /** Constructor retained for lightweight unit tests. */
+    constructor(emergencyStopController: EmergencyStopController = EmergencyStopController()) : this(
+        emergencyStopController = emergencyStopController,
+        policyEngine = PolicyEngine(emergencyStop = emergencyStopController)
+    )
+
     fun activateEmergencyStop() {
         emergencyStopController.activate()
     }
