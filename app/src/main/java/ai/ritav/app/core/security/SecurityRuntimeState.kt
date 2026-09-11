@@ -3,27 +3,14 @@ package ai.ritav.app.core.security
 import android.content.Context
 import ai.ritav.app.core.storage.SecureLocalStore
 
-/**
- * Runtime security composition root.
- * A single EmergencyStopController is shared by the user-facing runtime state
- * and PolicyEngine so a stop is observed consistently by every layer.
- */
+/** Runtime security composition root with one shared emergency-stop controller. */
 class SecurityRuntimeState private constructor(
     private val emergencyStopController: EmergencyStopController,
     val policyEngine: PolicyEngine
 ) {
-    constructor(context: Context) : this(
-        emergencyStopController = EmergencyStopController(),
-        policyEngine = run {
-            val controller = EmergencyStopController()
-            PolicyEngine(
-                permissionStore = SecurePermissionStore(
-                    SecureLocalStore(context.applicationContext)
-                ),
-                emergencyStop = controller
-            )
-        }
-    )
+    private constructor(deps: RuntimeDeps) : this(deps.emergencyStopController, deps.policyEngine)
+
+    constructor(context: Context) : this(RuntimeDeps(context.applicationContext))
 
     /** Constructor retained for lightweight unit tests. */
     constructor(emergencyStopController: EmergencyStopController = EmergencyStopController()) : this(
@@ -39,4 +26,12 @@ class SecurityRuntimeState private constructor(
     fun isEmergencyStopActive(): Boolean = emergencyStopController.isActive()
 
     fun isSafeModeActive(): Boolean = emergencyStopController.isActive()
+
+    private class RuntimeDeps(context: Context) {
+        val emergencyStopController = EmergencyStopController()
+        val policyEngine = PolicyEngine(
+            permissionStore = SecurePermissionStore(SecureLocalStore(context)),
+            emergencyStop = emergencyStopController
+        )
+    }
 }
