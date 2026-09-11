@@ -4,15 +4,12 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * One-time authorization gate bound to the exact app/capability/action/session.
- * A confirmation cannot be replayed for another action or reused after consume.
+ * One-time authorization gate bound to the exact action plan.
+ * A confirmation cannot be replayed for another plan or reused after consume.
  */
 class ActionAuthorizationGate {
     private data class Grant(
-        val appId: String,
-        val capability: Capability,
-        val action: String,
-        val sessionId: String?,
+        val planHash: String,
         val requiredLevel: AuthorizationLevel,
         val expiresAtEpochMillis: Long
     )
@@ -20,25 +17,17 @@ class ActionAuthorizationGate {
     private val grants = ConcurrentHashMap<String, Grant>()
 
     fun issue(
-        appId: String,
-        capability: Capability,
-        action: String,
-        sessionId: String?,
+        plan: ActionPlan,
         requiredLevel: AuthorizationLevel,
         nowEpochMillis: Long,
         ttlMillis: Long = DEFAULT_TTL_MILLIS
     ): String {
-        require(appId.isNotBlank())
-        require(action.isNotBlank())
-        require(ttlMillis in 1..MAX_TTL_MILLIS)
         require(requiredLevel != AuthorizationLevel.NONE)
+        require(ttlMillis in 1..MAX_TTL_MILLIS)
 
         val token = UUID.randomUUID().toString()
         grants[token] = Grant(
-            appId = appId,
-            capability = capability,
-            action = action,
-            sessionId = sessionId,
+            planHash = plan.stableHash(),
             requiredLevel = requiredLevel,
             expiresAtEpochMillis = nowEpochMillis + ttlMillis
         )
@@ -48,10 +37,7 @@ class ActionAuthorizationGate {
     /** Atomically validates and consumes a token. */
     fun consume(
         token: String,
-        appId: String,
-        capability: Capability,
-        action: String,
-        sessionId: String?,
+        plan: ActionPlan,
         providedLevel: AuthorizationLevel,
         nowEpochMillis: Long
     ): Boolean {
@@ -59,8 +45,7 @@ class ActionAuthorizationGate {
 
         val grant = grants.remove(token) ?: return false
         if (nowEpochMillis > grant.expiresAtEpochMillis) return false
-        if (grant.appId != appId || grant.capability != capability || grant.action != action) return false
-        if (grant.sessionId != sessionId) return false
+        if (grant.planHash != plan.stableHash()) return false
         return authorizationRank(providedLevel) >= authorizationRank(grant.requiredLevel)
     }
 
