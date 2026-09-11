@@ -16,7 +16,8 @@ Phase 0 — Architecture, threat model and secure foundation.
 - Initial shell has no `INTERNET` permission and no network dependency.
 - Package/application ID: `ai.ritav.app`.
 - Version: `0.1.0` / versionCode 1.
-- Initial UI is intentionally minimal; premium UI refinement comes after the security foundation.
+- Deterministic security foundation added: risk tiers, action requests, policy decisions, sensitive-data firewall, and emergency-stop controller.
+- Initial security unit tests added for hard-deny, permission, confirmation, emergency-stop and secret-detection behavior.
 
 ## Security invariants
 1. No autonomous consequential action.
@@ -30,27 +31,27 @@ Phase 0 — Architecture, threat model and secure foundation.
 ## Architecture invariant
 USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUTHORIZATION → EXECUTION → VERIFICATION → AUDIT
 
-## Completed implementation step
-Android foundation commit: `455c1df516f3b22645abcb060eab726cdbd0137f`
+## Completed implementation steps
+1. Android foundation commit: `455c1df516f3b22645abcb060eab726cdbd0137f`
+2. Combined source requirements recorded in `docs/MASTER_REQUIREMENTS_MATRIX.md`.
+3. Deterministic security foundation commit: `68916ce32911791ea6075852a4b1367fb7d8cdec`.
 
-Included:
-- Gradle/Kotlin Android project foundation.
-- AndroidManifest with no network permission.
-- Launcher `MainActivity`.
-- Minimal privacy-first shell theme/UI.
-- AndroidX-enabled Gradle configuration.
+Security foundation includes:
+- `RiskTier` model.
+- `ActionRequest` and `PolicyDecision` contracts.
+- `PolicyEngine` with fail-closed emergency-stop, sensitive-data, permission, explicit-intent and risk-tier checks.
+- `SensitiveDataFirewall` initial secret-like content detection.
+- `EmergencyStopController`.
+- Unit tests for core security invariants.
 
 ## Next implementation target
-Implement deterministic security foundation before automation:
-- risk-tier model
-- capability/action model
-- policy decisions
-- sensitive-data firewall
-- emergency-stop controller
-- local audit event model
-- unit tests covering hard-deny and fail-closed invariants
-
-Then continue with permission/capability center, local persistence, orchestrator contracts, CI verification, and later voice/local AI/automation.
+- Capability/action permission model: global → app → capability → action → session/context.
+- Local audit event model.
+- Safe Mode / Emergency Stop UI state integration.
+- Local persistence abstraction.
+- Orchestrator contracts with scoped agent capabilities.
+- CI verification and Android build validation.
+- Later: voice, local AI, Android bridge and app adapters.
 
 ## Important constraints
 - Android OS restrictions are authoritative.
