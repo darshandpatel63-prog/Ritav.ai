@@ -16,8 +16,8 @@ Phase 0 — Architecture, threat model and secure foundation.
 - Initial shell has no `INTERNET` permission and no network dependency.
 - Package/application ID: `ai.ritav.app`.
 - Version: `0.1.0` / versionCode 1.
-- Deterministic security foundation added: risk tiers, action requests, policy decisions, sensitive-data firewall, and emergency-stop controller.
-- Initial security unit tests added for hard-deny, permission, confirmation, emergency-stop and secret-detection behavior.
+- Deterministic security foundation added and strengthened with explicit authorization levels, fail-closed validation, hardened secret detection, and local audit-event contract.
+- Security unit tests expanded for hard-deny, permission, user intent, authorization levels, emergency-stop, invalid input, and secret detection.
 
 ## Security invariants
 1. No autonomous consequential action.
@@ -32,21 +32,18 @@ Phase 0 — Architecture, threat model and secure foundation.
 USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUTHORIZATION → EXECUTION → VERIFICATION → AUDIT
 
 ## Completed implementation steps
-1. Android foundation commit: `455c1df516f3b22645abcb060eab726cdbd0137f`
+1. Android foundation.
 2. Combined source requirements recorded in `docs/MASTER_REQUIREMENTS_MATRIX.md`.
-3. Deterministic security foundation commit: `68916ce32911791ea6075852a4b1367fb7d8cdec`.
+3. Deterministic security foundation.
+4. Authorization-level enforcement and expanded security tests.
+5. Local audit event contract.
 
-Security foundation includes:
-- `RiskTier` model.
-- `ActionRequest` and `PolicyDecision` contracts.
-- `PolicyEngine` with fail-closed emergency-stop, sensitive-data, permission, explicit-intent and risk-tier checks.
-- `SensitiveDataFirewall` initial secret-like content detection.
-- `EmergencyStopController`.
-- Unit tests for core security invariants.
+## Security review status
+The deterministic policy layer has been reviewed for the currently implemented scope and obvious fail-open paths were closed. This is **not** a claim of a complete security audit or absence of all future bugs; real-device, dependency, Android-platform, integration, penetration and adversarial testing remain required before production/security sign-off.
 
 ## Next implementation target
 - Capability/action permission model: global → app → capability → action → session/context.
-- Local audit event model.
+- Audit storage and redaction policy.
 - Safe Mode / Emergency Stop UI state integration.
 - Local persistence abstraction.
 - Orchestrator contracts with scoped agent capabilities.
