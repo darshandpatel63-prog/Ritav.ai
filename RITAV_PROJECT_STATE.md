@@ -8,16 +8,19 @@ Phase 0 — Architecture, threat model and secure foundation.
 - `RITAV_AI_MASTER_BLUEPRINT.pdf` — user-provided product/design reference.
 - `docs/MASTER_REQUIREMENTS_MATRIX.md` — explicit reconciliation of both sources.
 
-## Current status
-- Repository initialized.
-- Master engineering blueprint added.
-- PDF + repository blueprint reconciliation recorded.
-- Minimal Android application shell committed.
-- Initial shell has no `INTERNET` permission and no network dependency.
-- Package/application ID: `ai.ritav.app`.
-- Version: `0.1.0` / versionCode 1.
-- Deterministic security foundation added and strengthened with explicit authorization levels, fail-closed validation, hardened secret detection, and local audit-event contract.
-- Security unit tests expanded for hard-deny, permission, user intent, authorization levels, emergency-stop, invalid input, and secret detection.
+## Security foundation status
+Implemented baseline deterministic security gates:
+- Risk tiers 0–4.
+- Scoped capability grants: global/app/capability/action/session shape, with default deny.
+- Explicit authorization levels: none, user confirmation, device authentication.
+- Financial-action hard block.
+- Sensitive-data firewall with contextual secret detection/redaction helper.
+- Emergency stop.
+- Local audit event contract with secret-safe action logging.
+- Unit tests covering permission boundaries, authorization, finance blocking, emergency stop and secret detection.
+
+## Important security assessment
+This is a hardened **foundation**, not a claim of mathematically bug-free or production-complete security. The architecture still requires implementation and testing of Android secure storage/key management, screen/input isolation, identity, accessibility boundaries, network enforcement, app capability registry, confirmation UI/device-auth integration, encrypted audit persistence, prompt-injection defenses, dependency/security scanning, and real-device testing before release.
 
 ## Security invariants
 1. No autonomous consequential action.
@@ -25,32 +28,27 @@ Phase 0 — Architecture, threat model and secure foundation.
 3. Financial/UPI automation is denied by default and protected by a dedicated firewall.
 4. No hidden telemetry or private-data egress by default.
 5. External/app content cannot override security policy.
-6. Execution requires valid permission + explicit intent + risk-appropriate authorization.
+6. Execution requires valid scoped permission + explicit intent where required + risk-appropriate authorization.
 7. Uncertainty blocks or asks; it never guesses.
+8. Security policy is deterministic and independent of the AI model.
 
 ## Architecture invariant
 USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUTHORIZATION → EXECUTION → VERIFICATION → AUDIT
 
-## Completed implementation steps
-1. Android foundation.
-2. Combined source requirements recorded in `docs/MASTER_REQUIREMENTS_MATRIX.md`.
-3. Deterministic security foundation.
-4. Authorization-level enforcement and expanded security tests.
-5. Local audit event contract.
-
-## Security review status
-The deterministic policy layer has been reviewed for the currently implemented scope and obvious fail-open paths were closed. This is **not** a claim of a complete security audit or absence of all future bugs; real-device, dependency, Android-platform, integration, penetration and adversarial testing remain required before production/security sign-off.
-
 ## Next implementation target
-- Capability/action permission model: global → app → capability → action → session/context.
-- Audit storage and redaction policy.
-- Safe Mode / Emergency Stop UI state integration.
-- Local persistence abstraction.
-- Orchestrator contracts with scoped agent capabilities.
-- CI verification and Android build validation.
+- Integrate security gates with Safe Mode/Emergency Stop UI state.
+- Encrypted local persistence and Android Keystore-backed key management.
+- App capability registry and Android capability adapters.
+- Orchestrator contracts with strictly scoped agent capabilities.
+- Confirmation/read-back and device-auth flow.
+- Prompt-injection/content trust boundary.
+- Network egress firewall and data-classification gate.
+- Identity/session model.
+- CI verification, dependency/security scanning and Android build validation.
+- Real-device security tests.
 - Later: voice, local AI, Android bridge and app adapters.
 
-## Important constraints
+## Constraints
 - Android OS restrictions are authoritative.
 - Accessibility, microphone, camera and background operation are opt-in capabilities and must not be assumed universally available.
 - No real-device behavior is claimed until tested on a physical Android device.
