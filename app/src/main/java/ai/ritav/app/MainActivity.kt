@@ -21,10 +21,12 @@ import androidx.compose.ui.unit.dp
 import ai.ritav.app.core.security.SecurityRuntimeState
 
 class MainActivity : ComponentActivity() {
-    private val securityState = SecurityRuntimeState()
+    private lateinit var securityState: SecurityRuntimeState
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        securityState = SecurityRuntimeState(applicationContext)
+
         setContent {
             var stopped by remember { mutableStateOf(securityState.isEmergencyStopActive()) }
 
