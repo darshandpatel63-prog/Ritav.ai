@@ -4,14 +4,19 @@
 Phase 0 — Architecture, threat model and secure foundation.
 
 ## Source of truth
-- `RITAV_BLUEPRINT.md` — engineering blueprint created from the project requirements.
-- `RITAV_AI_MASTER_BLUEPRINT.pdf` — user-provided master blueprint. Key requirements from it are incorporated into the repository blueprint.
+- `RITAV_BLUEPRINT.md` — engineering implementation contract.
+- `RITAV_AI_MASTER_BLUEPRINT.pdf` — user-provided product/design reference.
+- `docs/MASTER_REQUIREMENTS_MATRIX.md` — explicit reconciliation of both sources.
 
 ## Current status
 - Repository initialized.
 - Master engineering blueprint added.
-- Persistent project-state mechanism added.
-- Android application foundation is the next implementation step.
+- PDF + repository blueprint reconciliation recorded.
+- Minimal Android application shell committed.
+- Initial shell has no `INTERNET` permission and no network dependency.
+- Package/application ID: `ai.ritav.app`.
+- Version: `0.1.0` / versionCode 1.
+- Initial UI is intentionally minimal; premium UI refinement comes after the security foundation.
 
 ## Security invariants
 1. No autonomous consequential action.
@@ -25,15 +30,27 @@ Phase 0 — Architecture, threat model and secure foundation.
 ## Architecture invariant
 USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUTHORIZATION → EXECUTION → VERIFICATION → AUDIT
 
+## Completed implementation step
+Android foundation commit: `455c1df516f3b22645abcb060eab726cdbd0137f`
+
+Included:
+- Gradle/Kotlin Android project foundation.
+- AndroidManifest with no network permission.
+- Launcher `MainActivity`.
+- Minimal privacy-first shell theme/UI.
+- AndroidX-enabled Gradle configuration.
+
 ## Next implementation target
-Build the minimal Android shell with:
-- premium privacy-first UI foundation
-- onboarding
-- local settings storage abstraction
-- privacy dashboard shell
-- permission-center shell
-- safe-mode/emergency-stop state
-- no network permission in the initial shell unless a later feature explicitly needs it
+Implement deterministic security foundation before automation:
+- risk-tier model
+- capability/action model
+- policy decisions
+- sensitive-data firewall
+- emergency-stop controller
+- local audit event model
+- unit tests covering hard-deny and fail-closed invariants
+
+Then continue with permission/capability center, local persistence, orchestrator contracts, CI verification, and later voice/local AI/automation.
 
 ## Important constraints
 - Android OS restrictions are authoritative.
@@ -45,8 +62,5 @@ Build the minimal Android shell with:
 ## Development rule
 For each feature: implement → test → security review → update documentation → CI verification → record result here.
 
-## Last known commit
-The repository's first commit added `RITAV_BLUEPRINT.md`. This state file was added immediately afterward.
-
 ## Continuation instruction
-A future chat can continue with: “Continue Ritav.ai development. Read `RITAV_PROJECT_STATE.md` and `RITAV_BLUEPRINT.md`, inspect the repository, verify the current build/test state, and continue from the next implementation target.”
+A future chat can continue with: “Continue Ritav.ai development. Read `RITAV_PROJECT_STATE.md`, `RITAV_BLUEPRINT.md`, and `docs/MASTER_REQUIREMENTS_MATRIX.md`, inspect the repository, verify the current build/test state, and continue from the next implementation target.”
