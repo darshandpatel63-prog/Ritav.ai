@@ -6,13 +6,16 @@ class PolicyEngine(
 ) {
     fun evaluate(request: ActionRequest): PolicyDecision {
         if (emergencyStop.isActive()) return deny(AuthorizationLevel.NONE, "Emergency Stop is active")
+        if (request.appId.isBlank() || request.action.isBlank()) {
+            return deny(AuthorizationLevel.NONE, "App and action are required")
+        }
         if (request.riskTier == RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED) {
             return deny(AuthorizationLevel.NONE, "Sensitive or prohibited action")
         }
         if (request.capability == Capability.FINANCIAL_ACTION) {
             return deny(AuthorizationLevel.DEVICE_AUTHENTICATION, "Financial actions are blocked by default")
         }
-        if (request.containsSensitiveData || SensitiveDataFirewall.containsSecretLikeContent(request.action)) {
+        if (request.containsSensitiveData) {
             return deny(AuthorizationLevel.NONE, "Sensitive data cannot enter action reasoning")
         }
         if (!permissionStore.isGranted(request.appId, request.capability, request.action, request.sessionId)) {
@@ -31,7 +34,7 @@ class PolicyEngine(
         if (authorizationRank(request.authorizationLevel) < authorizationRank(requiredAuth)) {
             return deny(requiredAuth, "Risk-appropriate authorization is required")
         }
-        return PolicyDecision(true, requiredAuth == AuthorizationLevel.USER_CONFIRMATION, requiredAuth, "Allowed")
+        return PolicyDecision(true, false, requiredAuth, "Allowed by deterministic policy")
     }
 
     fun stop() = emergencyStop.activate()
