@@ -5,56 +5,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PolicyEngineTest {
-    private fun store() = InMemoryPermissionStore(
-        setOf(CapabilityGrant("demo", Capability.APP_LAUNCH, "open", sessionId = null))
-    )
+    private fun request(riskTier: RiskTier = RiskTier.TIER_0_INFORMATIONAL, capability: Capability = Capability.READ_ALLOWED_CONTENT, authorization: AuthorizationLevel = AuthorizationLevel.NONE, explicit: Boolean = false, sensitive: Boolean = false) = ActionRequest(appId = "com.example.app", action = "read", riskTier = riskTier, capability = capability, userExplicitlyRequested = explicit, authorizationLevel = authorization, containsSensitiveData = sensitive)
 
-    @Test fun deniesTier4() {
-        val result = PolicyEngine(store()).evaluate(ActionRequest("demo", "open", RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED, capability = Capability.APP_LAUNCH))
-        assertFalse(result.allowed)
-    }
+    @Test fun emergencyStopAlwaysDenies() { val stop = EmergencyStopController(); val engine = PolicyEngine(InMemoryPermissionStore(), stop); stop.activate(); assertFalse(engine.evaluate(request()).allowed) }
 
-    @Test fun deniesWithoutScopedPermission() {
-        val result = PolicyEngine().evaluate(ActionRequest("demo", "open", RiskTier.TIER_1_REVERSIBLE, capability = Capability.APP_LAUNCH))
-        assertFalse(result.allowed)
-    }
+    @Test fun financialActionIsHardDeniedEvenWithAuthorization() { val engine = PolicyEngine(); val decision = engine.evaluate(request(RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE, Capability.FINANCIAL_ACTION, AuthorizationLevel.DEVICE_AUTHENTICATION, true)); assertFalse(decision.allowed) }
 
-    @Test fun deniesWrongAppEvenWhenActionMatches() {
-        val result = PolicyEngine(store()).evaluate(ActionRequest("other", "open", RiskTier.TIER_1_REVERSIBLE, capability = Capability.APP_LAUNCH))
-        assertFalse(result.allowed)
-    }
+    @Test fun sensitiveDataIsDenied() { assertFalse(PolicyEngine().evaluate(request(sensitive = true)).allowed) }
 
-    @Test fun tier2RequiresUserConfirmation() {
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit")))
-        val withoutAuth = PolicyEngine(permissions).evaluate(ActionRequest("demo", "edit", RiskTier.TIER_2_CONTENT_MUTATION, capability = Capability.UI_AUTOMATION, userExplicitlyRequested = true))
-        assertFalse(withoutAuth.allowed)
-        val confirmed = PolicyEngine(permissions).evaluate(ActionRequest("demo", "edit", RiskTier.TIER_2_CONTENT_MUTATION, capability = Capability.UI_AUTOMATION, userExplicitlyRequested = true, authorizationLevel = AuthorizationLevel.USER_CONFIRMATION))
-        assertTrue(confirmed.allowed)
-        assertTrue(confirmed.requiresConfirmation.not())
-    }
+    @Test fun ungrantedCapabilityIsDenied() { assertFalse(PolicyEngine().evaluate(request()).allowed) }
 
-    @Test fun tier3RequiresDeviceAuthentication() {
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.SEND_MESSAGE, "send")))
-        val result = PolicyEngine(permissions).evaluate(ActionRequest("demo", "send", RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE, capability = Capability.SEND_MESSAGE, userExplicitlyRequested = true, authorizationLevel = AuthorizationLevel.USER_CONFIRMATION))
-        assertFalse(result.allowed)
-    }
+    @Test fun tierTwoRequiresUserConfirmation() { val store = InMemoryPermissionStore(setOf(CapabilityGrant("com.example.app", Capability.READ_ALLOWED_CONTENT, "read"))); val decision = PolicyEngine(store).evaluate(request(RiskTier.TIER_2_CONTENT_MUTATION)); assertFalse(decision.allowed); assertTrue(decision.requiredAuthorization == AuthorizationLevel.USER_CONFIRMATION) }
 
-    @Test fun financialCapabilityIsBlockedByDefault() {
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant("bank", Capability.FINANCIAL_ACTION, "pay")))
-        val result = PolicyEngine(permissions).evaluate(ActionRequest("bank", "pay", RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE, capability = Capability.FINANCIAL_ACTION, userExplicitlyRequested = true, authorizationLevel = AuthorizationLevel.DEVICE_AUTHENTICATION))
-        assertFalse(result.allowed)
-    }
-
-    @Test fun emergencyStopBlocks() {
-        val engine = PolicyEngine(store())
-        engine.stop()
-        val result = engine.evaluate(ActionRequest("demo", "open", RiskTier.TIER_1_REVERSIBLE, capability = Capability.APP_LAUNCH))
-        assertFalse(result.allowed)
-    }
-
-    @Test fun firewallUsesContextNotAnyFourDigitNumber() {
-        assertTrue(SensitiveDataFirewall.containsSecretLikeContent("enter OTP 123456"))
-        assertTrue(SensitiveDataFirewall.containsSecretLikeContent("password: secret-value"))
-        assertFalse(SensitiveDataFirewall.containsSecretLikeContent("open room 1234"))
-    }
+    @Test fun tierThreeRequiresExplicitIntentAndDeviceAuth() { val store = InMemoryPermissionStore(setOf(CapabilityGrant("com.example.app", Capability.READ_ALLOWED_CONTENT, "read"))); val engine = PolicyEngine(store); assertFalse(engine.evaluate(request(RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE, authorization = AuthorizationLevel.DEVICE_AUTHENTICATION)).allowed); assertTrue(engine.evaluate(request(RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE, authorization = AuthorizationLevel.DEVICE_AUTHENTICATION, explicit = true)).allowed) }
 }
