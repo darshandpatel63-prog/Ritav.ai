@@ -2,22 +2,47 @@ package ai.ritav.app.core.security
 
 class PolicyEngine(private val emergencyStop: EmergencyStopController = EmergencyStopController()) {
     fun evaluate(request: ActionRequest): PolicyDecision {
-        if (emergencyStop.isActive()) return PolicyDecision(false, false, "Emergency Stop is active")
+        if (emergencyStop.isActive()) return deny("Emergency Stop is active")
+        if (request.appId.isBlank() || request.action.isBlank()) return deny("App and action are required")
         if (request.riskTier == RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED) {
-            return PolicyDecision(false, false, "Sensitive or prohibited action")
+            return deny("Sensitive or prohibited action")
         }
         if (request.containsSensitiveData) {
-            return PolicyDecision(false, false, "Sensitive data cannot enter action reasoning")
+            return deny("Sensitive data cannot enter action reasoning")
         }
         if (!request.permissionGranted) {
-            return PolicyDecision(false, false, "Required permission is not granted")
+            return deny("Required permission is not granted")
         }
-        if (!request.userExplicitlyRequested && request.riskTier >= RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE) {
-            return PolicyDecision(false, false, "Explicit user intent is required")
+
+        val requiredAuth = when (request.riskTier) {
+            RiskTier.TIER_0_INFORMATIONAL -> AuthorizationLevel.NONE
+            RiskTier.TIER_1_REVERSIBLE -> AuthorizationLevel.NONE
+            RiskTier.TIER_2_CONTENT_MUTATION -> AuthorizationLevel.USER_CONFIRMATION
+            RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE -> AuthorizationLevel.DEVICE_AUTHENTICATION
+            RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED -> AuthorizationLevel.DEVICE_AUTHENTICATION
         }
-        val confirmation = request.riskTier >= RiskTier.TIER_2_CONTENT_MUTATION
-        return PolicyDecision(true, confirmation, if (confirmation) "Allowed after confirmation" else "Allowed")
+
+        if (request.riskTier >= RiskTier.TIER_2_CONTENT_MUTATION && !request.userExplicitlyRequested) {
+            return deny("Explicit user intent is required")
+        }
+        if (request.authorizationLevel.ordinal < requiredAuth.ordinal) {
+            return PolicyDecision(
+                allowed = false,
+                requiresConfirmation = true,
+                requiredAuthorization = requiredAuth,
+                reason = "Risk-appropriate authorization is required"
+            )
+        }
+
+        return PolicyDecision(
+            allowed = true,
+            requiresConfirmation = false,
+            requiredAuthorization = requiredAuth,
+            reason = "Allowed by deterministic policy"
+        )
     }
+
+    private fun deny(reason: String) = PolicyDecision(false, false, AuthorizationLevel.NONE, reason)
 
     fun stop() = emergencyStop.activate()
     fun resume() = emergencyStop.reset()
