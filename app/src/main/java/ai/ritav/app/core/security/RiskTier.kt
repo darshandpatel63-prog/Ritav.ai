@@ -1,0 +1,9 @@
+package ai.ritav.app.core.security
+
+enum class RiskTier {
+    TIER_0_INFORMATIONAL,
+    TIER_1_REVERSIBLE,
+    TIER_2_CONTENT_MUTATION,
+    TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+    TIER_4_SENSITIVE_OR_PROHIBITED
+}
