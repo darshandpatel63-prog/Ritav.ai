@@ -47,6 +47,20 @@ class SensitiveInformationFirewallTest {
         assertFalse(result.redactedText.contains("BEGIN PRIVATE KEY"))
     }
 
+    @Test fun privateKeyWithSpecificAlgorithmLabelIsDetected() {
+        val key = "-----BEGIN RSA PRIVATE KEY-----\nabc123\n-----END RSA PRIVATE KEY-----"
+        val result = firewall.inspect(key)
+        assertBlockedWithType(result, SensitiveDataType.PRIVATE_KEY)
+        assertFalse(result.redactedText.contains("RSA PRIVATE KEY"))
+    }
+
+    @Test fun malformedPrivateKeyEnvelopeIsNotTreatedAsAValidKey() {
+        val malformed = "-----BEGIN PRIVATE KEY-----\nabc123\n-----END PUBLIC KEY-----"
+        val result = firewall.inspect(malformed)
+        assertTrue(result.allowed)
+        assertEquals(malformed, result.redactedText)
+    }
+
     @Test fun apiKeyIsDetectedAndRedactedEvenWhenSecretEndsWithPunctuation() {
         val result = firewall.inspect("api_key=AbCdEfGhIjKlMnOp-")
         assertBlockedWithType(result, SensitiveDataType.API_KEY)
@@ -64,6 +78,13 @@ class SensitiveInformationFirewallTest {
 
     @Test fun genericTextWithoutSecretMarkersIsAllowed() {
         val text = "The product catalog has a security code field and a numeric example 123."
+        val result = firewall.inspect(text)
+        assertTrue(result.allowed)
+        assertEquals(text, result.redactedText)
+    }
+
+    @Test fun secretMarkerWithoutASecretValueIsAllowed() {
+        val text = "The settings page contains a recovery code field for account recovery."
         val result = firewall.inspect(text)
         assertTrue(result.allowed)
         assertEquals(text, result.redactedText)
@@ -144,6 +165,41 @@ class SensitiveInformationFirewallTest {
         assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
         assertEquals("", result.redactedText)
         assertTrue(result.matches.isEmpty())
+    }
+
+    @Test fun zeroWidthObfuscationInsideDigitsIsBlockedConservatively() {
+        val result = firewall.inspect("OTP 1\u200b2\u200b3\u200b4\u200b5\u200b6")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun whitespaceInsideSensitiveDigitsIsBlockedConservatively() {
+        val result = firewall.inspect("OTP 12 34 56")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun zeroWidthAndWhitespaceCanBeCombinedWithoutBypassingDetection() {
+        val result = firewall.inspect("O\u200b T P 12\u200b 34 56")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun spacedUpiPinMarkerIsBlockedConservatively() {
+        val result = firewall.inspect("U P I P I N 1234")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun fullWidthUnicodeDigitsAreNormalizedForDetection() {
+        val result = firewall.inspect("OTP １２３４５６")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
     }
 
     @Test fun unicodeNormalizedSecretIsBlockedConservatively() {
