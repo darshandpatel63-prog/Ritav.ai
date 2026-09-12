@@ -62,6 +62,12 @@ class SensitiveInformationFirewallTest {
         assertEquals(null, result.blockReason)
     }
 
+    @Test fun securityCodeWithoutSensitiveContextIsNotAutomaticallyBlocked() {
+        val result = firewall.inspect("The product security code is 123")
+        assertTrue(result.allowed)
+        assertEquals("The product security code is 123", result.redactedText)
+    }
+
     @Test fun multipleSecretsAreAllDetected() {
         val result = firewall.inspect("OTP 123456 and CVV 987")
         assertFalse(result.allowed)
@@ -123,12 +129,26 @@ class SensitiveInformationFirewallTest {
         assertEquals("", result.redactedText)
     }
 
+    @Test fun whitespaceChangedRepresentationIsBlockedConservatively() {
+        val result = firewall.inspect("O T P 123456")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+        assertTrue(result.matches.isEmpty())
+    }
+
     @Test fun unicodeNormalizedSecretIsBlockedConservatively() {
         val result = firewall.inspect("OTP\u00a0123456")
         assertFalse(result.allowed)
         assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
         assertEquals("", result.redactedText)
         assertTrue(result.matches.isEmpty())
+    }
+
+    @Test fun normalizedBenignTextRemainsAllowed() {
+        val result = firewall.inspect("Cafe\u00a0nearby")
+        assertTrue(result.allowed)
+        assertEquals("Cafe\u00a0nearby", result.redactedText)
     }
 
     @Test fun unusualInputDoesNotCrash() {
