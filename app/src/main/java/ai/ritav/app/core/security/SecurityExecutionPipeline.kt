@@ -38,12 +38,18 @@ class SecurityExecutionPipeline(
         }
 
         val inspectedInput = request.inputText?.let(sensitiveFirewall::inspect)
-        if (inspectedInput?.matches?.isNotEmpty() == true) {
-            return denyAndAudit(
-                request, actionHash,
-                "Sensitive information detected; input is blocked before execution",
-                AuthorizationLevel.NONE
-            ).copy(sanitizedInput = inspectedInput.redactedText)
+        if (inspectedInput?.allowed == false) {
+            val reason = when (inspectedInput.blockReason) {
+                FirewallBlockReason.SENSITIVE_DATA_DETECTED ->
+                    "Sensitive information detected; input is blocked before execution"
+                FirewallBlockReason.INPUT_TOO_LARGE ->
+                    "Input exceeds the sensitive-information inspection limit; uninspectable input is blocked"
+                FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED ->
+                    "Sensitive information was detected during conservative normalization inspection; input is blocked"
+                null -> "Input could not be safely inspected; input is blocked before execution"
+            }
+            return denyAndAudit(request, actionHash, reason, AuthorizationLevel.NONE)
+                .copy(sanitizedInput = inspectedInput.redactedText.takeIf { it.isNotEmpty() })
         }
 
         if (request.action.containsSensitiveData) {
@@ -78,7 +84,7 @@ class SecurityExecutionPipeline(
             request.nowEpochMillis, request.action.sessionId, actionHash,
             AuditEventType.POLICY_DECISION, true, false, decision.reason
         ))
-        return SecurityExecutionDecision(true, decision.reason, required, inspectedInput?.redactedText ?: request.inputText)
+        return SecurityExecutionDecision(true, decision.reason, required, request.inputText)
     }
 
     fun audit(): List<AuditEvent> = auditLog.readAll()
