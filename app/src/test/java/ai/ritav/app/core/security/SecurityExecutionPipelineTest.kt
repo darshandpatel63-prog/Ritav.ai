@@ -75,6 +75,64 @@ class SecurityExecutionPipelineTest {
         assertTrue(pipeline.audit().none { it.reason.contains("123456") })
     }
 
+    @Test fun oversizedInputIsBlockedBeforeAuthorizationAndExecution() {
+        val p = plan()
+        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val gate = ActionAuthorizationGate()
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action(),
+                plan = p,
+                authorizationToken = token,
+                identitySession = trustedSession(1_000),
+                nowEpochMillis = 1_000,
+                inputText = "x".repeat(16_385)
+            )
+        )
+
+        assertFalse(result.allowed)
+        assertTrue(result.sanitizedInput == null)
+
+        // The oversized input must not consume the authorization token. The
+        // same valid request can still use it after a safe, inspectable input.
+        val allowedAfterBlockedAttempt = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action(),
+                plan = p,
+                authorizationToken = token,
+                identitySession = trustedSession(1_000),
+                nowEpochMillis = 1_000,
+                inputText = "benign input"
+            )
+        )
+        assertTrue(allowedAfterBlockedAttempt.allowed)
+    }
+
+    @Test fun normalizedSensitiveInputIsBlockedBeforeAuthorization() {
+        val p = plan()
+        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val gate = ActionAuthorizationGate()
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action(),
+                plan = p,
+                authorizationToken = token,
+                identitySession = trustedSession(1_000),
+                nowEpochMillis = 1_000,
+                inputText = "OTP\u00a0123456"
+            )
+        )
+
+        assertFalse(result.allowed)
+        assertTrue(result.sanitizedInput == null)
+    }
+
     @Test fun explicitSensitiveFlagIsStillBlockedWithoutRawInput() {
         val p = plan()
         val sensitiveAction = action().copy(containsSensitiveData = true)
