@@ -5,7 +5,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * One-time authorization gate bound to the exact action plan.
- * A confirmation cannot be replayed for another plan or reused after consume.
+ * Token minting is internal; production callers must use the trusted
+ * ActionAuthorizationService rather than self-asserting an auth level.
  */
 class ActionAuthorizationGate {
     private data class Grant(
@@ -16,7 +17,7 @@ class ActionAuthorizationGate {
 
     private val grants = ConcurrentHashMap<String, Grant>()
 
-    fun issue(
+    internal fun issue(
         plan: ActionPlan,
         requiredLevel: AuthorizationLevel,
         nowEpochMillis: Long,
