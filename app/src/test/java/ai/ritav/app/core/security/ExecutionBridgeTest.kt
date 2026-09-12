@@ -33,7 +33,7 @@ class ExecutionBridgeTest {
             adapter
         )
         val result = bridge.execute(
-            plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE),
+            ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE),
             userExplicitlyRequested = true
         )
         assertFalse(result.success)
@@ -100,6 +100,19 @@ class ExecutionBridgeTest {
         val bridge = ExecutionBridge(
             PolicyEngine(),
             CapabilityPolicyGate(registry),
+            adapter
+        )
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+        assertFalse(result.success)
+        assertEquals(0, adapter.calls)
+    }
+
+    @Test fun policyStillRunsAfterCapabilityGatePasses() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE)
+        val adapter = RecordingAdapter()
+        val bridge = ExecutionBridge(
+            PolicyEngine(),
+            CapabilityPolicyGate(registryFor(plan)),
             adapter
         )
         val result = bridge.execute(plan, userExplicitlyRequested = true)
