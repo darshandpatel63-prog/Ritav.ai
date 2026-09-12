@@ -75,6 +75,38 @@ class ExecutionBridgeTest {
         assertEquals(0, adapter.calls)
     }
 
+    @Test fun sensitiveInputIsBlockedAtBridgeAndAuthorizationTokenRemainsUsable() {
+        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, "s1")
+        val adapter = RecordingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val policy = PolicyEngine(permissions)
+        val authGate = ActionAuthorizationGate()
+        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, authGate), adapter)
+        val token = authGate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1000L)
+
+        val blocked = bridge.execute(
+            plan,
+            userExplicitlyRequested = true,
+            authorizationLevel = AuthorizationLevel.USER_CONFIRMATION,
+            authorizationToken = token,
+            identitySession = identity(),
+            inputText = "OTP: 123456"
+        )
+        assertFalse(blocked.success)
+        assertEquals(0, adapter.calls)
+
+        val allowed = bridge.execute(
+            plan,
+            userExplicitlyRequested = true,
+            authorizationLevel = AuthorizationLevel.USER_CONFIRMATION,
+            authorizationToken = token,
+            identitySession = identity(),
+            inputText = "open the editor"
+        )
+        assertTrue(allowed.success)
+        assertEquals(1, adapter.calls)
+    }
+
     @Test fun financialCapabilityCannotReachAdapterEvenWhenRegistered() {
         val plan = ActionPlan("bank.app", Capability.FINANCIAL_ACTION, "transfer", RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED)
         val adapter = RecordingAdapter()
