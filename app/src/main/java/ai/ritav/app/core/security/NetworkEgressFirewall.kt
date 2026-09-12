@@ -38,9 +38,14 @@ class NetworkEgressFirewall {
                 } else {
                     deny("Sensitive data requires explicit user authorization")
                 }
-            DataClassification.PUBLIC,
             DataClassification.USER_DATA ->
-                NetworkEgressDecision(true, "Egress permitted by current classification policy")
+                if (request.userExplicitlyAuthorized) {
+                    NetworkEgressDecision(true, "User data egress explicitly authorized")
+                } else {
+                    deny("User data requires explicit user authorization")
+                }
+            DataClassification.PUBLIC ->
+                NetworkEgressDecision(true, "Public-data egress permitted by classification policy")
         }
     }
 
