@@ -52,7 +52,8 @@ Implemented in the current `main` branch:
 - Unicode format-character inspection uses explicit code-point conversion for Java `Character.getType`.
 - Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without broad transliteration.
 - Unicode decimal digits are folded to ASCII digits for transformed detection, reducing script-specific digit bypass risk while leaving unrelated Unicode numbers allowed.
-- Whitespace/zero-width, Unicode normalization, homoglyph, and non-ASCII decimal-digit obfuscation regression cases are covered.
+- Credential labels whose separators are removed by compaction are now matched in their compact form, including one-time-password, recovery-code, and login-password labels.
+- Whitespace/zero-width, Unicode normalization, homoglyph, non-ASCII decimal-digit, and compacted-label obfuscation regression cases are covered.
 - Security pipeline tests verify that oversized and normalization-detected inputs are blocked before authorization is consumed.
 - ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and a token remains usable after that blocked inspection.
 
@@ -64,7 +65,7 @@ Implemented in the current `main` branch:
 - Redaction preservation of surrounding text.
 - No secret value in `SensitiveMatch`.
 - Exact maximum length and oversized fail-closed behavior, including oversized input containing a secret.
-- Whitespace, zero-width, Unicode-normalization, Greek/Cyrillic homoglyph, and Unicode decimal-digit obfuscation.
+- Whitespace, zero-width, Unicode-normalization, Greek/Cyrillic homoglyph, Unicode decimal-digit, and compacted credential-label obfuscation.
 - Confusable-fold and decimal-digit false-positive regressions without sensitive markers.
 - Unusual/malformed Unicode input not crashing the call.
 
@@ -77,6 +78,8 @@ The explicit confusable mapping is intentionally narrow. It is defense-in-depth 
 
 Unicode decimal-digit folding is also defense-in-depth: it converts only characters classified as decimal digits and successfully mapped by `Character.digit(char, 10)`. It does not attempt broad numeric-script transliteration.
 
+Compacted credential-label matching specifically addresses a representation mismatch: the inspection pass removes whitespace/format characters, so labels that require a separator in ordinary text must also be recognized without that separator. This remains deterministic and detection-only; it does not broaden to arbitrary transliteration.
+
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
 ## Important security assessment
@@ -86,19 +89,18 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
 - Relevant firewall and test sources were re-fetched before modification.
-- Current firewall hardening commit: `6ee4a0502c70ea422346cdc43b1e28685a4202de`.
-- Current firewall test commit: `2bd8d1c41f97acdec677e7f06de62645e6ab0932`.
+- Latest security hardening commit: `de3bfc3ae5e3d1726f0098ee9421da9a37f9802e`.
+- Latest firewall test commit: `8a4258bc1952b2b51dfc32c1d9e623a847504190`.
 - No executable Gradle wrapper was present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
 - Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `8a4258bc1952b2b51dfc32c1d9e623a847504190` — test: cover compacted credential-label detection.
+- `de3bfc3ae5e3d1726f0098ee9421da9a37f9802e` — security: close compacted credential-label bypasses.
+- `8d6c4d4b3b079effe7dac20ff9d224bee2fe5590` — docs: record Unicode decimal digit firewall hardening.
 - `2bd8d1c41f97acdec677e7f06de62645e6ab0932` — test: cover Unicode decimal digit normalization.
 - `6ee4a0502c70ea422346cdc43b1e28685a4202de` — security: harden sensitive firewall against Unicode decimal digits.
-- `18b509468b5d3deaaecfc89f0bd90fae88977001` — docs: record latest sensitive firewall hardening state.
-- `152e80e6d46822cf6f747bb249a12a341d0bba57` — docs: record Unicode confusable firewall hardening state.
-- `0f2c67f40d2369650099ae651047922947e6ab12` — test: cover Unicode confusable sensitive markers.
-- `6d67780ff32142626a4f9e2c315503f26cbf9764` — security: harden sensitive firewall against common Unicode confusables.
 
 ## Security invariants
 1. No autonomous consequential action.
