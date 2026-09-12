@@ -26,7 +26,8 @@ class ExecutionBridge(
         authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
         containsSensitiveData: Boolean = false,
         authorizationToken: String? = null,
-        identitySession: SecuritySession? = null
+        identitySession: SecuritySession? = null,
+        inputText: String? = null
     ): ExecutionResult {
         val now = clock()
         val actionHash = plan.stableHash()
@@ -54,7 +55,8 @@ class ExecutionBridge(
                 plan = plan,
                 authorizationToken = authorizationToken,
                 identitySession = identitySession,
-                nowEpochMillis = now
+                nowEpochMillis = now,
+                inputText = inputText
             )
         )
         if (!securityDecision.allowed) {
