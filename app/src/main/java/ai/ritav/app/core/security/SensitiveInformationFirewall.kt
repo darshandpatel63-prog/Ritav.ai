@@ -2,12 +2,11 @@ package ai.ritav.app.core.security
 
 /**
  * Deterministic pre-AI/pre-execution boundary for high-risk secrets.
- * The firewall returns classifications/redacted text and never persists the
- * original matched secret.
+ * The original matched value is never returned in a match object and is not persisted.
  */
 enum class SensitiveDataType {
     OTP,
-    UPi_PIN,
+    UPI_PIN,
     PASSWORD,
     CVV,
     RECOVERY_CODE,
@@ -34,7 +33,7 @@ class SensitiveInformationFirewall {
 
         val matches = buildList {
             OTP.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.OTP, it.range.first, it.range.last + 1)) }
-            UPI_PIN.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.UPi_PIN, it.range.first, it.range.last + 1)) }
+            UPI_PIN.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.UPI_PIN, it.range.first, it.range.last + 1)) }
             CVV.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.CVV, it.range.first, it.range.last + 1)) }
             PRIVATE_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.PRIVATE_KEY, it.range.first, it.range.last + 1)) }
             API_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.API_KEY, it.range.first, it.range.last + 1)) }
@@ -47,15 +46,15 @@ class SensitiveInformationFirewall {
 
         var redacted = text
         matches.forEach { match ->
-            redacted = redacted.removeRange(match.start, match.end).let { prefix ->
-                prefix.substring(0, match.start) + "[REDACTED:${match.type.name}]" + prefix.substring(match.start)
-            }
+            val original = redacted
+            redacted = original.substring(0, match.start) +
+                "[REDACTED:${match.type.name}]" +
+                original.substring(match.end)
         }
         return FirewallResult(false, redacted, matches)
     }
 
     companion object {
-        // Strongly contextualized OTP detection; avoids treating every 4–8 digit number as a secret.
         private val OTP = Regex("(?i)(?:otp|one[- ]time password|verification code|security code)\\s*(?:is|:|=)?\\s*\\b\\d{4,8}\\b")
         private val UPI_PIN = Regex("(?i)(?:upi\\s*pin|pin for upi)\\s*(?:is|:|=)?\\s*\\b\\d{4,6}\\b")
         private val CVV = Regex("(?i)(?:cvv|cvc|security code)\\s*(?:is|:|=)?\\s*\\b\\d{3,4}\\b")
