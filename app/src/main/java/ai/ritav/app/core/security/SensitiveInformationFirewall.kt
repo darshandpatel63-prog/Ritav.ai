@@ -29,6 +29,7 @@ data class FirewallResult(
 
 class SensitiveInformationFirewall {
     fun inspect(text: String): FirewallResult {
+        require(text.length <= MAX_INPUT_LENGTH) { "Sensitive input exceeds inspection limit" }
         if (text.isEmpty()) return FirewallResult(true, text, emptyList())
 
         val matches = buildList {
@@ -55,6 +56,7 @@ class SensitiveInformationFirewall {
     }
 
     companion object {
+        private const val MAX_INPUT_LENGTH = 16_384
         private val OTP = Regex("(?i)(?:otp|one[- ]time password|verification code|security code)\\s*(?:is|:|=)?\\s*\\b\\d{4,8}\\b")
         private val UPI_PIN = Regex("(?i)(?:upi\\s*pin|pin for upi)\\s*(?:is|:|=)?\\s*\\b\\d{4,6}\\b")
         private val CVV = Regex("(?i)(?:cvv|cvc|security code)\\s*(?:is|:|=)?\\s*\\b\\d{3,4}\\b")
