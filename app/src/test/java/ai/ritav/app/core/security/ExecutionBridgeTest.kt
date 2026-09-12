@@ -14,12 +14,23 @@ class ExecutionBridgeTest {
         }
     }
 
+    private class ThrowingAdapter : AndroidActionAdapter {
+        var calls = 0
+        override fun execute(plan: ActionPlan): ExecutionResult {
+            calls++
+            error("simulated adapter failure")
+        }
+    }
+
     private fun registryFor(plan: ActionPlan) = AppCapabilityRegistry(
         listOf(AppCapabilitySpec(plan.appId, plan.capability, setOf(plan.action), plan.riskTier))
     )
 
     private fun pipelineFor(policy: PolicyEngine, gate: ActionAuthorizationGate = ActionAuthorizationGate()) =
         SecurityExecutionPipeline(policy, ExecutionPolicyGate(policy), gate)
+
+    private fun identity(sessionId: String = "s1") =
+        SecuritySession(sessionId, IdentityLevel.OWNER_SIGNAL, 1000L, 61000L)
 
     @Test fun unregisteredCapabilityNeverReachesAdapter() {
         val adapter = RecordingAdapter()
@@ -81,8 +92,7 @@ class ExecutionBridgeTest {
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
         val policy = PolicyEngine(permissions)
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
-        val identity = SecuritySession("s1", IdentityLevel.OWNER_SIGNAL, 1000L, 61000L)
-        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, identitySession = identity)
+        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, identitySession = identity())
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
@@ -94,10 +104,63 @@ class ExecutionBridgeTest {
         val policy = PolicyEngine(permissions)
         val authGate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, authGate), adapter)
-        val identity = SecuritySession("s1", IdentityLevel.OWNER_SIGNAL, 1000L, 61000L)
         val token = authGate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1000L)
-        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = identity)
+        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = identity())
         assertTrue(result.success)
         assertEquals(1, adapter.calls)
+    }
+
+    @Test fun wrongPlanTokenCannotAuthorizeExecution() {
+        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, "s1")
+        val otherPlan = plan.copy(action = "delete")
+        val adapter = RecordingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val policy = PolicyEngine(permissions)
+        val gate = ActionAuthorizationGate()
+        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
+        val token = gate.issue(otherPlan, AuthorizationLevel.USER_CONFIRMATION, 1000L)
+        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, token, identitySession = identity())
+        assertFalse(result.success)
+        assertEquals(0, adapter.calls)
+    }
+
+    @Test fun authorizationTokenCannotBeReplayed() {
+        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, "s1")
+        val adapter = RecordingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val policy = PolicyEngine(permissions)
+        val gate = ActionAuthorizationGate()
+        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1000L)
+        val first = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, token, identitySession = identity())
+        val second = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, token, identitySession = identity())
+        assertTrue(first.success)
+        assertFalse(second.success)
+        assertEquals(1, adapter.calls)
+    }
+
+    @Test fun adapterFailureIsContainedAndDoesNotReportSuccess() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE)
+        val adapter = ThrowingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions)
+        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
+        val result = bridge.execute(plan, true)
+        assertFalse(result.success)
+        assertFalse(result.verified)
+        assertEquals(1, adapter.calls)
+    }
+
+    @Test fun emergencyStopBlocksExecution() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE)
+        val adapter = RecordingAdapter()
+        val stop = EmergencyStopController()
+        stop.activate()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions, stop)
+        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
+        val result = bridge.execute(plan, true)
+        assertFalse(result.success)
+        assertEquals(0, adapter.calls)
     }
 }
