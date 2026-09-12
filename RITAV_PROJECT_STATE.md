@@ -50,12 +50,14 @@ Implemented in the current `main` branch:
 - Inputs over the limit now fail closed with an explicit `INPUT_TOO_LARGE` result instead of throwing.
 - Failed/blocked inspection never forwards the original oversized value through the security pipeline.
 - NFKC/whitespace-compacted inspection is detection-only; if a sensitive pattern is found after a representation-changing normalization/compaction pass, the firewall conservatively blocks rather than attempting unsafe offset mapping/redaction.
+- Unicode format-character inspection uses an explicit code-point conversion for Java `Character.getType`, avoiding a Char/int interop ambiguity in the security-critical normalization path.
 - A false-positive regression case was added for generic text without secret markers.
-- A whitespace-obfuscation regression case (`O T P 123456`) is covered and conservatively blocked.
+- Whitespace/zero-width obfuscation regression cases are covered and conservatively blocked.
 - Security pipeline tests verify that oversized and normalization-detected inputs are blocked before authorization is consumed.
+- ExecutionBridge coverage now verifies that sensitive `inputText` is blocked at the bridge path and that a token remains usable after that blocked inspection.
 
 ## Dedicated firewall test coverage added
-`app/src/test/java/ai/ritav/app/core/security/SensitiveInformationFirewallTest.kt` now covers:
+`app/src/test/java/ai/ritav/app/core/security/SensitiveInformationFirewallTest.kt` covers:
 - OTP.
 - UPI PIN.
 - CVV.
@@ -73,7 +75,8 @@ Implemented in the current `main` branch:
 - Oversized input fail-closed behavior.
 - Oversized input containing a secret.
 - Whitespace-obfuscation detection.
-- Conservative Unicode normalization detection.
+- Zero-width obfuscation detection.
+- Unicode normalization detection.
 - Normalized benign text.
 - Unusual/malformed Unicode input not crashing the test call.
 
@@ -82,7 +85,7 @@ The current source review identified an important design boundary: transformed r
 
 The direct `security code` pattern intentionally has security-sensitive semantics because it is used for CVV/verification-code detection. Generic false-positive coverage therefore avoids asserting that an unqualified `security code + digits` phrase is always benign.
 
-The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
+The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
 ## Important security assessment
 This is a hardened **foundation**, not a claim of mathematically bug-free or production-complete security. Regex detection is not comprehensive secret detection. Unicode/obfuscation resistance, contextual detection, OCR/screen filtering, structured input isolation, and full model/context ingestion remain unfinished. No real-device security result is claimed until physical-device testing occurs.
@@ -91,21 +94,21 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
 - `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_BLUEPRINT.md`, and `docs/MASTER_REQUIREMENTS_MATRIX.md` were inspected before code changes.
-- Current firewall, security pipeline, authorization gate/service, test file, Android build configuration, manifest, recent commits, and CI/workflow presence were inspected.
-- Current firewall blob SHA after the latest hardening: `a9591fa43d9898cd50b44bffc82a097e52b8c415`.
-- Current firewall test blob SHA after the latest test correction: `be204f0fb0cc157b4b7b326b2229b534980e830f`.
-- `gradlew` and `gradle/wrapper/gradle-wrapper.properties` were not present through repository inspection.
-- No `.github/workflows` directory was available through repository inspection.
-- GitHub commit status checks were previously absent; current repository state has not supplied an executable CI result.
-- A local `git clone` attempt in this environment failed because outbound DNS/network access to GitHub was unavailable, so no local Gradle execution could be performed here.
+- Current firewall, security pipeline, authorization gate/service, bridge, tests, Android build configuration, manifest, and recent commits were inspected.
+- Current firewall blob SHA after the Unicode interop correction: `c7defb7da36b5d4e57dcf4106dc7993f87df4167`.
+- Current firewall test blob SHA: `f14e81393820c44bbd32abcf60d6594c65307b02`.
+- Current ExecutionBridge test blob SHA after bridge-boundary coverage: `632ed320df292f01d54131c05880365deb900002`.
+- No executable Gradle wrapper was present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
+- The current GitHub commit has an empty combined-status result.
+- Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
-- `ce012f50cadaba362868e1ba2dc2da4675b45682` — docs: refine continuous verification and audit cadence.
-- `b4ca4bb32b29436d27075aaf9b094fff06ec3b20` — docs: add common AI workflow and development contract.
-- `239148f329fc661e5de7ff16bdeb639de3dd79ef` — docs: record sensitive firewall hardening stop point.
-- `0448e17ed2c05708d3eefe6ae9b503362fbe5613` — security: block whitespace-obfuscated sensitive patterns.
-- `c818afe19d4b885c54d1b335e15faac7e8327dc3` — test: correct sensitive-context false-positive regression.
+- `7b349b74fa6bf5a1bf2a9b081e052fe6b34a5799` — fix: use code point conversion for Unicode format inspection.
+- `58efefec7bcb39250c64ead004f000317d5110a7` — test: cover bridge sensitive-input boundary and token preservation.
+- `1f9025f11dea7a785aa780a6994d2f9ab356c7ff` — test: verify obfuscated secret rejection preserves authorization token.
+- `e06640b99359b91a4145925fe91b6bfce5168d86` — test: expand sensitive firewall adversarial Unicode and context coverage.
+- `10cbb1cb27ce2d5a3d11afc01b2bfca15bc0a4dc` — test: cover zero-width obfuscation and punctuation-ended secrets.
 
 ## Security invariants
 1. No autonomous consequential action.
@@ -127,7 +130,7 @@ USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUT
 
 Next action:
 1. Obtain an executable Android/Gradle environment with the repository's current source.
-2. Run the most specific available firewall unit tests and the security pipeline tests.
+2. Run the most specific available firewall unit tests and the security pipeline/bridge tests.
 3. Repair any compile/test failures.
 4. Continue adversarial Unicode/obfuscation and false-positive/false-negative review.
 5. Confirm the firewall boundary remains mandatory for future AI/context ingestion.
