@@ -1,8 +1,13 @@
 package ai.ritav.app.core.security
 
+import java.text.Normalizer
+
 /**
  * Deterministic pre-AI/pre-execution boundary for high-risk secrets.
- * The original matched value is never returned in a match object and is not persisted.
+ *
+ * The original matched value is never returned in a match object and is not
+ * persisted by this firewall. Inputs that cannot be inspected safely are
+ * blocked rather than forwarded to AI reasoning.
  */
 enum class SensitiveDataType {
     OTP,
@@ -15,6 +20,12 @@ enum class SensitiveDataType {
     UNKNOWN_SECRET
 }
 
+enum class FirewallBlockReason {
+    SENSITIVE_DATA_DETECTED,
+    INPUT_TOO_LARGE,
+    NORMALIZATION_INSPECTION_FAILED
+}
+
 data class SensitiveMatch(
     val type: SensitiveDataType,
     val start: Int,
@@ -24,38 +35,80 @@ data class SensitiveMatch(
 data class FirewallResult(
     val allowed: Boolean,
     val redactedText: String,
-    val matches: List<SensitiveMatch>
+    val matches: List<SensitiveMatch>,
+    val blockReason: FirewallBlockReason? = null
 )
 
 class SensitiveInformationFirewall {
     fun inspect(text: String): FirewallResult {
-        require(text.length <= MAX_INPUT_LENGTH) { "Sensitive input exceeds inspection limit" }
+        if (text.length > MAX_INPUT_LENGTH) {
+            return FirewallResult(
+                allowed = false,
+                redactedText = "",
+                matches = emptyList(),
+                blockReason = FirewallBlockReason.INPUT_TOO_LARGE
+            )
+        }
         if (text.isEmpty()) return FirewallResult(true, text, emptyList())
 
-        val matches = buildList {
-            OTP.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.OTP, it.range.first, it.range.last + 1)) }
-            UPI_PIN.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.UPI_PIN, it.range.first, it.range.last + 1)) }
-            CVV.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.CVV, it.range.first, it.range.last + 1)) }
-            PRIVATE_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.PRIVATE_KEY, it.range.first, it.range.last + 1)) }
-            API_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.API_KEY, it.range.first, it.range.last + 1)) }
-            RECOVERY_CODE.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.RECOVERY_CODE, it.range.first, it.range.last + 1)) }
-            PASSWORD_CONTEXT.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.PASSWORD, it.range.first, it.range.last + 1)) }
+        val matches = findDirectMatches(text)
+        if (matches.isNotEmpty()) {
+            // Replace from right to left so original offsets remain valid.
+            var redacted = text
+            matches.sortedByDescending { it.start }.forEach { match ->
+                redacted = redacted.substring(0, match.start) +
+                    "[REDACTED:${match.type.name}]" +
+                    redacted.substring(match.end)
+            }
+            return FirewallResult(
+                allowed = false,
+                redactedText = redacted,
+                matches = matches,
+                blockReason = FirewallBlockReason.SENSITIVE_DATA_DETECTED
+            )
         }
-            .distinctBy { Triple(it.type, it.start, it.end) }
-            .sortedWith(compareBy<SensitiveMatch> { it.start }.thenByDescending { it.end - it.start })
-            .let(::removeOverlappingMatches)
 
-        if (matches.isEmpty()) return FirewallResult(true, text, emptyList())
-
-        // Replace from right to left so original offsets remain valid.
-        var redacted = text
-        matches.sortedByDescending { it.start }.forEach { match ->
-            redacted = redacted.substring(0, match.start) +
-                "[REDACTED:${match.type.name}]" +
-                redacted.substring(match.end)
+        // Normalized/compact inspection is detection-only. We deliberately do
+        // not reuse normalized offsets for redaction because Unicode
+        // normalization/compaction can change UTF-16 offsets. If it reveals a
+        // sensitive pattern, block conservatively without exposing a match.
+        val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
+        val compact = normalized.filterNot { it.isWhitespace() }
+        if (normalized != text && containsSensitivePattern(normalized, compact)) {
+            return FirewallResult(
+                allowed = false,
+                redactedText = "",
+                matches = emptyList(),
+                blockReason = FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED
+            )
         }
-        return FirewallResult(false, redacted, matches)
+
+        return FirewallResult(true, text, emptyList())
     }
+
+    private fun findDirectMatches(text: String): List<SensitiveMatch> = buildList {
+        OTP.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.OTP, it.range.first, it.range.last + 1)) }
+        UPI_PIN.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.UPI_PIN, it.range.first, it.range.last + 1)) }
+        CVV.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.CVV, it.range.first, it.range.last + 1)) }
+        PRIVATE_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.PRIVATE_KEY, it.range.first, it.range.last + 1)) }
+        API_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.API_KEY, it.range.first, it.range.last + 1)) }
+        RECOVERY_CODE.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.RECOVERY_CODE, it.range.first, it.range.last + 1)) }
+        PASSWORD_CONTEXT.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.PASSWORD, it.range.first, it.range.last + 1)) }
+    }
+        .distinctBy { Triple(it.type, it.start, it.end) }
+        .sortedWith(compareBy<SensitiveMatch> { it.start }.thenByDescending { it.end - it.start })
+        .let(::removeOverlappingMatches)
+
+    private fun containsSensitivePattern(normalized: String, compact: String): Boolean =
+        listOf(
+            OTP,
+            UPI_PIN,
+            CVV,
+            PRIVATE_KEY,
+            API_KEY,
+            RECOVERY_CODE,
+            PASSWORD_CONTEXT
+        ).any { regex -> regex.containsMatchIn(normalized) || regex.containsMatchIn(compact) }
 
     private fun removeOverlappingMatches(matches: List<SensitiveMatch>): List<SensitiveMatch> {
         val selected = mutableListOf<SensitiveMatch>()
