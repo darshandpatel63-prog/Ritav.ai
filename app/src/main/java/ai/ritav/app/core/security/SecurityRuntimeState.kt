@@ -3,35 +3,70 @@ package ai.ritav.app.core.security
 import android.content.Context
 import ai.ritav.app.core.storage.SecureLocalStore
 
-/** Runtime security composition root with one shared emergency-stop controller. */
+/** Runtime security composition root with shared emergency-stop and audit state. */
 class SecurityRuntimeState private constructor(
     private val emergencyStopController: EmergencyStopController,
-    val policyEngine: PolicyEngine
+    val policyEngine: PolicyEngine,
+    val auditLog: AuditLog
 ) {
-    private constructor(deps: RuntimeDeps) : this(deps.emergencyStopController, deps.policyEngine)
+    private constructor(deps: RuntimeDeps) : this(
+        deps.emergencyStopController,
+        deps.policyEngine,
+        deps.auditLog
+    )
 
     constructor(context: Context) : this(RuntimeDeps(context.applicationContext))
 
     /** Constructor retained for lightweight unit tests. */
     constructor(emergencyStopController: EmergencyStopController = EmergencyStopController()) : this(
         emergencyStopController = emergencyStopController,
-        policyEngine = PolicyEngine(emergencyStop = emergencyStopController)
+        policyEngine = PolicyEngine(emergencyStop = emergencyStopController),
+        auditLog = InMemoryAuditLog()
     )
 
-    fun activateEmergencyStop() = emergencyStopController.activate()
+    fun activateEmergencyStop() {
+        emergencyStopController.activate()
+        auditLog.append(
+            AuditEvent(
+                timestampEpochMillis = System.currentTimeMillis(),
+                sessionId = null,
+                actionHash = null,
+                eventType = AuditEventType.EMERGENCY_STOP,
+                allowed = true,
+                verified = true,
+                reason = "Emergency Stop activated"
+            )
+        )
+    }
 
-    fun resumeAfterUserConfirmation(confirmed: Boolean) =
+    fun resumeAfterUserConfirmation(confirmed: Boolean) {
         emergencyStopController.resetAfterExplicitUserConfirmation(confirmed)
+        if (confirmed) {
+            auditLog.append(
+                AuditEvent(
+                    timestampEpochMillis = System.currentTimeMillis(),
+                    sessionId = null,
+                    actionHash = null,
+                    eventType = AuditEventType.EMERGENCY_STOP,
+                    allowed = true,
+                    verified = true,
+                    reason = "Emergency Stop reset after explicit user confirmation"
+                )
+            )
+        }
+    }
 
     fun isEmergencyStopActive(): Boolean = emergencyStopController.isActive()
 
     fun isSafeModeActive(): Boolean = emergencyStopController.isActive()
 
     private class RuntimeDeps(context: Context) {
+        private val secureStore = SecureLocalStore(context)
         val emergencyStopController = EmergencyStopController()
         val policyEngine = PolicyEngine(
-            permissionStore = SecurePermissionStore(SecureLocalStore(context)),
+            permissionStore = SecurePermissionStore(secureStore),
             emergencyStop = emergencyStopController
         )
+        val auditLog: AuditLog = SecureAuditLog(secureStore)
     }
 }
