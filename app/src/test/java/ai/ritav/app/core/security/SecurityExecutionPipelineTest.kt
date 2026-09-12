@@ -96,8 +96,6 @@ class SecurityExecutionPipelineTest {
         assertFalse(result.allowed)
         assertTrue(result.sanitizedInput == null)
 
-        // The oversized input must not consume the authorization token. The
-        // same valid request can still use it after a safe, inspectable input.
         val allowedAfterBlockedAttempt = pipeline.authorize(
             SecurityExecutionRequest(
                 action = action(),
@@ -131,6 +129,38 @@ class SecurityExecutionPipelineTest {
 
         assertFalse(result.allowed)
         assertTrue(result.sanitizedInput == null)
+    }
+
+    @Test fun obfuscatedSensitiveInputDoesNotConsumeAuthorizationToken() {
+        val p = plan()
+        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val gate = ActionAuthorizationGate()
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+
+        val blocked = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action(),
+                plan = p,
+                authorizationToken = token,
+                identitySession = trustedSession(1_000),
+                nowEpochMillis = 1_000,
+                inputText = "O\u200b T P 12\u200b 34 56"
+            )
+        )
+        assertFalse(blocked.allowed)
+
+        val allowed = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action(),
+                plan = p,
+                authorizationToken = token,
+                identitySession = trustedSession(1_000),
+                nowEpochMillis = 1_000,
+                inputText = "safe input"
+            )
+        )
+        assertTrue(allowed.allowed)
     }
 
     @Test fun explicitSensitiveFlagIsStillBlockedWithoutRawInput() {
