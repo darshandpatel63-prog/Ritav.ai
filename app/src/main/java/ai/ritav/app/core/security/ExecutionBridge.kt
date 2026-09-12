@@ -1,9 +1,6 @@
 package ai.ritav.app.core.security
 
-/**
- * Only approved Android adapters implement this interface. AI/orchestrator code
- * must submit an ActionRequest; it never receives unrestricted device control.
- */
+/** Only approved Android adapters implement this interface. */
 interface AndroidActionAdapter {
     fun execute(plan: ActionPlan): ExecutionResult
 }
@@ -41,36 +38,31 @@ class ExecutionBridge(
         )
         val decision = policyEngine.evaluate(request)
         if (!decision.allowed) {
-            auditLog.append(AuditEvent(
-                clock(), plan.sessionId, actionHash,
-                AuditEventType.POLICY_DECISION, false, false, decision.reason
-            ))
+            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION, false, false, "Execution denied by policy"))
             return ExecutionResult(false, false, decision.reason)
         }
 
-        auditLog.append(AuditEvent(
-            clock(), plan.sessionId, actionHash,
-            AuditEventType.EXECUTION, true, false, "Execution started"
-        ))
+        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION, true, false, "Execution allowed by policy"))
 
-        val adapterResult = adapter.execute(plan)
+        val adapterResult = runCatching { adapter.execute(plan) }.getOrElse {
+            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.EXECUTION, false, false, "Adapter execution failed"))
+            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION, false, false, "Result verification failed"))
+            return ExecutionResult(false, false, "Action execution failed")
+        }
+
+        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.EXECUTION, adapterResult.success, false, if (adapterResult.success) "Adapter execution succeeded" else "Adapter execution failed"))
+
         val verification = resultVerifier.verify(
             expectedSuccess = true,
             evidence = ActionResultEvidence(
                 success = adapterResult.success,
-                errorCode = if (adapterResult.success) null else adapterResult.message
+                errorCode = if (adapterResult.success) null else "ADAPTER_EXECUTION_FAILED"
             )
         )
-        auditLog.append(AuditEvent(
-            clock(), plan.sessionId, actionHash,
-            AuditEventType.VERIFICATION,
-            verification.verified,
-            verification.verified,
-            verification.reason
-        ))
+        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION, adapterResult.success, verification.verified, if (verification.verified) "Result verification passed" else "Result verification failed"))
 
         return ExecutionResult(
-            success = adapterResult.success,
+            success = adapterResult.success && verification.verified,
             verified = verification.verified,
             message = verification.reason
         )
