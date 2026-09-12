@@ -47,46 +47,30 @@ Implemented in the current `main` branch:
 - Multiple matches are handled and overlapping matches are deduplicated.
 - Redaction is performed right-to-left to preserve original UTF-16 source offsets.
 - Input inspection is bounded at 16,384 characters.
-- Inputs over the limit now fail closed with an explicit `INPUT_TOO_LARGE` result instead of throwing.
-- Failed/blocked inspection never forwards the original oversized value through the security pipeline.
+- Inputs over the limit fail closed with an explicit `INPUT_TOO_LARGE` result.
 - NFKC/whitespace-compacted inspection is detection-only; if a sensitive pattern is found after a representation-changing normalization/compaction pass, the firewall conservatively blocks rather than attempting unsafe offset mapping/redaction.
-- Unicode format-character inspection uses an explicit code-point conversion for Java `Character.getType`.
-- Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without introducing broad transliteration behavior.
-- A false-positive regression case was added for generic text without secret markers.
-- Whitespace/zero-width obfuscation regression cases are covered and conservatively blocked.
+- Unicode format-character inspection uses explicit code-point conversion for Java `Character.getType`.
+- Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without broad transliteration.
+- Whitespace/zero-width obfuscation and Unicode normalization regression cases are covered.
 - Security pipeline tests verify that oversized and normalization-detected inputs are blocked before authorization is consumed.
-- ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and that a token remains usable after that blocked inspection.
+- ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and a token remains usable after that blocked inspection.
 
 ## Dedicated firewall test coverage added
 `app/src/test/java/ai/ritav/app/core/security/SensitiveInformationFirewallTest.kt` covers:
-- OTP.
-- UPI PIN.
-- CVV.
-- Password-context values.
-- Recovery codes.
-- Private keys.
-- API/access/secret keys.
-- Benign text.
-- Generic non-secret text without sensitive markers.
-- Multiple secrets.
-- Overlapping detection/redaction.
+- OTP, UPI PIN, CVV, password-context values, recovery codes, private keys, and API/access/secret keys.
+- Benign/generic non-secret text and secret markers without values.
+- Multiple secrets and overlapping detection/redaction.
 - Redaction preservation of surrounding text.
 - No secret value in `SensitiveMatch`.
-- Exact maximum input length.
-- Oversized input fail-closed behavior.
-- Oversized input containing a secret.
-- Whitespace-obfuscation detection.
-- Zero-width obfuscation detection.
-- Unicode normalization detection.
-- Common Greek/Cyrillic homoglyph detection for sensitive markers.
+- Exact maximum length and oversized fail-closed behavior, including oversized input containing a secret.
+- Whitespace, zero-width, Unicode-normalization, and common Greek/Cyrillic homoglyph obfuscation.
 - Confusable-fold false-positive regression without a numeric secret.
-- Normalized benign text.
-- Unusual/malformed Unicode input not crashing the test call.
+- Unusual/malformed Unicode input not crashing the call.
 
 ## Continuous verification / security review notes
-The current source review identified an important design boundary: transformed representations may change UTF-16 offsets, so transformed detections must not be used to redact source text unless an offset mapping is proven correct. The implementation therefore uses transformed inspection only as a conservative block signal.
+Transformed representations can change UTF-16 offsets, so transformed detections are never used to redact source text unless an offset mapping is proven correct. They remain conservative block signals.
 
-The direct `security code` pattern intentionally has security-sensitive semantics because it is used for CVV/verification-code detection. Generic false-positive coverage therefore avoids asserting that an unqualified `security code + digits` phrase is always benign.
+The direct `security code` pattern intentionally has security-sensitive semantics because it is used for CVV/verification-code detection. Generic false-positive coverage therefore does not assert that an unqualified `security code + digits` phrase is always benign.
 
 The explicit confusable mapping is intentionally narrow. It is defense-in-depth for common Latin look-alikes, not a complete Unicode confusables implementation. Unmapped homoglyphs and other linguistic obfuscations remain a known limitation.
 
@@ -99,13 +83,14 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
 - Relevant firewall and test sources were re-fetched before modification.
-- Current firewall blob SHA after Unicode-confusable hardening: `e6e99208f5665ffdea768fde82a38239c993039d`.
-- Current firewall test blob SHA after homoglyph regression coverage: `8e275a019b49ed26fe6e4283b3520417a716deee`.
+- Current firewall blob SHA: `e6e99208f5665ffdea768fde82a38239c993039d`.
+- Current firewall test blob SHA: `8e275a019b49ed26fe6e4283b3520417a716deee`.
 - No executable Gradle wrapper was present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
 - Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `152e80e6d46822cf6f747bb249a12a341d0bba57` — docs: record Unicode confusable firewall hardening state.
 - `0f2c67f40d2369650099ae651047922947e6ab12` — test: cover Unicode confusable sensitive markers.
 - `6d67780ff32142626a4f9e2c315503f26cbf9764` — security: harden sensitive firewall against common Unicode confusables.
 - `7bc30cbd411d92b483f1bf1f9ad26fc384fc3cb4` — docs: record current sensitive firewall continuation state.
