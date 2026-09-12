@@ -73,7 +73,7 @@ class SensitiveInformationFirewall {
         // normalization/compaction can change UTF-16 offsets. If a transformed
         // representation reveals a sensitive pattern, block conservatively.
         val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
-        val compact = normalized.filterNot { it.isWhitespace() }
+        val compact = normalized.filterNot { it.isWhitespace() || Character.getType(it) == Character.FORMAT.toInt() }
         val representationChanged = normalized != text || compact != normalized
         if (representationChanged && containsSensitivePattern(normalized, compact)) {
             return FirewallResult(
@@ -126,8 +126,8 @@ class SensitiveInformationFirewall {
         private val OTP = Regex("(?i)(?:otp|one[- ]time password|verification code|security code)\\s*(?:is|:|=)?\\s*\\b\\d{4,8}\\b")
         private val UPI_PIN = Regex("(?i)(?:upi\\s*pin|pin for upi)\\s*(?:is|:|=)?\\s*\\b\\d{4,6}\\b")
         private val CVV = Regex("(?i)(?:cvv|cvc|security code)\\s*(?:is|:|=)?\\s*\\b\\d{3,4}\\b")
-        private val PRIVATE_KEY = Regex("-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----[\\s\\S]*?-----END (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----")
-        private val API_KEY = Regex("(?i)\\b(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\\s*[:=]\\s*[A-Za-z0-9_./+=-]{12,}\\b")
+        private val PRIVATE_KEY = Regex("-----BEGIN [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----[\\s\\S]*?-----END [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----")
+        private val API_KEY = Regex("(?i)\\b(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\\s*[:=]\\s*[A-Za-z0-9_./+=-]{12,}")
         private val RECOVERY_CODE = Regex("(?i)(?:recovery|backup|emergency)\\s+code(?:s)?\\s*(?:are|is|:|=)?\\s*\\b[A-Za-z0-9-]{6,32}(?:\\s*,\\s*[A-Za-z0-9-]{6,32})*\\b")
         private val PASSWORD_CONTEXT = Regex("(?i)(?:password|passcode|login password)\\s*(?:is|:|=)\\s*[^\\s,;]{4,}")
     }
