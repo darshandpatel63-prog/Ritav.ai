@@ -42,46 +42,29 @@ data class FirewallResult(
 class SensitiveInformationFirewall {
     fun inspect(text: String): FirewallResult {
         if (text.length > MAX_INPUT_LENGTH) {
-            return FirewallResult(
-                allowed = false,
-                redactedText = "",
-                matches = emptyList(),
-                blockReason = FirewallBlockReason.INPUT_TOO_LARGE
-            )
+            return FirewallResult(false, "", emptyList(), FirewallBlockReason.INPUT_TOO_LARGE)
         }
         if (text.isEmpty()) return FirewallResult(true, text, emptyList())
 
         val matches = findDirectMatches(text)
         if (matches.isNotEmpty()) {
-            // Replace from right to left so original offsets remain valid.
             var redacted = text
             matches.sortedByDescending { it.start }.forEach { match ->
                 redacted = redacted.substring(0, match.start) +
                     "[REDACTED:${match.type.name}]" +
                     redacted.substring(match.end)
             }
-            return FirewallResult(
-                allowed = false,
-                redactedText = redacted,
-                matches = matches,
-                blockReason = FirewallBlockReason.SENSITIVE_DATA_DETECTED
-            )
+            return FirewallResult(false, redacted, matches, FirewallBlockReason.SENSITIVE_DATA_DETECTED)
         }
 
-        // Normalized/compact inspection is detection-only. We deliberately do
-        // not reuse transformed offsets for redaction because Unicode
-        // normalization/compaction can change UTF-16 offsets. If a transformed
-        // representation reveals a sensitive pattern, block conservatively.
+        // Detection-only transformed representations: transformed offsets are
+        // unsafe for redaction because normalization/compaction can change UTF-16 positions.
         val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
         val compact = normalized.filterNot { it.isWhitespace() || Character.getType(it.code) == Character.FORMAT.toInt() }
-        val representationChanged = normalized != text || compact != normalized
-        if (representationChanged && containsSensitivePattern(normalized, compact)) {
-            return FirewallResult(
-                allowed = false,
-                redactedText = "",
-                matches = emptyList(),
-                blockReason = FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED
-            )
+        val confusableFolded = foldCommonLatinConfusables(compact)
+        val representationChanged = normalized != text || compact != normalized || confusableFolded != compact
+        if (representationChanged && containsSensitivePattern(normalized, compact, confusableFolded)) {
+            return FirewallResult(false, "", emptyList(), FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED)
         }
 
         return FirewallResult(true, text, emptyList())
@@ -100,23 +83,51 @@ class SensitiveInformationFirewall {
         .sortedWith(compareBy<SensitiveMatch> { it.start }.thenByDescending { it.end - it.start })
         .let(::removeOverlappingMatches)
 
-    private fun containsSensitivePattern(normalized: String, compact: String): Boolean =
-        listOf(
-            OTP,
-            UPI_PIN,
-            CVV,
-            PRIVATE_KEY,
-            API_KEY,
-            RECOVERY_CODE,
-            PASSWORD_CONTEXT
-        ).any { regex -> regex.containsMatchIn(normalized) || regex.containsMatchIn(compact) }
+    private fun containsSensitivePattern(vararg candidates: String): Boolean = candidates.any { candidate ->
+        listOf(OTP, UPI_PIN, CVV, PRIVATE_KEY, API_KEY, RECOVERY_CODE, PASSWORD_CONTEXT)
+            .any { regex -> regex.containsMatchIn(candidate) }
+    }
+
+    private fun foldCommonLatinConfusables(text: String): String = buildString(text.length) {
+        text.forEach { char ->
+            append(
+                when (char) {
+                    // Small explicit Greek/Cyrillic look-alike set for secret labels.
+                    '\u0391', '\u0410' -> 'A'
+                    '\u0392', '\u0412' -> 'B'
+                    '\u03A7', '\u0425' -> 'X'
+                    '\u0395', '\u0415' -> 'E'
+                    '\u0397', '\u041D' -> 'H'
+                    '\u0399', '\u0406' -> 'I'
+                    '\u039A', '\u041A' -> 'K'
+                    '\u039C', '\u041C' -> 'M'
+                    '\u039F', '\u041E' -> 'O'
+                    '\u03A1', '\u0420' -> 'P'
+                    '\u03A4', '\u0422' -> 'T'
+                    '\u03A5', '\u04AE' -> 'Y'
+                    '\u0396', '\u0417' -> 'Z'
+                    '\u03B1', '\u0430' -> 'a'
+                    '\u03B5', '\u0435' -> 'e'
+                    '\u03B7', '\u043D' -> 'h'
+                    '\u03B9', '\u0456' -> 'i'
+                    '\u03BA', '\u043A' -> 'k'
+                    '\u03BC', '\u043C' -> 'm'
+                    '\u03BF', '\u043E' -> 'o'
+                    '\u03C1', '\u0440' -> 'p'
+                    '\u03C4', '\u0442' -> 't'
+                    '\u03C5', '\u0443' -> 'y'
+                    '\u03C7', '\u0445' -> 'x'
+                    '\u0437' -> 'z'
+                    else -> char
+                }
+            )
+        }
+    }
 
     private fun removeOverlappingMatches(matches: List<SensitiveMatch>): List<SensitiveMatch> {
         val selected = mutableListOf<SensitiveMatch>()
         for (candidate in matches) {
-            if (selected.none { candidate.start < it.end && candidate.end > it.start }) {
-                selected += candidate
-            }
+            if (selected.none { candidate.start < it.end && candidate.end > it.start }) selected += candidate
         }
         return selected
     }
