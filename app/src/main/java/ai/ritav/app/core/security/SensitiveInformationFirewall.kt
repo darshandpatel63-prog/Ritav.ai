@@ -73,7 +73,7 @@ class SensitiveInformationFirewall {
         // normalization/compaction can change UTF-16 offsets. If a transformed
         // representation reveals a sensitive pattern, block conservatively.
         val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
-        val compact = normalized.filterNot { it.isWhitespace() || Character.getType(it) == Character.FORMAT.toInt() }
+        val compact = normalized.filterNot { it.isWhitespace() || Character.getType(it.code) == Character.FORMAT.toInt() }
         val representationChanged = normalized != text || compact != normalized
         if (representationChanged && containsSensitivePattern(normalized, compact)) {
             return FirewallResult(
