@@ -69,12 +69,13 @@ class SensitiveInformationFirewall {
         }
 
         // Normalized/compact inspection is detection-only. We deliberately do
-        // not reuse normalized offsets for redaction because Unicode
-        // normalization/compaction can change UTF-16 offsets. If it reveals a
-        // sensitive pattern, block conservatively without exposing a match.
+        // not reuse transformed offsets for redaction because Unicode
+        // normalization/compaction can change UTF-16 offsets. If a transformed
+        // representation reveals a sensitive pattern, block conservatively.
         val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
         val compact = normalized.filterNot { it.isWhitespace() }
-        if (normalized != text && containsSensitivePattern(normalized, compact)) {
+        val representationChanged = normalized != text || compact != normalized
+        if (representationChanged && containsSensitivePattern(normalized, compact)) {
             return FirewallResult(
                 allowed = false,
                 redactedText = "",
