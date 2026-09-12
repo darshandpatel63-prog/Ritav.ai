@@ -40,19 +40,31 @@ class SensitiveInformationFirewall {
             API_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.API_KEY, it.range.first, it.range.last + 1)) }
             RECOVERY_CODE.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.RECOVERY_CODE, it.range.first, it.range.last + 1)) }
             PASSWORD_CONTEXT.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.PASSWORD, it.range.first, it.range.last + 1)) }
-        }.distinctBy { Triple(it.type, it.start, it.end) }
-            .sortedByDescending { it.start }
+        }
+            .distinctBy { Triple(it.type, it.start, it.end) }
+            .sortedWith(compareBy<SensitiveMatch> { it.start }.thenByDescending { it.end - it.start })
+            .let(::removeOverlappingMatches)
 
         if (matches.isEmpty()) return FirewallResult(true, text, emptyList())
 
+        // Replace from right to left so original offsets remain valid.
         var redacted = text
-        matches.forEach { match ->
-            val original = redacted
-            redacted = original.substring(0, match.start) +
+        matches.sortedByDescending { it.start }.forEach { match ->
+            redacted = redacted.substring(0, match.start) +
                 "[REDACTED:${match.type.name}]" +
-                original.substring(match.end)
+                redacted.substring(match.end)
         }
         return FirewallResult(false, redacted, matches)
+    }
+
+    private fun removeOverlappingMatches(matches: List<SensitiveMatch>): List<SensitiveMatch> {
+        val selected = mutableListOf<SensitiveMatch>()
+        for (candidate in matches) {
+            if (selected.none { candidate.start < it.end && candidate.end > it.start }) {
+                selected += candidate
+            }
+        }
+        return selected
     }
 
     companion object {
