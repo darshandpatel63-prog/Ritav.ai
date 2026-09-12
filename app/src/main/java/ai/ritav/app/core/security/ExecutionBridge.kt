@@ -11,10 +11,10 @@ data class ExecutionResult(
     val message: String
 )
 
-/** Final execution boundary with policy, capability, verification and audit enforcement. */
+/** Final execution boundary. No adapter execution occurs before the full security pipeline passes. */
 class ExecutionBridge(
-    private val policyEngine: PolicyEngine,
     private val capabilityPolicyGate: CapabilityPolicyGate,
+    private val securityPipeline: SecurityExecutionPipeline,
     private val adapter: AndroidActionAdapter,
     private val resultVerifier: ResultVerifier = ResultVerifier(),
     private val auditLog: AuditLog = InMemoryAuditLog(),
@@ -24,74 +24,59 @@ class ExecutionBridge(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
         authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
-        containsSensitiveData: Boolean = false
+        containsSensitiveData: Boolean = false,
+        authorizationToken: String? = null,
+        identitySession: SecuritySession? = null
     ): ExecutionResult {
+        val now = clock()
         val actionHash = plan.stableHash()
-
-        val capabilityDecision = capabilityPolicyGate.evaluate(
-            ActionRequest(
-                appId = plan.appId,
-                action = plan.action,
-                riskTier = plan.riskTier,
-                capability = plan.capability,
-                sessionId = plan.sessionId,
-                containsSensitiveData = containsSensitiveData,
-                userExplicitlyRequested = userExplicitlyRequested,
-                authorizationLevel = authorizationLevel
-            )
+        val action = ActionRequest(
+            appId = plan.appId,
+            action = plan.action,
+            riskTier = plan.riskTier,
+            capability = plan.capability,
+            sessionId = plan.sessionId,
+            containsSensitiveData = containsSensitiveData,
+            userExplicitlyRequested = userExplicitlyRequested,
+            authorizationLevel = authorizationLevel
         )
+
+        val capabilityDecision = capabilityPolicyGate.evaluate(action)
         if (!capabilityDecision.allowed) {
-            auditLog.append(
-                AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
-                    false, false, "Execution denied by capability policy")
-            )
+            auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+                false, false, capabilityDecision.reason))
             return ExecutionResult(false, false, capabilityDecision.reason)
         }
 
-        // Rebuild the request immediately before execution. The adapter never
-        // receives a plan that has skipped the deterministic policy boundary.
-        val policyDecision = policyEngine.evaluate(
-            ActionRequest(
-                appId = plan.appId,
-                action = plan.action,
-                riskTier = plan.riskTier,
-                capability = plan.capability,
-                sessionId = plan.sessionId,
-                containsSensitiveData = containsSensitiveData,
-                userExplicitlyRequested = userExplicitlyRequested,
-                authorizationLevel = authorizationLevel
+        val securityDecision = securityPipeline.authorize(
+            SecurityExecutionRequest(
+                action = action,
+                plan = plan,
+                authorizationToken = authorizationToken,
+                identitySession = identitySession,
+                nowEpochMillis = now
             )
         )
-        if (!policyDecision.allowed) {
-            auditLog.append(
-                AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
-                    false, false, "Execution denied by deterministic policy")
-            )
-            return ExecutionResult(false, false, policyDecision.reason)
+        if (!securityDecision.allowed) {
+            auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+                false, false, securityDecision.reason))
+            return ExecutionResult(false, false, securityDecision.reason)
         }
 
-        auditLog.append(
-            AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
-                true, false, "Capability and policy checks passed")
-        )
+        auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+            true, false, "Capability and security pipeline checks passed"))
 
         val adapterResult = runCatching { adapter.execute(plan) }.getOrElse {
-            auditLog.append(
-                AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.EXECUTION,
-                    false, false, "Adapter execution failed")
-            )
-            auditLog.append(
-                AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
-                    false, false, "Result verification failed")
-            )
+            auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.EXECUTION,
+                false, false, "Adapter execution failed"))
+            auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.VERIFICATION,
+                false, false, "Result verification failed"))
             return ExecutionResult(false, false, "Action execution failed")
         }
 
-        auditLog.append(
-            AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.EXECUTION,
-                adapterResult.success, false,
-                if (adapterResult.success) "Adapter execution succeeded" else "Adapter execution failed")
-        )
+        auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.EXECUTION,
+            adapterResult.success, false,
+            if (adapterResult.success) "Adapter execution succeeded" else "Adapter execution failed"))
 
         val verification = resultVerifier.verify(
             expectedSuccess = true,
@@ -100,11 +85,9 @@ class ExecutionBridge(
                 errorCode = if (adapterResult.success) null else "ADAPTER_EXECUTION_FAILED"
             )
         )
-        auditLog.append(
-            AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
-                adapterResult.success, verification.verified,
-                if (verification.verified) "Result verification passed" else "Result verification failed")
-        )
+        auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.VERIFICATION,
+            adapterResult.success, verification.verified,
+            if (verification.verified) "Result verification passed" else "Result verification failed"))
 
         return ExecutionResult(
             success = adapterResult.success && verification.verified,
