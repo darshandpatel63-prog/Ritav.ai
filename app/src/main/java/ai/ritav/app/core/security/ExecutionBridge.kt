@@ -16,11 +16,12 @@ data class ExecutionResult(
 
 /**
  * Final execution boundary. Policy is evaluated immediately before execution,
- * then the adapter is invoked only when the deterministic policy allows it.
+ * then deterministic verification decides whether success may be reported.
  */
 class ExecutionBridge(
     private val policyEngine: PolicyEngine,
-    private val adapter: AndroidActionAdapter
+    private val adapter: AndroidActionAdapter,
+    private val resultVerifier: ResultVerifier = ResultVerifier()
 ) {
     fun execute(
         plan: ActionPlan,
@@ -42,6 +43,19 @@ class ExecutionBridge(
         if (!decision.allowed) {
             return ExecutionResult(false, false, decision.reason)
         }
-        return adapter.execute(plan)
+
+        val adapterResult = adapter.execute(plan)
+        val verification = resultVerifier.verify(
+            expectedSuccess = true,
+            evidence = ActionResultEvidence(
+                success = adapterResult.success,
+                errorCode = if (adapterResult.success) null else adapterResult.message
+            )
+        )
+        return ExecutionResult(
+            success = adapterResult.success,
+            verified = verification.verified,
+            message = verification.reason
+        )
     }
 }
