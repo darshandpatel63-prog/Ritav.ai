@@ -1,9 +1,6 @@
 package ai.ritav.app.core.security
 
-/**
- * Security-only orchestration boundary for consequential actions.
- * AI proposes; deterministic policy, authorization and verification decide.
- */
+/** Security-only orchestration boundary for consequential actions. */
 data class SecurityExecutionRequest(
     val action: ActionRequest,
     val plan: ActionPlan,
@@ -22,42 +19,64 @@ class SecurityExecutionPipeline(
     private val policyEngine: PolicyEngine,
     private val executionPolicyGate: ExecutionPolicyGate,
     private val authorizationGate: ActionAuthorizationGate,
-    private val identitySessionManager: IdentitySessionManager = IdentitySessionManager()
+    private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(),
+    private val auditLog: AuditLog = InMemoryAuditLog()
 ) {
     fun authorize(request: SecurityExecutionRequest): SecurityExecutionDecision {
+        val actionHash = request.plan.stableHash()
+
         if (request.plan.appId != request.action.appId ||
             request.plan.capability != request.action.capability ||
             request.plan.action != request.action.action ||
             request.plan.riskTier != request.action.riskTier ||
             request.plan.sessionId != request.action.sessionId
         ) {
-            return deny("Action plan does not match execution request", AuthorizationLevel.NONE)
+            return denyAndAudit(request, actionHash, "Action plan does not match execution request", AuthorizationLevel.NONE)
         }
 
         if (request.action.riskTier >= RiskTier.TIER_2_CONTENT_MUTATION &&
             !identitySessionManager.permitsProtectedCapability(request.identitySession, request.nowEpochMillis)
         ) {
-            return deny("Protected action requires an active trusted identity session", AuthorizationLevel.USER_CONFIRMATION)
+            return denyAndAudit(request, actionHash, "Protected action requires an active trusted identity session", AuthorizationLevel.USER_CONFIRMATION)
         }
 
         val decision = executionPolicyGate.authorize(request.action)
         if (!decision.allowed) {
-            return deny(decision.reason, decision.requiredAuthorization)
+            return denyAndAudit(request, actionHash, decision.reason, decision.requiredAuthorization)
         }
 
         val required = decision.requiredAuthorization
         if (required != AuthorizationLevel.NONE) {
             val token = request.authorizationToken
-                ?: return deny("One-time authorization token is required", required)
-            val providedLevel = request.action.authorizationLevel
-            if (!authorizationGate.consume(token, request.plan, providedLevel, request.nowEpochMillis)) {
-                return deny("Authorization token is invalid, expired, mismatched, or already consumed", required)
+                ?: return denyAndAudit(request, actionHash, "One-time authorization token is required", required)
+            if (!authorizationGate.consume(token, request.plan, request.action.authorizationLevel, request.nowEpochMillis)) {
+                return denyAndAudit(request, actionHash, "Authorization token is invalid, expired, mismatched, or already consumed", required)
             }
+            auditLog.append(AuditEvent(
+                request.nowEpochMillis, request.action.sessionId, actionHash,
+                AuditEventType.AUTHORIZATION, true, false, "One-time authorization accepted"
+            ))
         }
 
-        return SecurityExecutionDecision(true, "Execution authorized by security pipeline", required)
+        auditLog.append(AuditEvent(
+            request.nowEpochMillis, request.action.sessionId, actionHash,
+            AuditEventType.POLICY_DECISION, true, false, decision.reason
+        ))
+        return SecurityExecutionDecision(true, decision.reason, required)
     }
 
-    private fun deny(reason: String, required: AuthorizationLevel) =
-        SecurityExecutionDecision(false, reason, required)
+    fun audit(): List<AuditEvent> = auditLog.readAll()
+
+    private fun denyAndAudit(
+        request: SecurityExecutionRequest,
+        actionHash: String,
+        reason: String,
+        required: AuthorizationLevel
+    ): SecurityExecutionDecision {
+        auditLog.append(AuditEvent(
+            request.nowEpochMillis, request.action.sessionId, actionHash,
+            AuditEventType.POLICY_DECISION, false, false, reason
+        ))
+        return SecurityExecutionDecision(false, reason, required)
+    }
 }
