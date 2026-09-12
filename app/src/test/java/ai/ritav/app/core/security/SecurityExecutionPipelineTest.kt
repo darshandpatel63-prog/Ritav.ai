@@ -52,6 +52,47 @@ class SecurityExecutionPipelineTest {
         assertFalse(replay.allowed)
     }
 
+    @Test fun sensitiveInputIsBlockedBeforeAuthorizationAndExecution() {
+        val p = plan()
+        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val gate = ActionAuthorizationGate()
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+
+        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action(),
+                plan = p,
+                authorizationToken = token,
+                identitySession = trustedSession(1_000),
+                nowEpochMillis = 1_000,
+                inputText = "Please use OTP 123456"
+            )
+        )
+
+        assertFalse(result.allowed)
+        assertTrue(result.sanitizedInput?.contains("[REDACTED:OTP]") == true)
+        assertTrue(pipeline.audit().none { it.reason.contains("123456") })
+    }
+
+    @Test fun explicitSensitiveFlagIsStillBlockedWithoutRawInput() {
+        val p = plan()
+        val sensitiveAction = action().copy(containsSensitiveData = true)
+        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
+
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = sensitiveAction,
+                plan = p,
+                identitySession = trustedSession(1_000),
+                nowEpochMillis = 1_000
+            )
+        )
+
+        assertFalse(result.allowed)
+    }
+
     private fun trustedSession(now: Long) = SecuritySession(
         id = "session-1",
         identity = IdentityLevel.OWNER_SIGNAL,
