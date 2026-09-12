@@ -224,6 +224,20 @@ class SensitiveInformationFirewallTest {
         assertEquals(text, result.redactedText)
     }
 
+    @Test fun otherUnicodeDecimalDigitsAreFoldedForSensitiveDetection() {
+        val result = firewall.inspect("OTP ١٢٣٤٥٦")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun unicodeDecimalDigitsRemainBenignWithoutSensitiveMarker() {
+        val text = "Invoice number ١٢٣٤٥٦ is ready."
+        val result = firewall.inspect(text)
+        assertTrue(result.allowed)
+        assertEquals(text, result.redactedText)
+    }
+
     @Test fun normalizedBenignTextRemainsAllowed() {
         val result = firewall.inspect("Cafe\u00a0nearby")
         assertTrue(result.allowed)
