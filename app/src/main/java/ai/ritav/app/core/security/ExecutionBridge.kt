@@ -14,14 +14,13 @@ data class ExecutionResult(
     val message: String
 )
 
-/**
- * Final execution boundary. Policy is evaluated immediately before execution,
- * then deterministic verification decides whether success may be reported.
- */
+/** Final execution boundary with deterministic policy, verification and audit. */
 class ExecutionBridge(
     private val policyEngine: PolicyEngine,
     private val adapter: AndroidActionAdapter,
-    private val resultVerifier: ResultVerifier = ResultVerifier()
+    private val resultVerifier: ResultVerifier = ResultVerifier(),
+    private val auditLog: AuditLog = InMemoryAuditLog(),
+    private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
     fun execute(
         plan: ActionPlan,
@@ -29,6 +28,7 @@ class ExecutionBridge(
         authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
         containsSensitiveData: Boolean = false
     ): ExecutionResult {
+        val actionHash = plan.stableHash()
         val request = ActionRequest(
             appId = plan.appId,
             action = plan.action,
@@ -41,8 +41,17 @@ class ExecutionBridge(
         )
         val decision = policyEngine.evaluate(request)
         if (!decision.allowed) {
+            auditLog.append(AuditEvent(
+                clock(), plan.sessionId, actionHash,
+                AuditEventType.POLICY_DECISION, false, false, decision.reason
+            ))
             return ExecutionResult(false, false, decision.reason)
         }
+
+        auditLog.append(AuditEvent(
+            clock(), plan.sessionId, actionHash,
+            AuditEventType.EXECUTION, true, false, "Execution started"
+        ))
 
         val adapterResult = adapter.execute(plan)
         val verification = resultVerifier.verify(
@@ -52,6 +61,14 @@ class ExecutionBridge(
                 errorCode = if (adapterResult.success) null else adapterResult.message
             )
         )
+        auditLog.append(AuditEvent(
+            clock(), plan.sessionId, actionHash,
+            AuditEventType.VERIFICATION,
+            verification.verified,
+            verification.verified,
+            verification.reason
+        ))
+
         return ExecutionResult(
             success = adapterResult.success,
             verified = verification.verified,
