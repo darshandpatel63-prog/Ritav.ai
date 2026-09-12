@@ -2,6 +2,7 @@ package ai.ritav.app.core.security
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -79,6 +80,15 @@ class SensitiveInformationFirewallTest {
         assertFalse(result.redactedText.contains("123456"))
     }
 
+    @Test fun redactionPreservesUnmatchedText() {
+        val text = "Before OTP 123456 after"
+        val result = firewall.inspect(text)
+        assertFalse(result.allowed)
+        assertTrue(result.redactedText.startsWith("Before "))
+        assertTrue(result.redactedText.endsWith(" after"))
+        assertFalse(result.redactedText.contains("123456"))
+    }
+
     @Test fun matchObjectsNeverContainTheSecret() {
         val secret = "123456"
         val result = firewall.inspect("OTP $secret")
@@ -124,7 +134,7 @@ class SensitiveInformationFirewallTest {
     @Test fun unusualInputDoesNotCrash() {
         val unusual = "\u0000\u0001\u0002\uD800\uFFFF\n\t" + "🙂".repeat(100)
         val result = firewall.inspect(unusual)
-        assertTrue(result.allowed || !result.allowed)
+        assertNotNull(result)
     }
 
     private fun assertBlockedWithType(result: FirewallResult, type: SensitiveDataType) {
