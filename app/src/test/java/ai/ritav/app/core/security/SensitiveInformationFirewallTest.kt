@@ -210,6 +210,20 @@ class SensitiveInformationFirewallTest {
         assertTrue(result.matches.isEmpty())
     }
 
+    @Test fun commonCyrillicAndGreekLookalikesInOtpMarkerAreBlocked() {
+        val result = firewall.inspect("ОΤР 123456")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun confusableFoldDoesNotBlockUnrelatedUnicodeText() {
+        val text = "Greek ОΤΡ example without a numeric code."
+        val result = firewall.inspect(text)
+        assertTrue(result.allowed)
+        assertEquals(text, result.redactedText)
+    }
+
     @Test fun normalizedBenignTextRemainsAllowed() {
         val result = firewall.inspect("Cafe\u00a0nearby")
         assertTrue(result.allowed)
