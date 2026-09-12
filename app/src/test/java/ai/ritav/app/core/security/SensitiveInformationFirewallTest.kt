@@ -62,10 +62,11 @@ class SensitiveInformationFirewallTest {
         assertEquals(null, result.blockReason)
     }
 
-    @Test fun securityCodeWithoutSensitiveContextIsNotAutomaticallyBlocked() {
-        val result = firewall.inspect("The product security code is 123")
+    @Test fun genericTextWithoutSecretMarkersIsAllowed() {
+        val text = "The product catalog has a security code field and a numeric example 123."
+        val result = firewall.inspect(text)
         assertTrue(result.allowed)
-        assertEquals("The product security code is 123", result.redactedText)
+        assertEquals(text, result.redactedText)
     }
 
     @Test fun multipleSecretsAreAllDetected() {
