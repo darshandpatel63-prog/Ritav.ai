@@ -218,7 +218,7 @@ class SensitiveInformationFirewallTest {
     }
 
     @Test fun confusableFoldDoesNotBlockUnrelatedUnicodeText() {
-        val text = "Greek ОΤΡ example without a numeric code."
+        val text = "Greek ОΤР example without a numeric code."
         val result = firewall.inspect(text)
         assertTrue(result.allowed)
         assertEquals(text, result.redactedText)
@@ -236,6 +236,27 @@ class SensitiveInformationFirewallTest {
         val result = firewall.inspect(text)
         assertTrue(result.allowed)
         assertEquals(text, result.redactedText)
+    }
+
+    @Test fun compactedOneTimePasswordLabelIsBlockedConservatively() {
+        val result = firewall.inspect("one\u200btime password 123456")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun compactedRecoveryCodeLabelIsBlockedConservatively() {
+        val result = firewall.inspect("recovery\u200b code: ABCD-1234")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun compactedLoginPasswordLabelIsBlockedConservatively() {
+        val result = firewall.inspect("login\u200b password: MySecret123!")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
     }
 
     @Test fun normalizedBenignTextRemainsAllowed() {
