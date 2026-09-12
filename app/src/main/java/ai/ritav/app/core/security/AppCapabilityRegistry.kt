@@ -13,20 +13,36 @@ data class AppCapabilitySpec(
 /**
  * Explicit registry for app capabilities.
  *
- * The registry is intentionally conservative: unknown apps have no registered
- * capabilities, and financial entries cannot be converted into ordinary grants.
+ * Unknown apps have no capabilities. Invalid or conflicting registrations are
+ * rejected at construction time so adapter metadata cannot silently weaken the
+ * deterministic security boundary.
  */
 class AppCapabilityRegistry(
     specs: Collection<AppCapabilitySpec> = emptyList()
 ) {
+    init {
+        specs.forEach { validate(it) }
+        require(specs.groupBy { Triple(it.packageName, it.capability, it.actions) }
+            .values.all { entries -> entries.map { it.riskTier }.distinct().size <= 1 }) {
+            "Conflicting risk metadata for the same app capability/action set"
+        }
+        require(specs.none { it.financialCategory && it.capability != Capability.FINANCIAL_ACTION }) {
+            "Financial category must use FINANCIAL_ACTION capability"
+        }
+    }
+
     private val specsByPackage = specs.groupBy { it.packageName }
 
     fun isRegistered(packageName: String): Boolean =
         specsByPackage.containsKey(packageName)
 
-    fun allows(packageName: String, capability: Capability, action: String): Boolean =
+    fun allows(packageName: String, capability: Capability, action: String, requestedRisk: RiskTier): Boolean =
         specsByPackage[packageName].orEmpty().any {
-            it.capability == capability && action in it.actions && !it.financialCategory
+            it.capability == capability &&
+                action in it.actions &&
+                !it.financialCategory &&
+                it.riskTier == requestedRisk &&
+                it.sensitiveContentBlocked
         }
 
     fun isFinancial(packageName: String): Boolean =
@@ -34,4 +50,21 @@ class AppCapabilityRegistry(
 
     fun specsFor(packageName: String): List<AppCapabilitySpec> =
         specsByPackage[packageName].orEmpty()
+
+    private fun validate(spec: AppCapabilitySpec) {
+        require(spec.packageName.matches(PACKAGE_NAME_REGEX)) { "Invalid package name" }
+        require(spec.actions.isNotEmpty()) { "Capability must expose at least one action" }
+        require(spec.actions.all { it.isNotBlank() && it.length <= MAX_ACTION_LENGTH }) {
+            "Invalid capability action"
+        }
+        if (spec.financialCategory) {
+            require(spec.capability == Capability.FINANCIAL_ACTION)
+            require(spec.riskTier == RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED)
+        }
+    }
+
+    private companion object {
+        val PACKAGE_NAME_REGEX = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$")
+        const val MAX_ACTION_LENGTH = 128
+    }
 }
