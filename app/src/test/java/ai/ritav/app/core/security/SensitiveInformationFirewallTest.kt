@@ -47,10 +47,10 @@ class SensitiveInformationFirewallTest {
         assertFalse(result.redactedText.contains("BEGIN PRIVATE KEY"))
     }
 
-    @Test fun apiKeyIsDetectedAndRedacted() {
-        val result = firewall.inspect("api_key=AbCdEfGhIjKlMnOp")
+    @Test fun apiKeyIsDetectedAndRedactedEvenWhenSecretEndsWithPunctuation() {
+        val result = firewall.inspect("api_key=AbCdEfGhIjKlMnOp-")
         assertBlockedWithType(result, SensitiveDataType.API_KEY)
-        assertFalse(result.redactedText.contains("AbCdEfGhIjKlMnOp"))
+        assertFalse(result.redactedText.contains("AbCdEfGhIjKlMnOp-"))
     }
 
     @Test fun benignTextIsAllowedUnchanged() {
@@ -132,6 +132,14 @@ class SensitiveInformationFirewallTest {
 
     @Test fun whitespaceChangedRepresentationIsBlockedConservatively() {
         val result = firewall.inspect("O T P 123456")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+        assertTrue(result.matches.isEmpty())
+    }
+
+    @Test fun zeroWidthObfuscationIsBlockedConservatively() {
+        val result = firewall.inspect("OT\u200bP 123456")
         assertFalse(result.allowed)
         assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
         assertEquals("", result.redactedText)
