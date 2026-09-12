@@ -5,50 +5,68 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ActionAuthorizationGateTest {
+    private val plan = ActionPlan(
+        appId = "com.example.app",
+        capability = Capability.SEND_MESSAGE,
+        action = "send",
+        riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+        sessionId = "session-1"
+    )
+
     @Test
     fun tokenCanBeConsumedOnlyOnce() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
-            appId = "com.example.app",
-            capability = Capability.SEND_MESSAGE,
-            action = "send",
-            sessionId = "session-1",
+            plan = plan,
             requiredLevel = AuthorizationLevel.USER_CONFIRMATION,
             nowEpochMillis = 1_000L
         )
 
-        assertTrue(gate.consume(token, "com.example.app", Capability.SEND_MESSAGE, "send", "session-1", AuthorizationLevel.USER_CONFIRMATION, 1_001L))
-        assertFalse(gate.consume(token, "com.example.app", Capability.SEND_MESSAGE, "send", "session-1", AuthorizationLevel.USER_CONFIRMATION, 1_002L))
+        assertTrue(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
+        assertFalse(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_002L))
     }
 
     @Test
     fun tokenCannotBeReusedForDifferentAction() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
-            appId = "com.example.app",
-            capability = Capability.SEND_MESSAGE,
-            action = "send",
-            sessionId = "session-1",
+            plan = plan,
             requiredLevel = AuthorizationLevel.USER_CONFIRMATION,
             nowEpochMillis = 1_000L
         )
 
-        assertFalse(gate.consume(token, "com.example.app", Capability.SEND_MESSAGE, "delete", "session-1", AuthorizationLevel.USER_CONFIRMATION, 1_001L))
+        assertFalse(
+            gate.consume(
+                token,
+                plan.copy(action = "delete"),
+                AuthorizationLevel.USER_CONFIRMATION,
+                1_001L
+            )
+        )
     }
 
     @Test
     fun expiredTokenIsRejected() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
-            appId = "com.example.app",
-            capability = Capability.SEND_MESSAGE,
-            action = "send",
-            sessionId = "session-1",
+            plan = plan,
             requiredLevel = AuthorizationLevel.USER_CONFIRMATION,
             nowEpochMillis = 1_000L,
             ttlMillis = 1_000L
         )
 
-        assertFalse(gate.consume(token, "com.example.app", Capability.SEND_MESSAGE, "send", "session-1", AuthorizationLevel.USER_CONFIRMATION, 2_001L))
+        assertFalse(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 2_001L))
+    }
+
+    @Test
+    fun weakerAuthorizationCannotSatisfyStrongerToken() {
+        val gate = ActionAuthorizationGate()
+        val token = gate.issue(
+            plan = plan,
+            requiredLevel = AuthorizationLevel.DEVICE_AUTHENTICATION,
+            nowEpochMillis = 1_000L
+        )
+
+        assertFalse(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
     }
 }
