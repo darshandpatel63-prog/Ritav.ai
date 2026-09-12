@@ -51,7 +51,8 @@ Implemented in the current `main` branch:
 - NFKC/whitespace-compacted inspection is detection-only; if a sensitive pattern is found after a representation-changing normalization/compaction pass, the firewall conservatively blocks rather than attempting unsafe offset mapping/redaction.
 - Unicode format-character inspection uses explicit code-point conversion for Java `Character.getType`.
 - Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without broad transliteration.
-- Whitespace/zero-width obfuscation and Unicode normalization regression cases are covered.
+- Unicode decimal digits are folded to ASCII digits for transformed detection, reducing script-specific digit bypass risk while leaving unrelated Unicode numbers allowed.
+- Whitespace/zero-width, Unicode normalization, homoglyph, and non-ASCII decimal-digit obfuscation regression cases are covered.
 - Security pipeline tests verify that oversized and normalization-detected inputs are blocked before authorization is consumed.
 - ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and a token remains usable after that blocked inspection.
 
@@ -63,8 +64,8 @@ Implemented in the current `main` branch:
 - Redaction preservation of surrounding text.
 - No secret value in `SensitiveMatch`.
 - Exact maximum length and oversized fail-closed behavior, including oversized input containing a secret.
-- Whitespace, zero-width, Unicode-normalization, and common Greek/Cyrillic homoglyph obfuscation.
-- Confusable-fold false-positive regression without a numeric secret.
+- Whitespace, zero-width, Unicode-normalization, Greek/Cyrillic homoglyph, and Unicode decimal-digit obfuscation.
+- Confusable-fold and decimal-digit false-positive regressions without sensitive markers.
 - Unusual/malformed Unicode input not crashing the call.
 
 ## Continuous verification / security review notes
@@ -73,6 +74,8 @@ Transformed representations can change UTF-16 offsets, so transformed detections
 The direct `security code` pattern intentionally has security-sensitive semantics because it is used for CVV/verification-code detection. Generic false-positive coverage therefore does not assert that an unqualified `security code + digits` phrase is always benign.
 
 The explicit confusable mapping is intentionally narrow. It is defense-in-depth for common Latin look-alikes, not a complete Unicode confusables implementation. Unmapped homoglyphs and other linguistic obfuscations remain a known limitation.
+
+Unicode decimal-digit folding is also defense-in-depth: it converts only characters classified as decimal digits and successfully mapped by `Character.digit(char, 10)`. It does not attempt broad numeric-script transliteration.
 
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
@@ -83,19 +86,19 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
 - Relevant firewall and test sources were re-fetched before modification.
-- Current firewall blob SHA: `e6e99208f5665ffdea768fde82a38239c993039d`.
-- Current firewall test blob SHA: `8e275a019b49ed26fe6e4283b3520417a716deee`.
+- Current firewall hardening commit: `6ee4a0502c70ea422346cdc43b1e28685a4202de`.
+- Current firewall test commit: `2bd8d1c41f97acdec677e7f06de62645e6ab0932`.
 - No executable Gradle wrapper was present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
 - Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `2bd8d1c41f97acdec677e7f06de62645e6ab0932` — test: cover Unicode decimal digit normalization.
+- `6ee4a0502c70ea422346cdc43b1e28685a4202de` — security: harden sensitive firewall against Unicode decimal digits.
+- `18b509468b5d3deaaecfc89f0bd90fae88977001` — docs: record latest sensitive firewall hardening state.
 - `152e80e6d46822cf6f747bb249a12a341d0bba57` — docs: record Unicode confusable firewall hardening state.
 - `0f2c67f40d2369650099ae651047922947e6ab12` — test: cover Unicode confusable sensitive markers.
 - `6d67780ff32142626a4f9e2c315503f26cbf9764` — security: harden sensitive firewall against common Unicode confusables.
-- `7bc30cbd411d92b483f1bf1f9ad26fc384fc3cb4` — docs: record current sensitive firewall continuation state.
-- `58efefec7bcb39250c64ead004f000317d5110a7` — test: cover bridge sensitive-input boundary and token preservation.
-- `7b349b74fa6bf5a1bf2a9b081e052fe6b34a5799` — fix: use code point conversion for Unicode format inspection.
 
 ## Security invariants
 1. No autonomous consequential action.
