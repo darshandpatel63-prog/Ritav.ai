@@ -62,8 +62,10 @@ class SensitiveInformationFirewall {
         val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
         val compact = normalized.filterNot { it.isWhitespace() || Character.getType(it.code) == Character.FORMAT.toInt() }
         val confusableFolded = foldCommonLatinConfusables(compact)
-        val representationChanged = normalized != text || compact != normalized || confusableFolded != compact
-        if (representationChanged && containsSensitivePattern(normalized, compact, confusableFolded)) {
+        val digitFolded = foldUnicodeDecimalDigits(confusableFolded)
+        val representationChanged = normalized != text || compact != normalized ||
+            confusableFolded != compact || digitFolded != confusableFolded
+        if (representationChanged && containsSensitivePattern(normalized, compact, confusableFolded, digitFolded)) {
             return FirewallResult(false, "", emptyList(), FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED)
         }
 
@@ -121,6 +123,21 @@ class SensitiveInformationFirewall {
                     else -> char
                 }
             )
+        }
+    }
+
+    private fun foldUnicodeDecimalDigits(text: String): String = buildString(text.length) {
+        text.forEach { char ->
+            if (Character.getType(char) == Character.DECIMAL_DIGIT_NUMBER.toInt()) {
+                val digit = Character.digit(char, 10)
+                if (digit >= 0) {
+                    append(('0'.code + digit).toChar())
+                } else {
+                    append(char)
+                }
+            } else {
+                append(char)
+            }
         }
     }
 
