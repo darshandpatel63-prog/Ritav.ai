@@ -50,11 +50,12 @@ Implemented in the current `main` branch:
 - Inputs over the limit now fail closed with an explicit `INPUT_TOO_LARGE` result instead of throwing.
 - Failed/blocked inspection never forwards the original oversized value through the security pipeline.
 - NFKC/whitespace-compacted inspection is detection-only; if a sensitive pattern is found after a representation-changing normalization/compaction pass, the firewall conservatively blocks rather than attempting unsafe offset mapping/redaction.
-- Unicode format-character inspection uses an explicit code-point conversion for Java `Character.getType`, avoiding a Char/int interop ambiguity in the security-critical normalization path.
+- Unicode format-character inspection uses an explicit code-point conversion for Java `Character.getType`.
+- Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without introducing broad transliteration behavior.
 - A false-positive regression case was added for generic text without secret markers.
 - Whitespace/zero-width obfuscation regression cases are covered and conservatively blocked.
 - Security pipeline tests verify that oversized and normalization-detected inputs are blocked before authorization is consumed.
-- ExecutionBridge coverage now verifies that sensitive `inputText` is blocked at the bridge path and that a token remains usable after that blocked inspection.
+- ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and that a token remains usable after that blocked inspection.
 
 ## Dedicated firewall test coverage added
 `app/src/test/java/ai/ritav/app/core/security/SensitiveInformationFirewallTest.kt` covers:
@@ -77,6 +78,8 @@ Implemented in the current `main` branch:
 - Whitespace-obfuscation detection.
 - Zero-width obfuscation detection.
 - Unicode normalization detection.
+- Common Greek/Cyrillic homoglyph detection for sensitive markers.
+- Confusable-fold false-positive regression without a numeric secret.
 - Normalized benign text.
 - Unusual/malformed Unicode input not crashing the test call.
 
@@ -84,6 +87,8 @@ Implemented in the current `main` branch:
 The current source review identified an important design boundary: transformed representations may change UTF-16 offsets, so transformed detections must not be used to redact source text unless an offset mapping is proven correct. The implementation therefore uses transformed inspection only as a conservative block signal.
 
 The direct `security code` pattern intentionally has security-sensitive semantics because it is used for CVV/verification-code detection. Generic false-positive coverage therefore avoids asserting that an unqualified `security code + digits` phrase is always benign.
+
+The explicit confusable mapping is intentionally narrow. It is defense-in-depth for common Latin look-alikes, not a complete Unicode confusables implementation. Unmapped homoglyphs and other linguistic obfuscations remain a known limitation.
 
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
@@ -93,22 +98,19 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 ## Current verification status — 2026-09-12
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
-- `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_BLUEPRINT.md`, and `docs/MASTER_REQUIREMENTS_MATRIX.md` were inspected before code changes.
-- Current firewall, security pipeline, authorization gate/service, bridge, tests, Android build configuration, manifest, and recent commits were inspected.
-- Current firewall blob SHA after the Unicode interop correction: `c7defb7da36b5d4e57dcf4106dc7993f87df4167`.
-- Current firewall test blob SHA: `f14e81393820c44bbd32abcf60d6594c65307b02`.
-- Current ExecutionBridge test blob SHA after bridge-boundary coverage: `632ed320df292f01d54131c05880365deb900002`.
+- Relevant firewall and test sources were re-fetched before modification.
+- Current firewall blob SHA after Unicode-confusable hardening: `e6e99208f5665ffdea768fde82a38239c993039d`.
+- Current firewall test blob SHA after homoglyph regression coverage: `8e275a019b49ed26fe6e4283b3520417a716deee`.
 - No executable Gradle wrapper was present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
-- The current GitHub commit has an empty combined-status result.
 - Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
-- `7b349b74fa6bf5a1bf2a9b081e052fe6b34a5799` — fix: use code point conversion for Unicode format inspection.
+- `0f2c67f40d2369650099ae651047922947e6ab12` — test: cover Unicode confusable sensitive markers.
+- `6d67780ff32142626a4f9e2c315503f26cbf9764` — security: harden sensitive firewall against common Unicode confusables.
+- `7bc30cbd411d92b483f1bf1f9ad26fc384fc3cb4` — docs: record current sensitive firewall continuation state.
 - `58efefec7bcb39250c64ead004f000317d5110a7` — test: cover bridge sensitive-input boundary and token preservation.
-- `1f9025f11dea7a785aa780a6994d2f9ab356c7ff` — test: verify obfuscated secret rejection preserves authorization token.
-- `e06640b99359b91a4145925fe91b6bfce5168d86` — test: expand sensitive firewall adversarial Unicode and context coverage.
-- `10cbb1cb27ce2d5a3d11afc01b2bfca15bc0a4dc` — test: cover zero-width obfuscation and punctuation-ended secrets.
+- `7b349b74fa6bf5a1bf2a9b081e052fe6b34a5799` — fix: use code point conversion for Unicode format inspection.
 
 ## Security invariants
 1. No autonomous consequential action.
