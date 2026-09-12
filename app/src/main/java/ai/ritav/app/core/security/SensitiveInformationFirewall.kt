@@ -151,12 +151,12 @@ class SensitiveInformationFirewall {
 
     companion object {
         private const val MAX_INPUT_LENGTH = 16_384
-        private val OTP = Regex("(?i)(?:otp|one[- ]time password|verification code|security code)\\s*(?:is|:|=)?\\s*\\b\\d{4,8}\\b")
+        private val OTP = Regex("(?i)(?:otp|one[- ]?time\\s*password|verification code|security code)\\s*(?:is|:|=)?\\s*\\b\\d{4,8}\\b")
         private val UPI_PIN = Regex("(?i)(?:upi\\s*pin|pin for upi)\\s*(?:is|:|=)?\\s*\\b\\d{4,6}\\b")
         private val CVV = Regex("(?i)(?:cvv|cvc|security code)\\s*(?:is|:|=)?\\s*\\b\\d{3,4}\\b")
         private val PRIVATE_KEY = Regex("-----BEGIN [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----[\\s\\S]*?-----END [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----")
         private val API_KEY = Regex("(?i)\\b(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\\s*[:=]\\s*[A-Za-z0-9_./+=-]{12,}")
-        private val RECOVERY_CODE = Regex("(?i)(?:recovery|backup|emergency)\\s+code(?:s)?\\s*(?:are|is|:|=)?\\s*\\b[A-Za-z0-9-]{6,32}(?:\\s*,\\s*[A-Za-z0-9-]{6,32})*\\b")
-        private val PASSWORD_CONTEXT = Regex("(?i)(?:password|passcode|login password)\\s*(?:is|:|=)\\s*[^\\s,;]{4,}")
+        private val RECOVERY_CODE = Regex("(?i)(?:recovery|backup|emergency)\\s*code(?:s)?\\s*(?:are|is|:|=)?\\s*\\b[A-Za-z0-9-]{6,32}(?:\\s*,\\s*[A-Za-z0-9-]{6,32})*\\b")
+        private val PASSWORD_CONTEXT = Regex("(?i)(?:password|passcode|login\\s*password)\\s*(?:is|:|=)\\s*[^\\s,;]{4,}")
     }
 }
