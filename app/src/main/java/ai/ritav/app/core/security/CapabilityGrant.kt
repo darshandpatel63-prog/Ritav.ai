@@ -4,6 +4,7 @@ data class CapabilityGrant(
     val appId: String,
     val capability: Capability,
     val action: String,
+    /** Null means an explicitly persistent app-level grant; non-null is session-bound. */
     val sessionId: String? = null,
     val enabled: Boolean = true
 )
@@ -21,7 +22,7 @@ class InMemoryPermissionStore(grants: Set<CapabilityGrant> = emptySet()) : Permi
                 grant.appId == appId &&
                 grant.capability == capability &&
                 grant.action == action &&
-                (grant.sessionId == null || grant.sessionId == sessionId)
+                grant.sessionId == sessionId
         }
 
     fun grant(grant: CapabilityGrant) { grants.add(grant) }
