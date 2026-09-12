@@ -22,7 +22,7 @@ class SecurePermissionStore(
             grant.appId == appId &&
             grant.capability == capability &&
             grant.action == action &&
-            (grant.sessionId == null || grant.sessionId == sessionId)
+            grant.sessionId == sessionId
     }
 
     @Synchronized
