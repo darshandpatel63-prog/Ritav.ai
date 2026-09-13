@@ -67,27 +67,6 @@ class SensitiveInformationFirewallTest {
         assertFalse(result.redactedText.contains("AbCdEfGhIjKlMnOp-"))
     }
 
-    @Test fun compactedApiKeyLabelIsBlockedConservatively() {
-        val result = firewall.inspect("api\u200bkey=AbCdEfGhIjKlMnOp-")
-        assertFalse(result.allowed)
-        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
-        assertEquals("", result.redactedText)
-    }
-
-    @Test fun compactedAccessTokenLabelIsBlockedConservatively() {
-        val result = firewall.inspect("access\u200btoken=AbCdEfGhIjKlMnOp-")
-        assertFalse(result.allowed)
-        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
-        assertEquals("", result.redactedText)
-    }
-
-    @Test fun compactedSecretKeyLabelIsBlockedConservatively() {
-        val result = firewall.inspect("secret\u200bkey=AbCdEfGhIjKlMnOp-")
-        assertFalse(result.allowed)
-        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
-        assertEquals("", result.redactedText)
-    }
-
     @Test fun benignTextIsAllowedUnchanged() {
         val text = "Please remind me to study anatomy tomorrow."
         val result = firewall.inspect(text)
@@ -275,6 +254,27 @@ class SensitiveInformationFirewallTest {
 
     @Test fun compactedLoginPasswordLabelIsBlockedConservatively() {
         val result = firewall.inspect("login\u200b password: MySecret123!")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun compactedApiKeyLabelIsBlockedConservatively() {
+        val result = firewall.inspect("api\u200b key=AbCdEfGhIjKlMnOp")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun compactedAccessTokenLabelIsBlockedConservatively() {
+        val result = firewall.inspect("access\u200b token=AbCdEfGhIjKlMnOp")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun compactedSecretKeyLabelIsBlockedConservatively() {
+        val result = firewall.inspect("secret\u200b key=AbCdEfGhIjKlMnOp")
         assertFalse(result.allowed)
         assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
         assertEquals("", result.redactedText)
