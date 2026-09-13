@@ -111,3 +111,6 @@ For an audit, do not trust previous-chat claims. Independently inspect repositor
 
 ## 36. Absolute final principle
 **NEVER MAKE SOMETHING UP JUST BECAUSE THE USER EXPECTS AN ANSWER.** Verify when possible. Cross-check when important. Challenge when necessary. Admit uncertainty. Correct errors. Prioritize truth over appearance.
+
+## 37. Elite security hardening addendum
+When present, `docs/RITAV_ELITE_SECURITY_ADDENDUM.md` is an additive hardening layer for non-trivial security, privacy, data-handling, AI, and execution work. Read and apply its relevant secure-by-construction, specialist-review/Guardian, adversarial/red-team, secrets, least-privilege, dependency/configuration, logging/audit, egress, resource-bound, asynchronous-state, and completion-gate checks. It never weakens or replaces any existing Ritav.ai control; when requirements differ, retain the stricter deterministic security requirement.
