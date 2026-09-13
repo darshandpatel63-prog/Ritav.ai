@@ -309,6 +309,35 @@ class SensitiveInformationFirewallTest {
         assertEquals("", result.redactedText)
     }
 
+    @Test fun punctuationObfuscationOfSensitiveLabelsIsBlockedConservatively() {
+        val cases = listOf(
+            "O-T-P 123456",
+            "U.P.I PIN 1234",
+            "verification-code 123456",
+            "api-key=AbCdEfGhIjKlMnOp"
+        )
+        cases.forEach { text ->
+            val result = firewall.inspect(text)
+            assertFalse("Expected block for: $text", result.allowed)
+            assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+            assertEquals("", result.redactedText)
+        }
+    }
+
+    @Test fun punctuationCompactionDoesNotBlockUnrelatedText() {
+        val text = "The api-key documentation explains verification-code formatting without values."
+        val result = firewall.inspect(text)
+        assertTrue(result.allowed)
+        assertEquals(text, result.redactedText)
+    }
+
+    @Test fun punctuationObfuscationInsideSensitiveDigitsIsBlockedConservatively() {
+        val result = firewall.inspect("OTP 12-34-56")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
     @Test fun unicodeDecimalDigitsRemainBenignWithoutSensitiveMarker() {
         val text = "Invoice number ١٢٣٤٥٦ is ready."
         val result = firewall.inspect(text)
