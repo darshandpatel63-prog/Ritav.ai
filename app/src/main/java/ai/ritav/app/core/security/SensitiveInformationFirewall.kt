@@ -138,17 +138,20 @@ class SensitiveInformationFirewall {
     }
 
     private fun foldUnicodeDecimalDigits(text: String): String = buildString(text.length) {
-        text.forEach { char ->
-            if (Character.getType(char) == Character.DECIMAL_DIGIT_NUMBER.toInt()) {
-                val digit = Character.digit(char, 10)
+        var index = 0
+        while (index < text.length) {
+            val codePoint = text.codePointAt(index)
+            if (Character.getType(codePoint) == Character.DECIMAL_DIGIT_NUMBER.toInt()) {
+                val digit = Character.digit(codePoint, 10)
                 if (digit >= 0) {
                     append(('0'.code + digit).toChar())
                 } else {
-                    append(char)
+                    appendCodePoint(codePoint)
                 }
             } else {
-                append(char)
+                appendCodePoint(codePoint)
             }
+            index += Character.charCount(codePoint)
         }
     }
 
