@@ -8,6 +8,7 @@ Phase 0 — Architecture, threat model and secure foundation; security/runtime i
 - `RITAV_AI_MASTER_BLUEPRINT.pdf` — user-provided product/design reference.
 - `docs/MASTER_REQUIREMENTS_MATRIX.md` — explicit reconciliation of both sources.
 - `docs/RITAV_COMMON_AI_WORKFLOW.md` — mandatory AI/development workflow contract.
+- `docs/RITAV_ELITE_SECURITY_ADDENDUM.md` — additive maximum-assurance security hardening rules.
 
 ## Security foundation status
 Implemented baseline deterministic security gates:
@@ -50,13 +51,16 @@ Implemented in the current `main` branch:
 - Input inspection is bounded at 16,384 characters.
 - Inputs over the limit fail closed with an explicit `INPUT_TOO_LARGE` result.
 - NFKC/whitespace-compacted inspection is detection-only; if a sensitive pattern is found after a representation-changing normalization/compaction pass, the firewall conservatively blocks rather than attempting unsafe offset mapping/redaction.
-- Unicode format-character inspection uses explicit code-point conversion for Java `Character.getType`.
+- Unicode format-character compaction is now iterated by Unicode code point, closing a supplementary-plane `Cf`/format-character bypass class.
 - Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without broad transliteration.
 - Unicode decimal digits are folded by Unicode code point to ASCII digits for transformed detection, including supplementary-plane decimal digits, reducing script-specific digit bypass risk while leaving unrelated Unicode numbers allowed.
 - Credential labels whose separators are removed by compaction are now matched in their compact form, including one-time-password, verification-code, security-code, UPI-PIN, pin-for-UPI, recovery-code, login-password, API-key, access-token, and secret-key labels.
-- Whitespace/zero-width, Unicode normalization, homoglyph, non-ASCII decimal-digit, supplementary decimal-digit, and compacted-label obfuscation regression cases are covered.
+- Whitespace/zero-width, Unicode normalization, homoglyph, non-ASCII decimal-digit, supplementary decimal-digit, supplementary-plane format-character, and compacted-label obfuscation regression cases are covered.
 - Security pipeline tests verify that oversized and normalization-detected inputs are blocked before authorization is consumed.
 - ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and a token remains usable after that blocked inspection.
+
+## Elite security hardening rules added
+`docs/RITAV_ELITE_SECURITY_ADDENDUM.md` is additive to the common workflow. It does not replace existing controls. It adds maximum-assurance review lenses, secure-by-construction requirements, adversarial attack classes, least-privilege checks, dependency/configuration hygiene, secret-safe logging, bounded resource use, asynchronous security-state checks, and an evidence-based completion gate. Relevant Android-native equivalents are used instead of blindly importing browser-only controls.
 
 ## Dedicated firewall test coverage added
 `app/src/test/java/ai/ritav/app/core/security/SensitiveInformationFirewallTest.kt` covers:
@@ -67,7 +71,7 @@ Implemented in the current `main` branch:
 - Redaction preservation of surrounding text.
 - No secret value in `SensitiveMatch`.
 - Exact maximum length and oversized fail-closed behavior, including oversized input containing a secret.
-- Whitespace, zero-width, Unicode-normalization, Greek/Cyrillic homoglyph, Unicode decimal-digit, supplementary-plane decimal-digit, and compacted credential-label obfuscation.
+- Whitespace, zero-width, Unicode-normalization, Greek/Cyrillic homoglyph, Unicode decimal-digit, supplementary-plane decimal-digit, supplementary-plane format-character, and compacted credential-label obfuscation.
 - Compacted verification-code, security-code, UPI-PIN, and pin-for-UPI regression cases.
 - Confusable-fold and decimal-digit false-positive regressions without sensitive markers.
 - Unusual/malformed Unicode input not crashing the call.
@@ -85,6 +89,8 @@ Compacted credential-label matching specifically addresses a representation mism
 
 Natural-language API credential matching intentionally covers the common `is`, `:`, and `=` assignment forms. This is still pattern-based and cannot prove that arbitrary opaque strings are secrets without context.
 
+The latest code-point-safe compaction change was paired with regression tests for supplementary-plane Unicode format characters inserted into both a sensitive marker and sensitive digits. These tests are committed but remain unexecuted in the current environment.
+
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
 ## Important security assessment
@@ -94,18 +100,19 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
 - Relevant firewall and test sources were re-fetched before modification.
-- Latest security hardening commit: `71c09b01fc96031a495b1666942b492575dce7b6`.
-- Latest firewall test commit: `340efd3d1fb57d42907425420f3d1bb56e428f7e`.
-- Natural-language API credential detection and its regression tests were added and committed successfully.
+- Elite security addendum was added without removing existing security rules.
+- A supplementary-plane Unicode format-character compaction weakness was identified by source inspection, then fixed and paired with regression tests.
+- Latest elite security addendum commit: `52d2ea5068a79da7e378c1b0ee980184066f8e15`.
+- Latest security hardening commit: `d617c99bde7583a4b6633f93f841828176126d1d`.
+- Latest firewall test commit: `9a4b46ad1acfb2f3c4656a3382c1feb50f8f6db0`.
 - No executable Gradle wrapper is present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
 - Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
-- `340efd3d1fb57d42907425420f3d1bb56e428f7e` — test: cover natural-language API credential assignments.
-- `71c09b01fc96031a495b1666942b492575dce7b6` — security: detect natural-language API credential assignments.
-- `6e524210d76fa9fb3f800fc47341dda36fec75ae` — test: cover supplementary Unicode decimal digits.
-- `f7d57a8980b0417227e8074e41a44705904c24c4` — security: handle supplementary Unicode decimal digits.
+- `9a4b46ad1acfb2f3c4656a3382c1feb50f8f6db0` — test: cover supplementary Unicode format bypass.
+- `d617c99bde7583a4b6633f93f841828176126d1d` — security: make firewall format filtering code-point safe.
+- `52d2ea5068a79da7e378c1b0ee980184066f8e15` — docs: add elite security hardening rules.
 
 ## Security invariants
 1. No autonomous consequential action.
