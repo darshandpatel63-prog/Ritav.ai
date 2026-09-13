@@ -78,6 +78,7 @@ class SensitiveInformationFirewall {
         CVV.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.CVV, it.range.first, it.range.last + 1)) }
         PRIVATE_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.PRIVATE_KEY, it.range.first, it.range.last + 1)) }
         API_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.API_KEY, it.range.first, it.range.last + 1)) }
+        STANDALONE_API_KEY.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.API_KEY, it.range.first, it.range.last + 1)) }
         RECOVERY_CODE.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.RECOVERY_CODE, it.range.first, it.range.last + 1)) }
         PASSWORD_CONTEXT.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.PASSWORD, it.range.first, it.range.last + 1)) }
     }
@@ -96,6 +97,7 @@ class SensitiveInformationFirewall {
             PRIVATE_KEY,
             API_KEY,
             API_KEY_COMPACT,
+            STANDALONE_API_KEY,
             RECOVERY_CODE,
             PASSWORD_CONTEXT
         ).any { regex -> regex.containsMatchIn(candidate) }
@@ -186,6 +188,9 @@ class SensitiveInformationFirewall {
         private val PRIVATE_KEY = Regex("-----BEGIN [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----[\\s\\S]*?-----END [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----")
         private val API_KEY = Regex("(?i)\\b(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\\s*(?:is|:|=)\\s*[A-Za-z0-9_./+=-]{12,}")
         private val API_KEY_COMPACT = Regex("(?i)\\b(?:apikey|accesstoken|secretkey)\\s*(?:is|:|=)\\s*[A-Za-z0-9_./+=-]{12,}")
+        // Conservative standalone patterns for common provider-issued credential formats.
+        // This is defense-in-depth, not an attempt to enumerate every secret format.
+        private val STANDALONE_API_KEY = Regex("(?i)(?<![A-Za-z0-9_])(?:sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[bp]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,})(?![A-Za-z0-9_])")
         private val RECOVERY_CODE = Regex("(?i)(?:recovery|backup|emergency)\\s*code(?:s)?\\s*(?:are|is|:|=)?\\s*\\b[A-Za-z0-9-]{6,32}(?:\\s*,\\s*[A-Za-z0-9-]{6,32})*\\b")
         private val PASSWORD_CONTEXT = Regex("(?i)(?:password|passcode|login\\s*password)\\s*(?:is|:|=)\\s*[^\\s,;]{4,}")
     }
