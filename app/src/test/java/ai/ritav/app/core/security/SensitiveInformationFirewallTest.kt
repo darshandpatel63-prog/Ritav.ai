@@ -259,6 +259,23 @@ class SensitiveInformationFirewallTest {
         assertEquals("", result.redactedText)
     }
 
+    @Test fun supplementaryPlaneFormatCharactersCannotBypassSensitiveMarkerCompaction() {
+        val formatCharacter = String(Character.toChars(0xE0001))
+        val result = firewall.inspect("O${formatCharacter}TP 123456")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+        assertTrue(result.matches.isEmpty())
+    }
+
+    @Test fun supplementaryPlaneFormatCharactersCannotBypassSensitiveDigitsCompaction() {
+        val formatCharacter = String(Character.toChars(0xE0001))
+        val result = firewall.inspect("OTP 12${formatCharacter}34${formatCharacter}56")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
     @Test fun unicodeDecimalDigitsRemainBenignWithoutSensitiveMarker() {
         val text = "Invoice number ١٢٣٤٥٦ is ready."
         val result = firewall.inspect(text)
