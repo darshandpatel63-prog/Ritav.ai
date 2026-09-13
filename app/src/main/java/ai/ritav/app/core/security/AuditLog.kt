@@ -41,6 +41,12 @@ class InMemoryAuditLog : AuditLog {
 
     @Synchronized
     override fun clear() = events.clear()
+
+    private companion object {
+        const val UNSAFE_REASON = "Audit reason contained sensitive information and was suppressed"
+    }
+
+    private fun validate(event: AuditEvent): AuditEvent = sanitizeAndValidate(event, UNSAFE_REASON)
 }
 
 /**
@@ -94,15 +100,7 @@ class SecureAuditLog(private val store: SecureLocalStore) : AuditLog {
         )
     }.getOrNull()?.let { runCatching { validate(it) }.getOrNull() }
 
-    private fun validate(event: AuditEvent): AuditEvent {
-        require(event.timestampEpochMillis >= 0) { "Invalid audit timestamp" }
-        require(event.actionHash?.length ?: 0 <= MAX_HASH_LENGTH) { "Invalid action hash" }
-        require(event.reason.length <= MAX_REASON_LENGTH) { "Audit reason is too long" }
-        require(!event.reason.contains('\n') && !event.reason.contains('\r')) {
-            "Audit reason must be single-line"
-        }
-        return event.copy(reason = event.reason.trim())
-    }
+    private fun validate(event: AuditEvent): AuditEvent = sanitizeAndValidate(event, UNSAFE_REASON)
 
     private fun encodeField(value: String): String =
         android.util.Base64.encodeToString(value.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
@@ -114,5 +112,19 @@ class SecureAuditLog(private val store: SecureLocalStore) : AuditLog {
         const val STORAGE_KEY = "security_audit_v1"
         const val MAX_REASON_LENGTH = 512
         const val MAX_HASH_LENGTH = 128
+        const val UNSAFE_REASON = "Audit reason contained sensitive information and was suppressed"
     }
+}
+
+private fun sanitizeAndValidate(event: AuditEvent, unsafeReason: String): AuditEvent {
+    require(event.timestampEpochMillis >= 0) { "Invalid audit timestamp" }
+    require(event.actionHash?.length ?: 0 <= 128) { "Invalid action hash" }
+    require(event.reason.length <= 512) { "Audit reason is too long" }
+    require(!event.reason.contains('\n') && !event.reason.contains('\r')) {
+        "Audit reason must be single-line"
+    }
+
+    val inspectedReason = SensitiveInformationFirewall().inspect(event.reason)
+    val safeReason = if (inspectedReason.allowed) inspectedReason.redactedText.trim() else unsafeReason
+    return event.copy(reason = safeReason)
 }
