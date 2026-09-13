@@ -85,6 +85,39 @@ class SensitiveInformationFirewallTest {
         assertFalse(result.redactedText.contains("AbCdEfGhIjKlMnOp1234"))
     }
 
+    @Test fun commonStandaloneCredentialFormatsAreDetected() {
+        val credentials = listOf(
+            "sk-12345678901234567890",
+            "sk-proj-12345678901234567890",
+            "ghp_12345678901234567890",
+            "github_pat_12345678901234567890",
+            "xoxb-12345678901234567890",
+            "xoxp-12345678901234567890",
+            "AKIA1234567890ABCD1234",
+            "AIza123456789012345678901234567890"
+        )
+        credentials.forEach { credential ->
+            val result = firewall.inspect("credential=$credential")
+            assertBlockedWithType(result, SensitiveDataType.API_KEY)
+            assertFalse(result.redactedText.contains(credential))
+        }
+    }
+
+    @Test fun standaloneCredentialPatternDoesNotMatchShortOrEmbeddedIdentifiers() {
+        val texts = listOf(
+            "sk-1234567890123456789",
+            "prefixsk-12345678901234567890suffix",
+            "ghp_1234567890123456789",
+            "AKIA1234567890ABCD123",
+            "AIza12345678901234567890123456789"
+        )
+        texts.forEach { text ->
+            val result = firewall.inspect(text)
+            assertTrue("Unexpected block for: $text", result.allowed)
+            assertEquals(text, result.redactedText)
+        }
+    }
+
     @Test fun benignTextIsAllowedUnchanged() {
         val text = "Please remind me to study anatomy tomorrow."
         val result = firewall.inspect(text)
