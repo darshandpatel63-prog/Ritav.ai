@@ -231,6 +231,16 @@ class SensitiveInformationFirewallTest {
         assertEquals("", result.redactedText)
     }
 
+    @Test fun supplementaryUnicodeDecimalDigitsAreFoldedForSensitiveDetection() {
+        val supplementaryDigits = (0..5).joinToString("") { digit ->
+            String(Character.toChars(0x104A0 + digit))
+        }
+        val result = firewall.inspect("OTP $supplementaryDigits")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
     @Test fun unicodeDecimalDigitsRemainBenignWithoutSensitiveMarker() {
         val text = "Invoice number ١٢٣٤٥٦ is ready."
         val result = firewall.inspect(text)
