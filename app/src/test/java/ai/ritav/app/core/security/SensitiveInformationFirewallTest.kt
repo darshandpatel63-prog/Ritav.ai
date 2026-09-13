@@ -67,6 +67,24 @@ class SensitiveInformationFirewallTest {
         assertFalse(result.redactedText.contains("AbCdEfGhIjKlMnOp-"))
     }
 
+    @Test fun apiKeyNaturalLanguageAssignmentIsDetected() {
+        val result = firewall.inspect("My API key is AbCdEfGhIjKlMnOp1234")
+        assertBlockedWithType(result, SensitiveDataType.API_KEY)
+        assertFalse(result.redactedText.contains("AbCdEfGhIjKlMnOp1234"))
+    }
+
+    @Test fun accessTokenNaturalLanguageAssignmentIsDetected() {
+        val result = firewall.inspect("The access token is AbCdEfGhIjKlMnOp1234")
+        assertBlockedWithType(result, SensitiveDataType.API_KEY)
+        assertFalse(result.redactedText.contains("AbCdEfGhIjKlMnOp1234"))
+    }
+
+    @Test fun secretKeyNaturalLanguageAssignmentIsDetected() {
+        val result = firewall.inspect("My secret key is AbCdEfGhIjKlMnOp1234")
+        assertBlockedWithType(result, SensitiveDataType.API_KEY)
+        assertFalse(result.redactedText.contains("AbCdEfGhIjKlMnOp1234"))
+    }
+
     @Test fun benignTextIsAllowedUnchanged() {
         val text = "Please remind me to study anatomy tomorrow."
         val result = firewall.inspect(text)
