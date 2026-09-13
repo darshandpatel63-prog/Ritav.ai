@@ -126,15 +126,18 @@ class SensitiveInformationFirewall {
 
     /**
      * Detection-only punctuation compaction for secret labels and digit groups.
-     * It is deliberately broad only for the transformed representation because
-     * the resulting offsets cannot safely be mapped back for redaction.
+     * Assignment separators are retained so existing credential-context regexes
+     * keep their required value boundary. The resulting offsets are never used
+     * for source redaction.
      */
     private fun compactSensitiveLabels(text: String): String = buildString(text.length) {
         var index = 0
         while (index < text.length) {
             val codePoint = text.codePointAt(index)
             val type = Character.getType(codePoint)
-            if (!isPunctuation(type)) appendCodePoint(codePoint)
+            if (!isPunctuation(type) || codePoint == ':'.code || codePoint == '='.code) {
+                appendCodePoint(codePoint)
+            }
             index += Character.charCount(codePoint)
         }
     }
