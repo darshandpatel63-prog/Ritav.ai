@@ -13,12 +13,24 @@ class ScopedAgentInvokerTest {
     }
 
     @Test fun rejectsCapabilityOutsideScope() {
-        val request = AgentRequest("task-1", "open", AgentCapabilityScope(emptySet()))
-        assertNull(ScopedAgentInvoker().invoke(agent, request))
+        val request = AgentRequest.create("task-1", "open", AgentCapabilityScope(emptySet()))
+        assertNotNull(request)
+        assertNull(ScopedAgentInvoker().invoke(agent, request!!))
     }
 
     @Test fun acceptsCapabilityInsideScope() {
-        val request = AgentRequest("task-1", "open", AgentCapabilityScope(setOf(Capability.APP_LAUNCH)))
-        assertNotNull(ScopedAgentInvoker().invoke(agent, request))
+        val request = AgentRequest.create("task-1", "open", AgentCapabilityScope(setOf(Capability.APP_LAUNCH)))
+        assertNotNull(request)
+        assertNotNull(ScopedAgentInvoker().invoke(agent, request!!))
+    }
+
+    @Test fun rejectsSensitiveInputBeforeAgentInvocation() {
+        val request = AgentRequest.create("task-1", "OTP 123456", AgentCapabilityScope(setOf(Capability.APP_LAUNCH)))
+        assertNull(request)
+    }
+
+    @Test fun rejectsOversizedInputBeforeAgentInvocation() {
+        val request = AgentRequest.create("task-1", "x".repeat(16_385), AgentCapabilityScope(setOf(Capability.APP_LAUNCH)))
+        assertNull(request)
     }
 }
