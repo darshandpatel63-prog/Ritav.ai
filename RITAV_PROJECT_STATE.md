@@ -60,7 +60,9 @@ Implemented in the current `main` branch:
 - ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and a token remains usable after that blocked inspection.
 
 ## Elite security hardening rules added
-`docs/RITAV_ELITE_SECURITY_ADDENDUM.md` is additive to the common workflow. It does not replace existing controls. It adds maximum-assurance review lenses, secure-by-construction requirements, adversarial attack classes, least-privilege checks, dependency/configuration hygiene, secret-safe logging, bounded resource use, asynchronous security-state checks, and an evidence-based completion gate. Relevant Android-native equivalents are used instead of blindly importing browser-only controls.
+`docs/RITAV_ELITE_SECURITY_ADDENDUM.md` is additive to the common workflow. It does not replace existing controls. It adds maximum-assurance review lenses, secure-by-construction requirements, adversarial attack classes, least-privilege checks, dependency/configuration hygiene, secret-safe logging, bounded resource use, asynchronous security-state checks, and an evidence-based completion gate.
+
+`docs/RITAV_COMMON_AI_WORKFLOW.md` now explicitly requires this addendum for relevant non-trivial security/privacy/data/AI/execution work and preserves the stricter existing Ritav.ai control when requirements differ.
 
 ## Dedicated firewall test coverage added
 `app/src/test/java/ai/ritav/app/core/security/SensitiveInformationFirewallTest.kt` covers:
@@ -105,11 +107,13 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - Latest elite security addendum commit: `52d2ea5068a79da7e378c1b0ee980184066f8e15`.
 - Latest security hardening commit: `d617c99bde7583a4b6633f93f841828176126d1d`.
 - Latest firewall test commit: `9a4b46ad1acfb2f3c4656a3382c1feb50f8f6db0`.
+- Workflow/addendum integration commit: `02453795f19d6444db025e8fd3953cf283b6fbc2`.
 - No executable Gradle wrapper is present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
 - Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `02453795f19d6444db025e8fd3953cf283b6fbc2` — docs: link elite security addendum.
 - `9a4b46ad1acfb2f3c4656a3382c1feb50f8f6db0` — test: cover supplementary Unicode format bypass.
 - `d617c99bde7583a4b6633f93f841828176126d1d` — security: make firewall format filtering code-point safe.
 - `52d2ea5068a79da7e378c1b0ee980184066f8e15` — docs: add elite security hardening rules.
