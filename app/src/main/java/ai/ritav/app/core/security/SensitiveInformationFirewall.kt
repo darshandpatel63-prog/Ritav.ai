@@ -60,7 +60,7 @@ class SensitiveInformationFirewall {
         // Detection-only transformed representations: transformed offsets are
         // unsafe for redaction because normalization/compaction can change UTF-16 positions.
         val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
-        val compact = normalized.filterNot { it.isWhitespace() || Character.getType(it.code) == Character.FORMAT.toInt() }
+        val compact = compactCodePoints(normalized)
         val confusableFolded = foldCommonLatinConfusables(compact)
         val digitFolded = foldUnicodeDecimalDigits(confusableFolded)
         val representationChanged = normalized != text || compact != normalized ||
@@ -99,6 +99,18 @@ class SensitiveInformationFirewall {
             RECOVERY_CODE,
             PASSWORD_CONTEXT
         ).any { regex -> regex.containsMatchIn(candidate) }
+    }
+
+    private fun compactCodePoints(text: String): String = buildString(text.length) {
+        var index = 0
+        while (index < text.length) {
+            val codePoint = text.codePointAt(index)
+            val type = Character.getType(codePoint)
+            if (!Character.isWhitespace(codePoint) && type != Character.FORMAT.toInt()) {
+                appendCodePoint(codePoint)
+            }
+            index += Character.charCount(codePoint)
+        }
     }
 
     private fun foldCommonLatinConfusables(text: String): String = buildString(text.length) {
