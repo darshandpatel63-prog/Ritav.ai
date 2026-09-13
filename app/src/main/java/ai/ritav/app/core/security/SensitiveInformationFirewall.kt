@@ -88,8 +88,11 @@ class SensitiveInformationFirewall {
     private fun containsSensitivePattern(vararg candidates: String): Boolean = candidates.any { candidate ->
         listOf(
             OTP,
+            OTP_COMPACT,
             UPI_PIN,
+            UPI_PIN_COMPACT,
             CVV,
+            CVV_COMPACT,
             PRIVATE_KEY,
             API_KEY,
             API_KEY_COMPACT,
@@ -160,8 +163,11 @@ class SensitiveInformationFirewall {
     companion object {
         private const val MAX_INPUT_LENGTH = 16_384
         private val OTP = Regex("(?i)(?:otp|one[- ]?time\\s*password|verification code|security code)\\s*(?:is|:|=)?\\s*\\b\\d{4,8}\\b")
+        private val OTP_COMPACT = Regex("(?i)(?:otp|onetimepassword|verificationcode|securitycode)\\s*(?:is|:|=)?\\s*\\b\\d{4,8}\\b")
         private val UPI_PIN = Regex("(?i)(?:upi\\s*pin|pin for upi)\\s*(?:is|:|=)?\\s*\\b\\d{4,6}\\b")
+        private val UPI_PIN_COMPACT = Regex("(?i)(?:upipin|pinforupi)\\s*(?:is|:|=)?\\s*\\b\\d{4,6}\\b")
         private val CVV = Regex("(?i)(?:cvv|cvc|security code)\\s*(?:is|:|=)?\\s*\\b\\d{3,4}\\b")
+        private val CVV_COMPACT = Regex("(?i)(?:cvv|cvc|securitycode)\\s*(?:is|:|=)?\\s*\\b\\d{3,4}\\b")
         private val PRIVATE_KEY = Regex("-----BEGIN [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----[\\s\\S]*?-----END [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----")
         private val API_KEY = Regex("(?i)\\b(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\\s*[:=]\\s*[A-Za-z0-9_./+=-]{12,}")
         private val API_KEY_COMPACT = Regex("(?i)\\b(?:apikey|accesstoken|secretkey)\\s*[:=]\\s*[A-Za-z0-9_./+=-]{12,}")
