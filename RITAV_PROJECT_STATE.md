@@ -44,14 +44,14 @@ The firewall remains the active development layer; **Finance Firewall has not be
 
 Implemented in the current `main` branch:
 - Deterministic detection for OTP, UPI PIN, CVV, password-context values, recovery/backup codes, private keys, and API/access/secret keys.
-- Natural-language API/access/secret-key assignments using `is`, `:`, or `=` are now detected as well as symbolic assignments.
+- Natural-language API/access/secret-key assignments using `is`, `:`, or `=` are detected as well as symbolic assignments.
 - `SensitiveMatch` contains only type and source offsets; it does not contain the matched secret.
 - Multiple matches are handled and overlapping matches are deduplicated.
 - Redaction is performed right-to-left to preserve original UTF-16 source offsets.
 - Input inspection is bounded at 16,384 characters.
 - Inputs over the limit fail closed with an explicit `INPUT_TOO_LARGE` result.
 - NFKC/whitespace-compacted inspection is detection-only; if a sensitive pattern is found after a representation-changing normalization/compaction pass, the firewall conservatively blocks rather than attempting unsafe offset mapping/redaction.
-- Unicode format-character compaction is now iterated by Unicode code point, closing a supplementary-plane `Cf`/format-character bypass class.
+- Unicode format-character compaction is iterated by Unicode code point, closing a supplementary-plane `Cf`/format-character bypass class.
 - Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without broad transliteration.
 - Unicode decimal digits are folded by Unicode code point to ASCII digits for transformed detection, including supplementary-plane decimal digits, reducing script-specific digit bypass risk while leaving unrelated Unicode numbers allowed.
 - Credential labels whose separators are removed by compaction are now matched in their compact form, including one-time-password, verification-code, security-code, UPI-PIN, pin-for-UPI, recovery-code, login-password, API-key, access-token, and secret-key labels.
@@ -62,7 +62,7 @@ Implemented in the current `main` branch:
 ## Elite security hardening rules added
 `docs/RITAV_ELITE_SECURITY_ADDENDUM.md` is additive to the common workflow. It does not replace existing controls. It adds maximum-assurance review lenses, secure-by-construction requirements, adversarial attack classes, least-privilege checks, dependency/configuration hygiene, secret-safe logging, bounded resource use, asynchronous security-state checks, and an evidence-based completion gate.
 
-`docs/RITAV_COMMON_AI_WORKFLOW.md` now explicitly requires this addendum for relevant non-trivial security/privacy/data/AI/execution work and preserves the stricter existing Ritav.ai control when requirements differ.
+`docs/RITAV_COMMON_AI_WORKFLOW.md` explicitly requires this addendum for relevant non-trivial security/privacy/data/AI/execution work and preserves the stricter existing Ritav.ai control when requirements differ.
 
 ## Dedicated firewall test coverage added
 `app/src/test/java/ai/ritav/app/core/security/SensitiveInformationFirewallTest.kt` covers:
@@ -91,7 +91,7 @@ Compacted credential-label matching specifically addresses a representation mism
 
 Natural-language API credential matching intentionally covers the common `is`, `:`, and `=` assignment forms. This is still pattern-based and cannot prove that arbitrary opaque strings are secrets without context.
 
-The latest code-point-safe compaction change was paired with regression tests for supplementary-plane Unicode format characters inserted into both a sensitive marker and sensitive digits. These tests are committed but remain unexecuted in the current environment.
+The code-point-safe compaction change was paired with regression tests for supplementary-plane Unicode format characters inserted into both a sensitive marker and sensitive digits. These changes are committed but remain unexecuted in the current environment.
 
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
@@ -102,20 +102,20 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
 - Relevant firewall and test sources were re-fetched before modification.
-- Elite security addendum was added without removing existing security rules.
+- Elite security addendum was integrated into the common workflow without removing existing security rules.
 - A supplementary-plane Unicode format-character compaction weakness was identified by source inspection, then fixed and paired with regression tests.
-- Latest elite security addendum commit: `52d2ea5068a79da7e378c1b0ee980184066f8e15`.
-- Latest security hardening commit: `d617c99bde7583a4b6633f93f841828176126d1d`.
-- Latest firewall test commit: `9a4b46ad1acfb2f3c4656a3382c1feb50f8f6db0`.
+- Elite security addendum commit: `52d2ea5068a79da7e378c1b0ee980184066f8e15`.
 - Workflow/addendum integration commit: `02453795f19d6444db025e8fd3953cf283b6fbc2`.
+- Code-point-safe firewall compaction commit: `094d729f130565519396259a473db954145b41a7`.
+- Supplementary format-character regression-test commit: `7fad6dab1f813ff1c57017cdbd7d2526766f637c`.
 - No executable Gradle wrapper is present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
-- Local Gradle execution remains unavailable in this environment.
-- Therefore **Tests were not executed.** No build/test/CI pass is claimed.
+- A standalone local Kotlin compiler is available in the environment, but the repository source tree is not locally mounted, so the Android project and JUnit suite could not be compiled from the local checkout here.
+- Therefore **Tests were not executed.** No Android build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `7fad6dab1f813ff1c57017cdbd7d2526766f637c` — test: cover supplementary format-character firewall bypass.
+- `094d729f130565519396259a473db954145b41a7` — security: make firewall format filtering code-point safe.
 - `02453795f19d6444db025e8fd3953cf283b6fbc2` — docs: link elite security addendum.
-- `9a4b46ad1acfb2f3c4656a3382c1feb50f8f6db0` — test: cover supplementary Unicode format bypass.
-- `d617c99bde7583a4b6633f93f841828176126d1d` — security: make firewall format filtering code-point safe.
 - `52d2ea5068a79da7e378c1b0ee980184066f8e15` — docs: add elite security hardening rules.
 
 ## Security invariants
