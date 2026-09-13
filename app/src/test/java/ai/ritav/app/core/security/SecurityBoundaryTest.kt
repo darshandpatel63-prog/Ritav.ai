@@ -6,25 +6,40 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SecurityBoundaryTest {
+    private val firewall = SensitiveInformationFirewall()
+
     @Test fun invalidRequestIsDenied() {
         val result = PolicyEngine().evaluate(ActionRequest("", "", RiskTier.TIER_0_INFORMATIONAL))
         assertFalse(result.allowed)
     }
 
     @Test fun contextualSecretDetectionAvoidsGenericFourDigits() {
-        assertTrue(SensitiveDataFirewall.containsSecretLikeContent("OTP: 123456"))
-        assertTrue(SensitiveDataFirewall.containsSecretLikeContent("CVV=123"))
-        assertFalse(SensitiveDataFirewall.containsSecretLikeContent("room 1234"))
+        assertFalse(firewall.inspect("OTP: 123456").allowed)
+        assertFalse(firewall.inspect("CVV=123").allowed)
+        assertTrue(firewall.inspect("room 1234").allowed)
     }
 
     @Test fun redactionRemovesDetectedSecretValue() {
-        val redacted = SensitiveDataFirewall.redactSecrets("OTP: 123456")
+        val redacted = firewall.inspect("OTP: 123456").redactedText
         assertFalse(redacted.contains("123456"))
     }
 
-    @Test fun auditLogDoesNotPersistActionPayload() {
+    @Test fun auditLogStoresStructuredMetadataWithoutActionPayload() {
         val log = InMemoryAuditLog()
-        log.append(AuditEvent(1L, "POLICY", "demo", "secret payload", Capability.TYPE_TEXT, RiskTier.TIER_2_CONTENT_MUTATION, AuthorizationLevel.USER_CONFIRMATION, false, "denied"))
-        assertEquals("[ACTION_ID]", log.snapshot().single().action)
+        log.append(
+            AuditEvent(
+                timestampEpochMillis = 1L,
+                sessionId = "session-1",
+                actionHash = "hash",
+                eventType = AuditEventType.POLICY_DECISION,
+                allowed = false,
+                verified = false,
+                reason = "Denied"
+            )
+        )
+
+        val event = log.readAll().single()
+        assertEquals("hash", event.actionHash)
+        assertEquals("Denied", event.reason)
     }
 }
