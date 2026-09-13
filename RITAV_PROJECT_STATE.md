@@ -43,6 +43,7 @@ The firewall remains the active development layer; **Finance Firewall has not be
 
 Implemented in the current `main` branch:
 - Deterministic detection for OTP, UPI PIN, CVV, password-context values, recovery/backup codes, private keys, and API/access/secret keys.
+- Natural-language API/access/secret-key assignments using `is`, `:`, or `=` are now detected as well as symbolic assignments.
 - `SensitiveMatch` contains only type and source offsets; it does not contain the matched secret.
 - Multiple matches are handled and overlapping matches are deduplicated.
 - Redaction is performed right-to-left to preserve original UTF-16 source offsets.
@@ -60,6 +61,7 @@ Implemented in the current `main` branch:
 ## Dedicated firewall test coverage added
 `app/src/test/java/ai/ritav/app/core/security/SensitiveInformationFirewallTest.kt` covers:
 - OTP, UPI PIN, CVV, password-context values, recovery codes, private keys, and API/access/secret keys.
+- Natural-language API/access/secret-key assignments.
 - Benign/generic non-secret text and secret markers without values.
 - Multiple secrets and overlapping detection/redaction.
 - Redaction preservation of surrounding text.
@@ -81,6 +83,8 @@ Unicode decimal-digit folding is defense-in-depth: it iterates Unicode code poin
 
 Compacted credential-label matching specifically addresses a representation mismatch: the inspection pass removes whitespace/format characters, so labels that require a separator in ordinary text must also be recognized without that separator. This includes verification/security code and UPI marker variants. The behavior remains deterministic and detection-only; it does not broaden to arbitrary transliteration.
 
+Natural-language API credential matching intentionally covers the common `is`, `:`, and `=` assignment forms. This is still pattern-based and cannot prove that arbitrary opaque strings are secrets without context.
+
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
 ## Important security assessment
@@ -90,18 +94,18 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
 - Relevant firewall and test sources were re-fetched before modification.
-- Latest security hardening commit: `f7d57a8980b0417227e8074e41a44705904c24c4`.
-- Latest firewall test commit: `6e524210d76fa9fb3f800fc47341dda36fec75ae`.
-- The supplementary-plane decimal-digit regression test was added after the corresponding security hardening and committed successfully.
+- Latest security hardening commit: `71c09b01fc96031a495b1666942b492575dce7b6`.
+- Latest firewall test commit: `340efd3d1fb57d42907425420f3d1bb56e428f7e`.
+- Natural-language API credential detection and its regression tests were added and committed successfully.
 - No executable Gradle wrapper is present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
 - Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `340efd3d1fb57d42907425420f3d1bb56e428f7e` — test: cover natural-language API credential assignments.
+- `71c09b01fc96031a495b1666942b492575dce7b6` — security: detect natural-language API credential assignments.
 - `6e524210d76fa9fb3f800fc47341dda36fec75ae` — test: cover supplementary Unicode decimal digits.
 - `f7d57a8980b0417227e8074e41a44705904c24c4` — security: handle supplementary Unicode decimal digits.
-- `5d086de20e8a64e1e111dec403ce74d3cc4578a0` — test: cover compacted verification and UPI secret labels.
-- `920808bafc5c374b635f7ddd3f5ed90533aa77fa` — security: close compacted verification and UPI secret-label bypasses.
 
 ## Security invariants
 1. No autonomous consequential action.
