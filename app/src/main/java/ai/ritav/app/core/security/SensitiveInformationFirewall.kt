@@ -86,8 +86,16 @@ class SensitiveInformationFirewall {
         .let(::removeOverlappingMatches)
 
     private fun containsSensitivePattern(vararg candidates: String): Boolean = candidates.any { candidate ->
-        listOf(OTP, UPI_PIN, CVV, PRIVATE_KEY, API_KEY, RECOVERY_CODE, PASSWORD_CONTEXT)
-            .any { regex -> regex.containsMatchIn(candidate) }
+        listOf(
+            OTP,
+            UPI_PIN,
+            CVV,
+            PRIVATE_KEY,
+            API_KEY,
+            API_KEY_COMPACT,
+            RECOVERY_CODE,
+            PASSWORD_CONTEXT
+        ).any { regex -> regex.containsMatchIn(candidate) }
     }
 
     private fun foldCommonLatinConfusables(text: String): String = buildString(text.length) {
@@ -156,6 +164,7 @@ class SensitiveInformationFirewall {
         private val CVV = Regex("(?i)(?:cvv|cvc|security code)\\s*(?:is|:|=)?\\s*\\b\\d{3,4}\\b")
         private val PRIVATE_KEY = Regex("-----BEGIN [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----[\\s\\S]*?-----END [A-Z0-9][A-Z0-9 ]{0,63}PRIVATE KEY-----")
         private val API_KEY = Regex("(?i)\\b(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\\s*[:=]\\s*[A-Za-z0-9_./+=-]{12,}")
+        private val API_KEY_COMPACT = Regex("(?i)\\b(?:apikey|accesstoken|secretkey)\\s*[:=]\\s*[A-Za-z0-9_./+=-]{12,}")
         private val RECOVERY_CODE = Regex("(?i)(?:recovery|backup|emergency)\\s*code(?:s)?\\s*(?:are|is|:|=)?\\s*\\b[A-Za-z0-9-]{6,32}(?:\\s*,\\s*[A-Za-z0-9-]{6,32})*\\b")
         private val PASSWORD_CONTEXT = Regex("(?i)(?:password|passcode|login\\s*password)\\s*(?:is|:|=)\\s*[^\\s,;]{4,}")
     }
