@@ -33,6 +33,24 @@ class AuditLogTest {
         assertTrue(log.readAll().isEmpty())
     }
 
+    @Test fun sensitiveAuditReasonIsSuppressedBeforeStorage() {
+        val log = InMemoryAuditLog()
+        log.append(AuditEvent(1L, null, null, AuditEventType.POLICY_DECISION, false, false, "OTP 123456"))
+
+        val stored = log.readAll().single()
+        assertFalse(stored.reason.contains("123456"))
+        assertEquals("Audit reason contained sensitive information and was suppressed", stored.reason)
+    }
+
+    @Test fun transformedSensitiveAuditReasonIsSuppressedBeforeStorage() {
+        val log = InMemoryAuditLog()
+        log.append(AuditEvent(1L, null, null, AuditEventType.POLICY_DECISION, false, false, "O\u200bTP 123456"))
+
+        val stored = log.readAll().single()
+        assertFalse(stored.reason.contains("123456"))
+        assertEquals("Audit reason contained sensitive information and was suppressed", stored.reason)
+    }
+
     @Test fun rejectedPipelineDecisionIsAuditedWithoutActionContent() {
         val log = InMemoryAuditLog()
         val plan = ActionPlan("demo", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, "s1")
