@@ -52,7 +52,7 @@ Implemented in the current `main` branch:
 - Unicode format-character inspection uses explicit code-point conversion for Java `Character.getType`.
 - Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without broad transliteration.
 - Unicode decimal digits are folded to ASCII digits for transformed detection, reducing script-specific digit bypass risk while leaving unrelated Unicode numbers allowed.
-- Credential labels whose separators are removed by compaction are now matched in their compact form, including one-time-password, recovery-code, and login-password labels.
+- Credential labels whose separators are removed by compaction are now matched in their compact form, including one-time-password, recovery-code, login-password, API-key, access-token, and secret-key labels.
 - Whitespace/zero-width, Unicode normalization, homoglyph, non-ASCII decimal-digit, and compacted-label obfuscation regression cases are covered.
 - Security pipeline tests verify that oversized and normalization-detected inputs are blocked before authorization is consumed.
 - ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and a token remains usable after that blocked inspection.
@@ -85,22 +85,22 @@ The firewall is mandatory in `SecurityExecutionPipeline` before protected-action
 ## Important security assessment
 This is a hardened **foundation**, not a claim of mathematically bug-free or production-complete security. Regex detection is not comprehensive secret detection. Unicode/obfuscation resistance, contextual detection, OCR/screen filtering, structured input isolation, and full model/context ingestion remain unfinished. No real-device security result is claimed until physical-device testing occurs.
 
-## Current verification status — 2026-09-12
+## Current verification status — 2026-09-13
 - Repository default branch: `main`.
 - The required project workflow document was re-read at the beginning of this continuation.
 - Relevant firewall and test sources were re-fetched before modification.
-- Latest security hardening commit: `de3bfc3ae5e3d1726f0098ee9421da9a37f9802e`.
-- Latest firewall test commit: `8a4258bc1952b2b51dfc32c1d9e623a847504190`.
+- Latest security hardening commit: `9dbd35058f20ea021511832ea0bb738769490626`.
+- Latest firewall test commit: `e19bbb57ef84cd71042e22abc682fb28971591f6`.
 - No executable Gradle wrapper was present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
 - Local Gradle execution remains unavailable in this environment.
 - Therefore **Tests were not executed.** No build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `e19bbb57ef84cd71042e22abc682fb28971591f6` — test: cover compacted API credential labels.
+- `9dbd35058f20ea021511832ea0bb738769490626` — security: close compacted API credential-label bypass.
 - `8a4258bc1952b2b51dfc32c1d9e623a847504190` — test: cover compacted credential-label detection.
 - `de3bfc3ae5e3d1726f0098ee9421da9a37f9802e` — security: close compacted credential-label bypasses.
 - `8d6c4d4b3b079effe7dac20ff9d224bee2fe5590` — docs: record Unicode decimal digit firewall hardening.
-- `2bd8d1c41f97acdec677e7f06de62645e6ab0932` — test: cover Unicode decimal digit normalization.
-- `6ee4a0502c70ea422346cdc43b1e28685a4202de` — security: harden sensitive firewall against Unicode decimal digits.
 
 ## Security invariants
 1. No autonomous consequential action.
