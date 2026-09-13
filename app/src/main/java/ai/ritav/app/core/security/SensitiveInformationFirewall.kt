@@ -61,11 +61,20 @@ class SensitiveInformationFirewall {
         // unsafe for redaction because normalization/compaction can change UTF-16 positions.
         val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
         val compact = compactCodePoints(normalized)
-        val confusableFolded = foldCommonLatinConfusables(compact)
+        val punctuationCompacted = compactSensitiveLabels(compact)
+        val confusableFolded = foldCommonLatinConfusables(punctuationCompacted)
         val digitFolded = foldUnicodeDecimalDigits(confusableFolded)
         val representationChanged = normalized != text || compact != normalized ||
-            confusableFolded != compact || digitFolded != confusableFolded
-        if (representationChanged && containsSensitivePattern(normalized, compact, confusableFolded, digitFolded)) {
+            punctuationCompacted != compact || confusableFolded != punctuationCompacted ||
+            digitFolded != confusableFolded
+        if (representationChanged && containsSensitivePattern(
+                normalized,
+                compact,
+                punctuationCompacted,
+                confusableFolded,
+                digitFolded
+            )
+        ) {
             return FirewallResult(false, "", emptyList(), FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED)
         }
 
@@ -113,6 +122,32 @@ class SensitiveInformationFirewall {
             }
             index += Character.charCount(codePoint)
         }
+    }
+
+    /**
+     * Detection-only punctuation compaction for secret labels and digit groups.
+     * It is deliberately broad only for the transformed representation because
+     * the resulting offsets cannot safely be mapped back for redaction.
+     */
+    private fun compactSensitiveLabels(text: String): String = buildString(text.length) {
+        var index = 0
+        while (index < text.length) {
+            val codePoint = text.codePointAt(index)
+            val type = Character.getType(codePoint)
+            if (!isPunctuation(type)) appendCodePoint(codePoint)
+            index += Character.charCount(codePoint)
+        }
+    }
+
+    private fun isPunctuation(type: Int): Boolean = when (type) {
+        Character.CONNECTOR_PUNCTUATION.toInt(),
+        Character.DASH_PUNCTUATION.toInt(),
+        Character.START_PUNCTUATION.toInt(),
+        Character.END_PUNCTUATION.toInt(),
+        Character.INITIAL_QUOTE_PUNCTUATION.toInt(),
+        Character.FINAL_QUOTE_PUNCTUATION.toInt(),
+        Character.OTHER_PUNCTUATION.toInt() -> true
+        else -> false
     }
 
     private fun foldCommonLatinConfusables(text: String): String = buildString(text.length) {
