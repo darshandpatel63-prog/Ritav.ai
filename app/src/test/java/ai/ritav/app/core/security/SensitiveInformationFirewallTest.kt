@@ -280,6 +280,34 @@ class SensitiveInformationFirewallTest {
         assertEquals("", result.redactedText)
     }
 
+    @Test fun compactedVerificationCodeLabelIsBlockedConservatively() {
+        val result = firewall.inspect("verification\u200b code 123456")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun compactedSecurityCodeLabelIsBlockedConservatively() {
+        val result = firewall.inspect("security\u200b code 123456")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun compactedUpiPinLabelIsBlockedConservatively() {
+        val result = firewall.inspect("upi\u200b pin 1234")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
+    @Test fun compactedPinForUpiLabelIsBlockedConservatively() {
+        val result = firewall.inspect("pin\u200b for\u200b upi 1234")
+        assertFalse(result.allowed)
+        assertEquals(FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED, result.blockReason)
+        assertEquals("", result.redactedText)
+    }
+
     @Test fun normalizedBenignTextRemainsAllowed() {
         val result = firewall.inspect("Cafe\u00a0nearby")
         assertTrue(result.allowed)
