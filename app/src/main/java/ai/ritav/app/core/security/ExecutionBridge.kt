@@ -17,7 +17,7 @@ class ExecutionBridge(
     private val securityPipeline: SecurityExecutionPipeline,
     private val adapter: AndroidActionAdapter,
     private val resultVerifier: ResultVerifier = ResultVerifier(),
-    private val auditLog: AuditLog = InMemoryAuditLog(),
+    private val auditLog: AuditLog,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
     fun execute(
