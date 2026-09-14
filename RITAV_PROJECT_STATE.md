@@ -38,6 +38,8 @@ Implemented baseline deterministic security gates:
 - Final execution is routed through capability and security pipeline checks before an Android adapter can run.
 - Android device-authentication integration has been added as a platform gateway; physical-device validation is still required.
 - `SensitiveInformationFirewall` is enforced inside `SecurityExecutionPipeline` before authorization/execution.
+- `ExecutionBridge` and `SecurityExecutionPipeline` now share the same audit sink by default, so capability, pipeline, execution and verification events are not split across independent in-memory logs.
+- `ExecutionBridge` now samples the audit timestamp at each emitted event rather than reusing the initial entry timestamp for later execution/verification events.
 
 ## Sensitive Information Firewall — current state
 The firewall remains the active development layer; **Finance Firewall has not been started**.
@@ -97,6 +99,10 @@ A security review identified an asynchronous authorization timing weakness: `Act
 
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
+Execution-path tracing on the current branch found `ExecutionBridge` and its security dependencies plus dedicated tests, but no production construction of `ExecutionBridge` and no concrete `AndroidActionAdapter` implementation beyond the interface. `SecurityRuntimeState` currently composes policy/audit/emergency-stop state for the UI, while `MainActivity` does not construct or invoke the execution bridge. This means the final security boundary is well-defined and unit-covered but its real Android action composition is not yet evidenced as production-wired. No new adapter or duplicate composition root was invented because the repository does not currently expose an existing concrete action implementation to integrate.
+
+The execution bridge audit path was additionally hardened so capability-denial, pipeline-denial, authorization, execution and verification events use the shared sink by default and later events receive timestamps sampled at emission. These changes are source-reviewed but remain unexecuted in the current environment.
+
 ## Important security assessment
 This is a hardened **foundation**, not a claim of mathematically bug-free or production-complete security. Regex detection is not comprehensive secret detection. Unicode/obfuscation resistance, contextual detection, OCR/screen filtering, structured input isolation, and full model/context ingestion remain unfinished. No real-device security result is claimed until physical-device testing occurs.
 
@@ -107,17 +113,28 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 - A concrete asynchronous authorization timing weakness was identified and fixed: device-authentication token issuance now uses a clock sampled after authentication succeeds rather than a caller-supplied pre-auth timestamp.
 - A regression test now simulates delayed authentication and proves the token is still valid at the full TTL boundary measured from post-authentication time.
 - Source-level integration/call-path inspection found no other production call sites for `ActionAuthorizationService` beyond its definition and dedicated tests, so no additional caller migration was required by this signature change.
+- Source-level execution tracing found no production `ExecutionBridge` constructor call and no concrete `AndroidActionAdapter` implementation, so production execution wiring remains an explicit unfinished integration point rather than an assumed capability.
 - No executable Gradle wrapper is present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
 - The repository source tree is not locally mounted for Android/JUnit execution in this environment.
 - Therefore **Tests were not executed.** No Android build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `1c3c32110b5abb1c24664f0a6d3a8709394f85d7` — security: timestamp execution audit events at emission.
+- `5ebd84995c696e66812966947f6c17a963fdcb73` — test: verify execution and pipeline share audit sink.
+- `5192fc2b23b9d3dd7936d28118a1c475d43cdc09` — security: unify execution and pipeline audit sinks.
+- `a66ac8ae928332053d9f8c581adb9385a25a21dd` — security: share pipeline audit sink with execution bridge.
+- `1053514314d63753ebfeff8ef09d512dd55b1278` — security: require explicit shared audit sink for execution bridge.
+- `33c83b58776143b5c4a39a6b4fe31e2d19dd664a` — security: remove duplicate legacy sensitive-data firewall.
+- `1542a0437e8ea430c1c2327e79d8b7e5e2c9a461` — docs: record async authorization timestamp hardening.
 - `68cf28f0b6f109010e26269daa8b383ae6c54913` — test: prove device token uses post-auth timestamp.
 - `3810f540c7ef78c92402c95aa24f346d76ba04e1` — security: mint device tokens from post-auth time.
-- `7fad6dab1f813ff1c57017cdbd7d2526766f637c` — test: cover supplementary format-character firewall bypass.
-- `094d729f130565519396259a473db954145b41a7` — security: make firewall format filtering code-point safe.
-- `02453795f19d6444db025e8fd3953cf283b6fbc2` — docs: link elite security addendum.
-- `52d2ea5068a79da7e378c1b0ee980184066f8e15` — docs: add elite security hardening rules.
+- `0b8d729fa0488b59c57c4161e751e6b9caf44ab0` — test: cover hyphenated standalone credential formats.
+- `cffa8ebc612ec3592d9b01f6956a549f8b5feb43` — security: cover hyphenated standalone credential formats.
+- `5629566ac84b62a9410d601af7a52c1e24565c4c` — test: cover punctuation-obfuscated sensitive labels.
+- `75be44f0e167277cec10afc61ce68b105b019ae9` — security: make audit reasons secret-safe.
+- `2de57bd9546b836d79aea04c227041e155ca3fa9` — test: verify audit reasons never retain secrets.
+- `9dddc15943f0629cadcec60544eb2bdd02f6f466` — fix: preserve assignment separators during punctuation compaction.
+- `94e48d0d9cbf5fb13e58711aa7a8ceaec5b1a61a` — security: harden punctuation-obfuscated secret detection.
 
 ## Security invariants
 1. No autonomous consequential action.
@@ -143,8 +160,9 @@ Next action:
 3. Repair any compile/test failures.
 4. Continue adversarial Unicode/obfuscation and false-positive/false-negative review.
 5. Confirm the firewall boundary remains mandatory for future AI/context ingestion.
-6. Perform the consolidated security review for this layer only after executable verification is available.
-7. Only after the layer is justified as complete, document the verified result and create the major-security-layer audit checkpoint.
+6. In parallel, continue tracing the intended production action composition; do not invent an adapter or bypass the bridge when none exists.
+7. Perform the consolidated security review for this layer only after executable verification is available.
+8. Only after the layer is justified as complete, document the verified result and create the major-security-layer audit checkpoint.
 
 ## After this layer is actually verified
 Expected order remains:
