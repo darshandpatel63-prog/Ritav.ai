@@ -6,7 +6,8 @@ package ai.ritav.app.core.security
  */
 class ActionAuthorizationService(
     private val gate: ActionAuthorizationGate,
-    private val deviceAuthorization: DeviceAuthorizationGateway
+    private val deviceAuthorization: DeviceAuthorizationGateway,
+    private val clockEpochMillis: () -> Long = System::currentTimeMillis
 ) {
     fun issueUserConfirmationToken(
         plan: ActionPlan,
@@ -20,7 +21,6 @@ class ActionAuthorizationService(
     fun issueDeviceAuthenticationToken(
         plan: ActionPlan,
         reason: String,
-        nowEpochMillis: Long,
         callback: (token: String?) -> Unit
     ) {
         if (!deviceAuthorization.isDeviceAuthenticationAvailable()) {
@@ -29,8 +29,11 @@ class ActionAuthorizationService(
         }
         deviceAuthorization.authenticate(reason) { success ->
             callback(
-                if (success) gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, nowEpochMillis)
-                else null
+                if (success) gate.issue(
+                    plan,
+                    AuthorizationLevel.DEVICE_AUTHENTICATION,
+                    clockEpochMillis()
+                ) else null
             )
         }
     }
