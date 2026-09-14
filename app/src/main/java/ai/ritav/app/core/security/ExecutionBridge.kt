@@ -44,7 +44,7 @@ class ExecutionBridge(
 
         val capabilityDecision = capabilityPolicyGate.evaluate(action)
         if (!capabilityDecision.allowed) {
-            auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
                 false, false, capabilityDecision.reason))
             return ExecutionResult(false, false, capabilityDecision.reason)
         }
@@ -60,23 +60,23 @@ class ExecutionBridge(
             )
         )
         if (!securityDecision.allowed) {
-            auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
                 false, false, securityDecision.reason))
             return ExecutionResult(false, false, securityDecision.reason)
         }
 
-        auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
             true, false, "Capability and security pipeline checks passed"))
 
         val adapterResult = runCatching { adapter.execute(plan) }.getOrElse {
-            auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.EXECUTION,
+            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.EXECUTION,
                 false, false, "Adapter execution failed"))
-            auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.VERIFICATION,
+            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
                 false, false, "Result verification failed"))
             return ExecutionResult(false, false, "Action execution failed")
         }
 
-        auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.EXECUTION,
+        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.EXECUTION,
             adapterResult.success, false,
             if (adapterResult.success) "Adapter execution succeeded" else "Adapter execution failed"))
 
@@ -87,7 +87,7 @@ class ExecutionBridge(
                 errorCode = if (adapterResult.success) null else "ADAPTER_EXECUTION_FAILED"
             )
         )
-        auditLog.append(AuditEvent(now, plan.sessionId, actionHash, AuditEventType.VERIFICATION,
+        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
             adapterResult.success, verification.verified,
             if (verification.verified) "Result verification passed" else "Result verification failed"))
 
