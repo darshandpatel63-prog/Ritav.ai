@@ -93,26 +93,27 @@ Natural-language API credential matching intentionally covers the common `is`, `
 
 The code-point-safe compaction change was paired with regression tests for supplementary-plane Unicode format characters inserted into both a sensitive marker and sensitive digits. These changes are committed but remain unexecuted in the current environment.
 
+A security review identified an asynchronous authorization timing weakness: `ActionAuthorizationService.issueDeviceAuthenticationToken` previously reused the caller's pre-authentication timestamp after the device-auth callback completed. That could shorten the intended post-auth token lifetime based on how long authentication took. The service now samples the clock only after successful authentication, and a regression test simulates delayed authentication and verifies the token remains valid for the full TTL from that post-auth timestamp.
+
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
 ## Important security assessment
 This is a hardened **foundation**, not a claim of mathematically bug-free or production-complete security. Regex detection is not comprehensive secret detection. Unicode/obfuscation resistance, contextual detection, OCR/screen filtering, structured input isolation, and full model/context ingestion remain unfinished. No real-device security result is claimed until physical-device testing occurs.
 
-## Current verification status — 2026-09-13
+## Current verification status — 2026-09-14
 - Repository default branch: `main`.
-- The required project workflow document was re-read at the beginning of this continuation.
-- Relevant firewall and test sources were re-fetched before modification.
-- Elite security addendum was integrated into the common workflow without removing existing security rules.
-- A supplementary-plane Unicode format-character compaction weakness was identified by source inspection, then fixed and paired with regression tests.
-- Elite security addendum commit: `52d2ea5068a79da7e378c1b0ee980184066f8e15`.
-- Workflow/addendum integration commit: `02453795f19d6444db025e8fd3953cf283b6fbc2`.
-- Code-point-safe firewall compaction commit: `094d729f130565519396259a473db954145b41a7`.
-- Supplementary format-character regression-test commit: `7fad6dab1f813ff1c57017cdbd7d2526766f637c`.
+- The required project workflow document and elite security addendum were re-read before this continuation.
+- Current `SensitiveInformationFirewall.kt`, its dedicated tests, `RITAV_PROJECT_STATE.md`, and the asynchronous authorization service/tests were inspected before modification.
+- A concrete asynchronous authorization timing weakness was identified and fixed: device-authentication token issuance now uses a clock sampled after authentication succeeds rather than a caller-supplied pre-auth timestamp.
+- A regression test now simulates delayed authentication and proves the token is still valid at the full TTL boundary measured from post-authentication time.
+- Source-level integration/call-path inspection found no other production call sites for `ActionAuthorizationService` beyond its definition and dedicated tests, so no additional caller migration was required by this signature change.
 - No executable Gradle wrapper is present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
-- A standalone local Kotlin compiler is available in the environment, but the repository source tree is not locally mounted, so the Android project and JUnit suite could not be compiled from the local checkout here.
+- The repository source tree is not locally mounted for Android/JUnit execution in this environment.
 - Therefore **Tests were not executed.** No Android build/test/CI pass is claimed.
 
 ## Latest commits from this continuation
+- `68cf28f0b6f109010e26269daa8b383ae6c54913` — test: prove device token uses post-auth timestamp.
+- `3810f540c7ef78c92402c95aa24f346d76ba04e1` — security: mint device tokens from post-auth time.
 - `7fad6dab1f813ff1c57017cdbd7d2526766f637c` — test: cover supplementary format-character firewall bypass.
 - `094d729f130565519396259a473db954145b41a7` — security: make firewall format filtering code-point safe.
 - `02453795f19d6444db025e8fd3953cf283b6fbc2` — docs: link elite security addendum.
@@ -138,7 +139,7 @@ USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUT
 
 Next action:
 1. Obtain an executable Android/Gradle environment with the repository's current source.
-2. Run the most specific available firewall unit tests and the security pipeline/bridge tests.
+2. Run the most specific available firewall unit tests and the security pipeline/bridge/authorization service tests.
 3. Repair any compile/test failures.
 4. Continue adversarial Unicode/obfuscation and false-positive/false-negative review.
 5. Confirm the firewall boundary remains mandatory for future AI/context ingestion.
