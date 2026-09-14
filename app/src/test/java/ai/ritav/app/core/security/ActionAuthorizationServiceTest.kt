@@ -26,7 +26,7 @@ class ActionAuthorizationServiceTest {
         )
 
         var token: String? = "unexpected"
-        service.issueDeviceAuthenticationToken(plan, "Authorize action", 1000L) { token = it }
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
         assertNull(token)
     }
 
@@ -34,13 +34,45 @@ class ActionAuthorizationServiceTest {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(
             gate,
-            StubDeviceAuthorizationGateway(available = true, result = true)
+            StubDeviceAuthorizationGateway(available = true, result = true),
+            clockEpochMillis = { 1000L }
         )
 
         var token: String? = null
-        service.issueDeviceAuthenticationToken(plan, "Authorize action", 1000L) { token = it }
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
         assertNotNull(token)
         assertEquals(true, gate.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1000L))
+    }
+
+    @Test fun deviceTokenTtlStartsFromPostAuthenticationClock() {
+        val gate = ActionAuthorizationGate()
+        var now = 1000L
+        var authenticationCallback: ((Boolean) -> Unit)? = null
+        val gateway = object : DeviceAuthorizationGateway {
+            override fun isDeviceAuthenticationAvailable(): Boolean = true
+
+            override fun authenticate(reason: String, callback: (success: Boolean) -> Unit) {
+                authenticationCallback = callback
+            }
+        }
+        val service = ActionAuthorizationService(gate, gateway, clockEpochMillis = { now })
+
+        var token: String? = null
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
+        assertNull(token)
+
+        now = 120_000L
+        authenticationCallback!!.invoke(true)
+        assertNotNull(token)
+
+        assertEquals(
+            true,
+            gate.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 179_999L)
+        )
+        assertEquals(
+            false,
+            gate.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 180_000L)
+        )
     }
 
     @Test fun failedDeviceAuthenticationCannotMintToken() {
@@ -51,7 +83,7 @@ class ActionAuthorizationServiceTest {
         )
 
         var token: String? = "unexpected"
-        service.issueDeviceAuthenticationToken(plan, "Authorize action", 1000L) { token = it }
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
         assertNull(token)
     }
 }
