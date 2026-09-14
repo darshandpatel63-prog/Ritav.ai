@@ -22,7 +22,7 @@ class SecurityExecutionPipeline(
     private val executionPolicyGate: ExecutionPolicyGate,
     private val authorizationGate: ActionAuthorizationGate,
     private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(),
-    private val auditLog: AuditLog = InMemoryAuditLog(),
+    val auditLog: AuditLog = InMemoryAuditLog(),
     private val sensitiveFirewall: SensitiveInformationFirewall = SensitiveInformationFirewall()
 ) {
     fun authorize(request: SecurityExecutionRequest): SecurityExecutionDecision {
