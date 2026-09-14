@@ -195,4 +195,20 @@ class ExecutionBridgeTest {
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
+
+    @Test fun bridgeAndPipelineShareTheSameAuditSinkByDefault() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE)
+        val adapter = RecordingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions)
+        val pipeline = pipelineFor(policy)
+        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipeline, adapter)
+
+        val result = bridge.execute(plan, true)
+
+        assertTrue(result.success)
+        assertTrue(pipeline.audit().any { it.eventType == AuditEventType.POLICY_DECISION && it.allowed })
+        assertTrue(pipeline.audit().any { it.eventType == AuditEventType.EXECUTION && it.allowed })
+        assertTrue(pipeline.audit().any { it.eventType == AuditEventType.VERIFICATION && it.verified })
+    }
 }
