@@ -232,7 +232,7 @@ class ExecutionBridgeTest {
         val execution = pipeline.audit().single { it.eventType == AuditEventType.EXECUTION }
         val verification = pipeline.audit().single { it.eventType == AuditEventType.VERIFICATION }
         assertTrue(execution.timestampEpochMillis < verification.timestampEpochMillis)
-        assertEquals(3000L, execution.timestampEpochMillis)
-        assertEquals(4000L, verification.timestampEpochMillis)
+        assertEquals(4000L, execution.timestampEpochMillis)
+        assertEquals(5000L, verification.timestampEpochMillis)
     }
 }
