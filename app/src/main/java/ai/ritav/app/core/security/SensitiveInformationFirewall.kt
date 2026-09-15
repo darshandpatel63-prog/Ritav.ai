@@ -59,20 +59,36 @@ class SensitiveInformationFirewall {
 
         // Detection-only transformed representations: transformed offsets are
         // unsafe for redaction because normalization/compaction can change UTF-16 positions.
-        val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
-        val compact = compactCodePoints(normalized)
-        val punctuationCompacted = compactSensitiveLabels(compact)
-        val confusableFolded = foldCommonLatinConfusables(punctuationCompacted)
-        val digitFolded = foldUnicodeDecimalDigits(confusableFolded)
-        val representationChanged = normalized != text || compact != normalized ||
-            punctuationCompacted != compact || confusableFolded != punctuationCompacted ||
-            digitFolded != confusableFolded
+        val transformed = runCatching {
+            val normalized = Normalizer.normalize(text, Normalizer.Form.NFKC)
+            val compact = compactCodePoints(normalized)
+            val punctuationCompacted = compactSensitiveLabels(compact)
+            val confusableFolded = foldCommonLatinConfusables(punctuationCompacted)
+            val digitFolded = foldUnicodeDecimalDigits(confusableFolded)
+            TransformedRepresentations(
+                normalized = normalized,
+                compact = compact,
+                punctuationCompacted = punctuationCompacted,
+                confusableFolded = confusableFolded,
+                digitFolded = digitFolded
+            )
+        }.getOrElse {
+            // A required security transformation failed. Do not expose the
+            // original input to downstream AI/execution paths.
+            return FirewallResult(false, "", emptyList(), FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED)
+        }
+
+        val representationChanged = transformed.normalized != text ||
+            transformed.compact != transformed.normalized ||
+            transformed.punctuationCompacted != transformed.compact ||
+            transformed.confusableFolded != transformed.punctuationCompacted ||
+            transformed.digitFolded != transformed.confusableFolded
         if (representationChanged && containsSensitivePattern(
-                normalized,
-                compact,
-                punctuationCompacted,
-                confusableFolded,
-                digitFolded
+                transformed.normalized,
+                transformed.compact,
+                transformed.punctuationCompacted,
+                transformed.confusableFolded,
+                transformed.digitFolded
             )
         ) {
             return FirewallResult(false, "", emptyList(), FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED)
@@ -80,6 +96,14 @@ class SensitiveInformationFirewall {
 
         return FirewallResult(true, text, emptyList())
     }
+
+    private data class TransformedRepresentations(
+        val normalized: String,
+        val compact: String,
+        val punctuationCompacted: String,
+        val confusableFolded: String,
+        val digitFolded: String
+    )
 
     private fun findDirectMatches(text: String): List<SensitiveMatch> = buildList {
         OTP.findAll(text).forEach { add(SensitiveMatch(SensitiveDataType.OTP, it.range.first, it.range.last + 1)) }
