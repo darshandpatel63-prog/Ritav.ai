@@ -211,4 +211,28 @@ class ExecutionBridgeTest {
         assertTrue(pipeline.audit().any { it.eventType == AuditEventType.EXECUTION && it.allowed })
         assertTrue(pipeline.audit().any { it.eventType == AuditEventType.VERIFICATION && it.verified })
     }
+
+    @Test fun bridgeAuditTimestampsAreSampledAtEachEmission() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE)
+        val adapter = RecordingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions)
+        val pipeline = pipelineFor(policy)
+        var now = 1000L
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipeline,
+            adapter,
+            clock = { now += 1000L; now }
+        )
+
+        val result = bridge.execute(plan, true)
+        assertTrue(result.success)
+
+        val execution = pipeline.audit().single { it.eventType == AuditEventType.EXECUTION }
+        val verification = pipeline.audit().single { it.eventType == AuditEventType.VERIFICATION }
+        assertTrue(execution.timestampEpochMillis < verification.timestampEpochMillis)
+        assertEquals(3000L, execution.timestampEpochMillis)
+        assertEquals(4000L, verification.timestampEpochMillis)
+    }
 }
