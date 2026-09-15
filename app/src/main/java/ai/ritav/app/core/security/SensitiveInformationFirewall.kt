@@ -73,8 +73,6 @@ class SensitiveInformationFirewall {
                 digitFolded = digitFolded
             )
         }.getOrElse {
-            // A required security transformation failed. Do not expose the
-            // original input to downstream AI/execution paths.
             return FirewallResult(false, "", emptyList(), FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED)
         }
 
@@ -149,12 +147,6 @@ class SensitiveInformationFirewall {
         }
     }
 
-    /**
-     * Detection-only punctuation compaction for secret labels and digit groups.
-     * Assignment separators are retained so existing credential-context regexes
-     * keep their required value boundary. The resulting offsets are never used
-     * for source redaction.
-     */
     private fun compactSensitiveLabels(text: String): String = buildString(text.length) {
         var index = 0
         while (index < text.length) {
@@ -182,7 +174,6 @@ class SensitiveInformationFirewall {
         text.forEach { char ->
             append(
                 when (char) {
-                    // Small explicit Greek/Cyrillic look-alike set for secret labels.
                     '\u0391', '\u0410' -> 'A'
                     '\u0392', '\u0412' -> 'B'
                     '\u03A7', '\u0425' -> 'X'
@@ -220,11 +211,7 @@ class SensitiveInformationFirewall {
             val codePoint = text.codePointAt(index)
             if (Character.getType(codePoint) == Character.DECIMAL_DIGIT_NUMBER.toInt()) {
                 val digit = Character.digit(codePoint, 10)
-                if (digit >= 0) {
-                    append(('0'.code + digit).toChar())
-                } else {
-                    appendCodePoint(codePoint)
-                }
+                if (digit >= 0) append(('0'.code + digit).toChar()) else appendCodePoint(codePoint)
             } else {
                 appendCodePoint(codePoint)
             }
@@ -249,10 +236,8 @@ class SensitiveInformationFirewall {
         private val CVV = Regex("(?i)(?:cvv|cvc|security code)\\s*(?:is|:|=)?\\s*\\b\\d{3,4}\\b")
         private val CVV_COMPACT = Regex("(?i)(?:cvv|cvc|securitycode)(?:is|:|=)?\\s*\\d{3,4}(?!\\d)")
         private val PRIVATE_KEY = Regex("-----BEGIN(?: [A-Z0-9][A-Z0-9 ]{0,63})? PRIVATE KEY-----[\\s\\S]*?-----END(?: [A-Z0-9][A-Z0-9 ]{0,63})? PRIVATE KEY-----")
-        private val API_KEY = Regex("(?i)\\b(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\\s*(?:is|:|=)\\s*[A-Za-z0-9_./+=-]{12,}")
+        private val API_KEY = Regex("(?i)\\b(?:api[_ ]?key|access[_ ]?token|secret[_ ]?key)\\s*(?:is|:|=)\\s*[A-Za-z0-9_./+=-]{12,}")
         private val API_KEY_COMPACT = Regex("(?i)\\b(?:apikey|accesstoken|secretkey)(?:is|:|=)\\s*[A-Za-z0-9_./+=-]{12,}")
-        // Conservative standalone patterns for common provider-issued credential formats.
-        // This is defense-in-depth, not an attempt to enumerate every secret format.
         private val STANDALONE_API_KEY = Regex("(?i)(?<![A-Za-z0-9_])(?:sk-[A-Za-z0-9]{20,}|sk-(?:[A-Za-z0-9]+-)+[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[bp]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16,}|AIza[0-9A-Za-z_-]{30,})(?![A-Za-z0-9_])")
         private val RECOVERY_CODE = Regex("(?i)(?:recovery|backup|emergency)\\s*code(?:s)?\\s*(?:are|is|:|=)?\\s*\\b[A-Za-z0-9-]{6,32}(?:\\s*,\\s*[A-Za-z0-9-]{6,32})*\\b")
         private val PASSWORD_CONTEXT = Regex("(?i)(?:password|passcode|login\\s*password)\\s*(?:is|:|=)\\s*[^\\s,;]{4,}")
