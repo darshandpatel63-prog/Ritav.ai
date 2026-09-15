@@ -61,6 +61,24 @@ class SensitiveInformationFirewallTest {
         assertEquals(malformed, result.redactedText)
     }
 
+    @Test fun longNearMissPrivateKeyEnvelopeIsAllowedWithoutMatchingEndMarker() {
+        val body = "A".repeat(15_700)
+        val nearMiss = "-----BEGIN PRIVATE KEY-----\n$body\n-----END PUBLIC KEY-----"
+        assertTrue(nearMiss.length <= 16_384)
+        val result = firewall.inspect(nearMiss)
+        assertTrue(result.allowed)
+        assertEquals(nearMiss, result.redactedText)
+    }
+
+    @Test fun longNearMissPrivateKeyEnvelopeDoesNotExhibitUnexpectedWorkFromRepeatedEndMarkerLikeText() {
+        val body = ("-----END PUBLIC KEY-----A").repeat(600)
+        val nearMiss = "-----BEGIN PRIVATE KEY-----\n$body\n-----END PUBLIC KEY-----"
+        assertTrue(nearMiss.length <= 16_384)
+        val result = firewall.inspect(nearMiss)
+        assertTrue(result.allowed)
+        assertEquals(nearMiss, result.redactedText)
+    }
+
     @Test fun apiKeyIsDetectedAndRedactedEvenWhenSecretEndsWithPunctuation() {
         val result = firewall.inspect("api_key=AbCdEfGhIjKlMnOp-")
         assertBlockedWithType(result, SensitiveDataType.API_KEY)
@@ -421,10 +439,11 @@ class SensitiveInformationFirewallTest {
         assertEquals("Cafe\u00a0nearby", result.redactedText)
     }
 
-    @Test fun unusualInputDoesNotCrash() {
+    @Test fun malformedSurrogateInputDoesNotCrashOrExposeInspectionException() {
         val unusual = "\u0000\u0001\u0002\uD800\uFFFF\n\t" + "🙂".repeat(100)
         val result = firewall.inspect(unusual)
         assertNotNull(result)
+        assertTrue(result.allowed || result.blockReason != null)
     }
 
     private fun assertBlockedWithType(result: FirewallResult, type: SensitiveDataType) {
