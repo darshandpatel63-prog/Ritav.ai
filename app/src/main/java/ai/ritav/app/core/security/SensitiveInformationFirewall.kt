@@ -67,7 +67,7 @@ class SensitiveInformationFirewall {
         private val PRIVATE_KEY=Regex("-----BEGIN(?: [A-Z0-9][A-Z0-9 ]{0,63})? PRIVATE KEY-----[\\s\\S]*?-----END(?: [A-Z0-9][A-Z0-9 ]{0,63})? PRIVATE KEY-----")
         private val API_KEY=Regex("(?i)\\b(?:api[_ ]?key|access[_ ]?token|secret[_ ]?key)\\s*(?:is|:|=)\\s*[A-Za-z0-9_./+=-]{12,}")
         private val API_KEY_COMPACT=Regex("(?i)\\b(?:apikey|accesstoken|secretkey)(?:is|:|=)\\s*[A-Za-z0-9_./+=-]{12,}")
-        private val STANDALONE_API_KEY=Regex("(?i)(?<![A-Za-z0-9_])(?:sk-[A-Za-z0-9]{20,}|sk-(?:[A-Za-z0-9]+-)+[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[bp]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,})(?![A-Za-z0-9_])")
+        private val STANDALONE_API_KEY=Regex("(?i)(?<![A-Za-z0-9_])(?:sk-[A-Za-z0-9]{20,}|sk-(?:[A-Za-z0-9]+-)+[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[bp]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{18}|AIza[0-9A-Za-z_-]{30,})(?![A-Za-z0-9_])")
         private val RECOVERY_CODE=Regex("(?i)(?:recovery|backup|emergency)\\s*code(?:s)?\\s*(?:are|is|:|=)?\\s*\\b[A-Za-z0-9-]{6,32}(?:\\s*,\\s*[A-Za-z0-9-]{6,32})*\\b")
         private val PASSWORD_CONTEXT=Regex("(?i)(?:password|passcode|login\\s*password)\\s*(?:is|:|=)\\s*[^\\s,;]{4,}")
         private val PASSWORD_CONTEXT_COMPACT=Regex("(?i)(?:password|passcode|loginpassword)(?:is|:|=)\\s*[^\\s,;]{4,}")
