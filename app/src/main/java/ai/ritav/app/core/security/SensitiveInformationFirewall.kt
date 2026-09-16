@@ -48,7 +48,7 @@ class SensitiveInformationFirewall {
     }.distinctBy { Triple(it.type, it.start, it.end) }.sortedWith(compareBy<SensitiveMatch> { it.start }.thenByDescending { it.end - it.start }).let(::removeOverlappingMatches)
 
     private fun containsSensitivePattern(vararg candidates: String): Boolean = candidates.any { candidate ->
-        listOf(OTP, OTP_COMPACT, UPI_PIN, UPI_PIN_COMPACT, CVV, CVV_COMPACT, PRIVATE_KEY, API_KEY, API_KEY_COMPACT, STANDALONE_API_KEY, RECOVERY_CODE, PASSWORD_CONTEXT, PASSWORD_CONTEXT_COMPACT).any { it.containsMatchIn(candidate) }
+        listOf(OTP, OTP_COMPACT, UPI_PIN, UPI_PIN_COMPACT, CVV, CVV_COMPACT, PRIVATE_KEY, API_KEY, API_KEY_COMPACT, STANDALONE_API_KEY, RECOVERY_CODE, PASSWORD_CONTEXT, PASSWORD_CONTEXT_COMPACT, LOGIN_PASSWORD_COMPACT).any { it.containsMatchIn(candidate) }
     }
     private fun compactCodePoints(text: String): String = buildString(text.length) { var i = 0; while (i < text.length) { val cp = text.codePointAt(i); if (!Character.isWhitespace(cp) && Character.getType(cp) != Character.FORMAT.toInt()) appendCodePoint(cp); i += Character.charCount(cp) } }
     private fun compactSensitiveLabels(text: String): String = buildString(text.length) { var i = 0; while (i < text.length) { val cp = text.codePointAt(i); val type = Character.getType(cp); if (!isPunctuation(type) || cp == ':'.code || cp == '='.code) appendCodePoint(cp); i += Character.charCount(cp) } }
@@ -70,6 +70,7 @@ class SensitiveInformationFirewall {
         private val STANDALONE_API_KEY=Regex("(?i)(?<![A-Za-z0-9_])(?:sk-[A-Za-z0-9]{20,}|sk-(?:[A-Za-z0-9]+-)+[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[bp]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{18}|AIza[0-9A-Za-z_-]{30,})(?![A-Za-z0-9_])")
         private val RECOVERY_CODE=Regex("(?i)(?:recovery|backup|emergency)\\s*code(?:s)?\\s*(?:are|is|:|=)?\\s*\\b[A-Za-z0-9-]{6,32}(?:\\s*,\\s*[A-Za-z0-9-]{6,32})*\\b")
         private val PASSWORD_CONTEXT=Regex("(?i)(?:password|passcode|login\\s*password)\\s*(?:is|:|=)\\s*[^\\s,;]{4,}")
-        private val PASSWORD_CONTEXT_COMPACT=Regex("(?i)(?:password|passcode|loginpassword)(?:is|:|=)\\s*[^\\s,;]{4,}")
+        private val PASSWORD_CONTEXT_COMPACT=Regex("(?i)(?:password|passcode)(?:is|:|=)\\s*[^\\s,;]{4,}")
+        private val LOGIN_PASSWORD_COMPACT=Regex("(?i)loginpassword(?:is|:|=)\\s*[^\\s,;]{4,}")
     }
 }
