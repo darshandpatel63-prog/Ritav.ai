@@ -51,6 +51,28 @@ class AuditLogTest {
         assertEquals("Audit reason contained sensitive information and was suppressed", stored.reason)
     }
 
+    @Test fun oversizedSessionMetadataIsRejectedBeforeStorage() {
+        val log = InMemoryAuditLog()
+        val oversizedSessionId = "s".repeat(129)
+
+        val rejected = runCatching {
+            log.append(
+                AuditEvent(
+                    timestampEpochMillis = 1L,
+                    sessionId = oversizedSessionId,
+                    actionHash = null,
+                    eventType = AuditEventType.POLICY_DECISION,
+                    allowed = false,
+                    verified = false,
+                    reason = "Denied"
+                )
+            )
+        }.isFailure
+
+        assertTrue(rejected)
+        assertTrue(log.readAll().isEmpty())
+    }
+
     @Test fun inMemoryAuditRetainsNewestEventsWhenCountBoundIsExceeded() {
         val log = InMemoryAuditLog()
         repeat(MAX_AUDIT_EVENTS + 5) { index ->
