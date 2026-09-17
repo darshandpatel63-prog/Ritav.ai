@@ -16,6 +16,7 @@ Implemented baseline deterministic security gates:
 - Scoped capability grants: global/app/capability/action/session shape, with default deny.
 - Explicit authorization levels: none, user confirmation, device authentication.
 - Financial-action hard block.
+- Dedicated `FinanceExecutionFirewall` hard boundary for `Capability.FINANCIAL_ACTION`.
 - Sensitive-data protection helpers and contextual secret detection/redaction.
 - Emergency stop.
 - Local audit event contract with secret-safe action logging.
@@ -38,13 +39,12 @@ Implemented baseline deterministic security gates:
 - Final execution is routed through capability and security pipeline checks before an Android adapter can run.
 - Android device-authentication integration has been added as a platform gateway; physical-device validation is still required.
 - `SensitiveInformationFirewall` is enforced inside `SecurityExecutionPipeline` before authorization/execution.
+- `SecurityExecutionPipeline` applies the dedicated finance firewall before sensitive-input processing and before authorization-token consumption.
 - `ExecutionBridge` and `SecurityExecutionPipeline` now share the same audit sink by default, so capability, pipeline, execution and verification events are not split across independent in-memory logs.
 - `ExecutionBridge` now samples the audit timestamp at each emitted event rather than reusing the initial entry timestamp for later execution/verification events.
 
 ## Sensitive Information Firewall — current state
-The firewall remains the active development layer; **Finance Firewall has not been started**.
-
-Implemented in the current `main` branch:
+Implemented and CI-verified on the current `main` branch:
 - Deterministic detection for OTP, UPI PIN, CVV, password-context values, recovery/backup codes, private keys, and API/access/secret keys.
 - Natural-language API/access/secret-key assignments using `is`, `:`, or `=` are detected as well as symbolic assignments.
 - `SensitiveMatch` contains only type and source offsets; it does not contain the matched secret.
@@ -56,10 +56,21 @@ Implemented in the current `main` branch:
 - Unicode format-character compaction is iterated by Unicode code point, closing a supplementary-plane `Cf`/format-character bypass class.
 - Common Greek/Cyrillic Latin look-alike characters are folded through a small explicit mapping for transformed detection, reducing homoglyph bypass risk without broad transliteration.
 - Unicode decimal digits are folded by Unicode code point to ASCII digits for transformed detection, including supplementary-plane decimal digits, reducing script-specific digit bypass risk while leaving unrelated Unicode numbers allowed.
-- Credential labels whose separators are removed by compaction are now matched in their compact form, including one-time-password, verification-code, security-code, UPI-PIN, pin-for-UPI, recovery-code, login-password, API-key, access-token, and secret-key labels.
+- Credential labels whose separators are removed by compaction are matched in compact form, including one-time-password, verification-code, security-code, UPI-PIN, pin-for-UPI, recovery-code, login-password, API-key, access-token, and secret-key labels.
 - Whitespace/zero-width, Unicode normalization, homoglyph, non-ASCII decimal-digit, supplementary decimal-digit, supplementary-plane format-character, and compacted-label obfuscation regression cases are covered.
 - Security pipeline tests verify that oversized and normalization-detected inputs are blocked before authorization is consumed.
 - ExecutionBridge coverage verifies that sensitive `inputText` is blocked at the bridge path and a token remains usable after that blocked inspection.
+
+## Finance Execution Firewall — current state
+Implemented and integrated as an additive deterministic hard boundary:
+- `FinanceExecutionFirewall` denies every `ActionRequest` with `Capability.FINANCIAL_ACTION`.
+- Existing `PolicyEngine`, `CapabilityPolicyGate`, `AppCapabilityRegistry`, and `SecurePermissionStore` financial restrictions remain in force; the dedicated firewall does not replace them.
+- `SecurityExecutionPipeline` invokes the finance firewall immediately after exact plan/action binding validation.
+- A finance deny returns `AuthorizationLevel.NONE`, so authorization cannot convert the financial deny into an executable path.
+- Finance denial occurs before sensitive-input inspection and before authorization-token consumption.
+- Regression coverage proves explicit user intent and a device-authorization token do not override the finance deny and that the token remains unconsumed after the finance rejection.
+- Repository search for finance/UPI/payment/app-package execution mappings found no existing concrete financial-app integration to reuse. No brittle package-name allow/deny mapping has been invented.
+- Physical financial-app isolation is therefore not claimed yet; any future Android banking/UPI integration must use authoritative package/component identity from a concrete integration contract, not string heuristics.
 
 ## Elite security hardening rules added
 `docs/RITAV_ELITE_SECURITY_ADDENDUM.md` is additive to the common workflow. It does not replace existing controls. It adds maximum-assurance review lenses, secure-by-construction requirements, adversarial attack classes, least-privilege checks, dependency/configuration hygiene, secret-safe logging, bounded resource use, asynchronous security-state checks, and an evidence-based completion gate.
@@ -80,6 +91,21 @@ Implemented in the current `main` branch:
 - Confusable-fold and decimal-digit false-positive regressions without sensitive markers.
 - Unusual/malformed Unicode input not crashing the call.
 
+`app/src/test/java/ai/ritav/app/core/security/FinanceExecutionFirewallTest.kt` covers:
+- Financial capability always denied.
+- Explicit intent and authorization cannot override the finance deny.
+- Non-financial capabilities remain outside this boundary.
+
+`SecurityExecutionPipelineTest.kt` covers:
+- Plan/request binding mismatch denial.
+- Protected-action trusted-session enforcement.
+- Valid one-time authorization and replay rejection.
+- Sensitive input blocking before authorization/execution.
+- Oversized sensitive input blocking before authorization and token consumption.
+- Normalized and obfuscated sensitive input blocking without consuming authorization.
+- Explicit sensitive-data flag denial.
+- Finance firewall denial before authorization and preservation of the unconsumed authorization token.
+
 ## Continuous verification / security review notes
 Transformed representations can change UTF-16 offsets, so transformed detections are never used to redact source text unless an offset mapping is proven correct. They remain conservative block signals.
 
@@ -89,52 +115,28 @@ The explicit confusable mapping is intentionally narrow. It is defense-in-depth 
 
 Unicode decimal-digit folding is defense-in-depth: it iterates Unicode code points and converts characters classified as decimal digits when `Character.digit(codePoint, 10)` succeeds. This covers supplementary-plane decimal digits without UTF-16 surrogate misinterpretation. It does not attempt broad numeric-script transliteration.
 
-Compacted credential-label matching specifically addresses a representation mismatch: the inspection pass removes whitespace/format characters, so labels that require a separator in ordinary text must also be recognized without that separator. This includes verification/security code and UPI marker variants. The behavior remains deterministic and detection-only; it does not broaden to arbitrary transliteration.
+Compacted credential-label matching specifically addresses a representation mismatch: the inspection pass removes whitespace/format characters, so labels that require a separator in ordinary text must also be recognized without that separator. The behavior remains deterministic and detection-only; it does not broaden to arbitrary transliteration.
 
 Natural-language API credential matching intentionally covers the common `is`, `:`, and `=` assignment forms. This is still pattern-based and cannot prove that arbitrary opaque strings are secrets without context.
 
-The code-point-safe compaction change was paired with regression tests for supplementary-plane Unicode format characters inserted into both a sensitive marker and sensitive digits. These changes are committed but remain unexecuted in the current environment.
-
-A security review identified an asynchronous authorization timing weakness: `ActionAuthorizationService.issueDeviceAuthenticationToken` previously reused the caller's pre-authentication timestamp after the device-auth callback completed. That could shorten the intended post-auth token lifetime based on how long authentication took. The service now samples the clock only after successful authentication, and a regression test simulates delayed authentication and verifies the token remains valid for the full TTL from that post-auth timestamp.
+An asynchronous authorization timing weakness was fixed: `ActionAuthorizationService.issueDeviceAuthenticationToken` now samples the clock only after successful authentication, and regression coverage simulates delayed authentication so the token gets its full TTL from post-authentication time.
 
 The firewall is mandatory in `SecurityExecutionPipeline` before protected-action authorization/execution. `ExecutionBridge` passes its `inputText` through that pipeline before adapter execution. Broader real model/context ingestion is still future work and must use an equivalent mandatory boundary rather than relying on callers to remember the helper.
 
-Execution-path tracing on the current branch found `ExecutionBridge` and its security dependencies plus dedicated tests, but no production construction of `ExecutionBridge` and no concrete `AndroidActionAdapter` implementation beyond the interface. `SecurityRuntimeState` currently composes policy/audit/emergency-stop state for the UI, while `MainActivity` does not construct or invoke the execution bridge. This means the final security boundary is well-defined and unit-covered but its real Android action composition is not yet evidenced as production-wired. No new adapter or duplicate composition root was invented because the repository does not currently expose an existing concrete action implementation to integrate.
+Execution-path tracing found `ExecutionBridge` and its security dependencies plus dedicated tests, but no production construction of `ExecutionBridge` and no concrete `AndroidActionAdapter` implementation beyond the interface. `SecurityRuntimeState` composes policy/audit/emergency-stop state for the UI, while `MainActivity` does not construct or invoke the execution bridge. This means the final security boundary is well-defined and unit-covered but its real Android action composition is not yet evidenced as production-wired. No new adapter or duplicate composition root was invented because the repository does not currently expose an existing concrete action implementation to integrate.
 
-The execution bridge audit path was additionally hardened so capability-denial, pipeline-denial, authorization, execution and verification events use the shared sink by default and later events receive timestamps sampled at emission. These changes are source-reviewed but remain unexecuted in the current environment.
-
-## Important security assessment
-This is a hardened **foundation**, not a claim of mathematically bug-free or production-complete security. Regex detection is not comprehensive secret detection. Unicode/obfuscation resistance, contextual detection, OCR/screen filtering, structured input isolation, and full model/context ingestion remain unfinished. No real-device security result is claimed until physical-device testing occurs.
-
-## Current verification status — 2026-09-14
+## Current verification status — 2026-09-17
 - Repository default branch: `main`.
-- The required project workflow document and elite security addendum were re-read before this continuation.
-- Current `SensitiveInformationFirewall.kt`, its dedicated tests, `RITAV_PROJECT_STATE.md`, and the asynchronous authorization service/tests were inspected before modification.
-- A concrete asynchronous authorization timing weakness was identified and fixed: device-authentication token issuance now uses a clock sampled after authentication succeeds rather than a caller-supplied pre-auth timestamp.
-- A regression test now simulates delayed authentication and proves the token is still valid at the full TTL boundary measured from post-authentication time.
-- Source-level integration/call-path inspection found no other production call sites for `ActionAuthorizationService` beyond its definition and dedicated tests, so no additional caller migration was required by this signature change.
-- Source-level execution tracing found no production `ExecutionBridge` constructor call and no concrete `AndroidActionAdapter` implementation, so production execution wiring remains an explicit unfinished integration point rather than an assumed capability.
-- No executable Gradle wrapper is present through repository inspection, and no GitHub Actions workflow/status result is available for the current commit.
-- The repository source tree is not locally mounted for Android/JUnit execution in this environment.
-- Therefore **Tests were not executed.** No Android build/test/CI pass is claimed.
-
-## Latest commits from this continuation
-- `1c3c32110b5abb1c24664f0a6d3a8709394f85d7` — security: timestamp execution audit events at emission.
-- `5ebd84995c696e66812966947f6c17a963fdcb73` — test: verify execution and pipeline share audit sink.
-- `5192fc2b23b9d3dd7936d28118a1c475d43cdc09` — security: unify execution and pipeline audit sinks.
-- `a66ac8ae928332053d9f8c581adb9385a25a21dd` — security: share pipeline audit sink with execution bridge.
-- `1053514314d63753ebfeff8ef09d512dd55b1278` — security: require explicit shared audit sink for execution bridge.
-- `33c83b58776143b5c4a39a6b4fe31e2d19dd664a` — security: remove duplicate legacy sensitive-data firewall.
-- `1542a0437e8ea430c1c2327e79d8b7e5e2c9a461` — docs: record async authorization timestamp hardening.
-- `68cf28f0b6f109010e26269daa8b383ae6c54913` — test: prove device token uses post-auth timestamp.
-- `3810f540c7ef78c92402c95aa24f346d76ba04e1` — security: mint device tokens from post-auth time.
-- `0b8d729fa0488b59c57c4161e751e6b9caf44ab0` — test: cover hyphenated standalone credential formats.
-- `cffa8ebc612ec3592d9b01f6956a549f8b5feb43` — security: cover hyphenated standalone credential formats.
-- `5629566ac84b62a9410d601af7a52c1e24565c4c` — test: cover punctuation-obfuscated sensitive labels.
-- `75be44f0e167277cec10afc61ce68b105b019ae9` — security: make audit reasons secret-safe.
-- `2de57bd9546b836d79aea04c227041e155ca3fa9` — test: verify audit reasons never retain secrets.
-- `9dddc15943f0629cadcec60544eb2bdd02f6f466` — fix: preserve assignment separators during punctuation compaction.
-- `94e48d0d9cbf5fb13e58711aa7a8ceaec5b1a61a` — security: harden punctuation-obfuscated secret detection.
+- Current verified `main` HEAD: `86b5e1513149bad4882c81a263d37eb4a52d4129`.
+- GitHub Actions run `35183890834` checked out exactly that commit.
+- Job `unit-tests` completed successfully.
+- `gradle --no-daemon testDebugUnitTest` completed with `BUILD SUCCESSFUL`.
+- The CI log showed the compile/test pipeline reaching `:app:testDebugUnitTest` successfully; no test failure was reported.
+- The CI run used JDK 17 and Gradle 8.13.
+- CI emitted non-fatal warnings about a future Kotlin data-class copy-visibility error, a deprecated Android biometric API, and GitHub Actions Node 20 deprecation.
+- Physical Android device validation remains unverified.
+- Production `ExecutionBridge` construction and concrete Android action adapter wiring remain unverified.
+- No Android release APK/security sign-off is claimed from this unit-test run.
 
 ## Security invariants
 1. No autonomous consequential action.
@@ -152,30 +154,26 @@ This is a hardened **foundation**, not a claim of mathematically bug-free or pro
 USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUTHORIZATION → EXECUTION → VERIFICATION → AUDIT
 
 ## Exact next stop point
-**Stay in Sensitive Information Firewall hardening/verification. Do not begin Finance Firewall yet.**
+**Finance-app isolation remains intentionally unimplemented; do not invent package-name heuristics.**
 
 Next action:
-1. Obtain an executable Android/Gradle environment with the repository's current source.
-2. Run the most specific available firewall unit tests and the security pipeline/bridge/authorization service tests.
-3. Repair any compile/test failures.
-4. Continue adversarial Unicode/obfuscation and false-positive/false-negative review.
-5. Confirm the firewall boundary remains mandatory for future AI/context ingestion.
-6. In parallel, continue tracing the intended production action composition; do not invent an adapter or bypass the bridge when none exists.
-7. Perform the consolidated security review for this layer only after executable verification is available.
-8. Only after the layer is justified as complete, document the verified result and create the major-security-layer audit checkpoint.
+1. Trace the requirements matrix and Android integration contracts for any authoritative financial-app/package/component identity source.
+2. Re-search the repository for existing app-identity/capability registration mechanisms before creating anything new.
+3. If an authoritative identity source exists, integrate finance isolation through the existing capability/security boundary and add targeted regression tests.
+4. If no authoritative identity source exists, document this as a prerequisite and move to the next already-defined security gap rather than adding brittle heuristics.
+5. Keep the dedicated finance firewall and all existing financial controls unchanged.
 
-## After this layer is actually verified
-Expected order remains:
-1. Finance Firewall / financial-app isolation.
-2. Screen/OCR/Accessibility sensitive-content filtering.
-3. Stronger app capability registry integration.
-4. Mandatory unified security execution choke point.
-5. Confirmation/read-back/device-auth UI.
-6. Secure audit log bounds/rotation/reason-code hardening.
-7. Secure storage/Keystore edge-case testing.
-8. Resource/memory pressure enforcement.
-9. Real Android device security tests.
-10. Then higher-level orchestration/voice/local AI/automation.
+## After the current finance-isolation decision
+Expected security order remains:
+1. Screen/OCR/Accessibility sensitive-content filtering.
+2. Stronger app capability registry integration.
+3. Mandatory unified security execution choke point.
+4. Confirmation/read-back/device-auth UI.
+5. Secure audit log bounds/rotation/reason-code hardening.
+6. Secure storage/Keystore edge-case testing.
+7. Resource/memory pressure enforcement.
+8. Real Android device security tests.
+9. Then higher-level orchestration/voice/local AI/automation.
 
 ## Constraints
 - Android OS restrictions are authoritative.
@@ -188,4 +186,4 @@ Expected order remains:
 For each feature: implement → test → security review → update documentation → CI verification → record result here.
 
 ## Continuation instruction
-A future chat can continue with: “Continue Ritav.ai development. Read `docs/RITAV_COMMON_AI_WORKFLOW.md`, `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_BLUEPRINT.md`, and `docs/MASTER_REQUIREMENTS_MATRIX.md`, inspect the repository, verify the current build/test state, and continue from the exact Sensitive Information Firewall verification stop point.”
+A future chat can continue with: “Continue Ritav.ai development. Read `docs/RITAV_COMMON_AI_WORKFLOW.md`, `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_BLUEPRINT.md`, and `docs/MASTER_REQUIREMENTS_MATRIX.md`, inspect the repository, verify the current build/test state, and continue from the exact finance-app isolation decision stop point.”
