@@ -23,7 +23,8 @@ class SecurityExecutionPipeline(
     private val authorizationGate: ActionAuthorizationGate,
     private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(),
     val auditLog: AuditLog = InMemoryAuditLog(),
-    private val sensitiveFirewall: SensitiveInformationFirewall = SensitiveInformationFirewall()
+    private val sensitiveFirewall: SensitiveInformationFirewall = SensitiveInformationFirewall(),
+    private val financeFirewall: FinanceExecutionFirewall = FinanceExecutionFirewall()
 ) {
     fun authorize(request: SecurityExecutionRequest): SecurityExecutionDecision {
         val actionHash = request.plan.stableHash()
@@ -35,6 +36,11 @@ class SecurityExecutionPipeline(
             request.plan.sessionId != request.action.sessionId
         ) {
             return denyAndAudit(request, actionHash, "Action plan does not match execution request", AuthorizationLevel.NONE)
+        }
+
+        val financialDecision = financeFirewall.inspect(request.action)
+        if (!financialDecision.allowed) {
+            return denyAndAudit(request, actionHash, financialDecision.reason, AuthorizationLevel.NONE)
         }
 
         val inspectedInput = request.inputText?.let(sensitiveFirewall::inspect)
