@@ -46,7 +46,10 @@ class SecureLocalStore(context: Context) {
     fun getString(name: String): String? {
         validateSecureLocalStoreName(name)
         val encoded = preferences.getString(name, null) ?: return null
-        return String(decrypt(encoded), StandardCharsets.UTF_8)
+        validateSecureLocalStoreEncodedSize(encoded.length)
+        val decrypted = decrypt(encoded)
+        validateSecureLocalStoreValueSize(decrypted.size)
+        return String(decrypted, StandardCharsets.UTF_8)
     }
 
     @Synchronized
@@ -95,7 +98,12 @@ class SecureLocalStore(context: Context) {
 
     private fun decrypt(encoded: String): ByteArray {
         val combined = Base64.decode(encoded, Base64.NO_WRAP)
-        require(combined.size > GCM_IV_LENGTH_BYTES) { "Corrupt secure value" }
+        require(combined.size > GCM_IV_LENGTH_BYTES + GCM_TAG_LENGTH_BYTES) {
+            "Corrupt secure value"
+        }
+        require(combined.size <= MAX_SECURE_STORE_CIPHERTEXT_BYTES) {
+            "Secure local value is too large"
+        }
         val iv = combined.copyOfRange(0, GCM_IV_LENGTH_BYTES)
         val cipherText = combined.copyOfRange(GCM_IV_LENGTH_BYTES, combined.size)
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -115,6 +123,10 @@ class SecureLocalStore(context: Context) {
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val GCM_IV_LENGTH_BYTES = 12
         private const val GCM_TAG_LENGTH_BITS = 128
+        private const val GCM_TAG_LENGTH_BYTES = GCM_TAG_LENGTH_BITS / 8
+        private const val MAX_SECURE_STORE_CIPHERTEXT_BYTES =
+            MAX_SECURE_STORE_VALUE_BYTES + GCM_TAG_LENGTH_BYTES
+        private const val MAX_SECURE_STORE_ENCODED_LENGTH = 174_800
     }
 }
 
@@ -126,5 +138,11 @@ internal fun validateSecureLocalStoreName(name: String) {
 internal fun validateSecureLocalStoreValueSize(utf8ByteCount: Int) {
     require(utf8ByteCount in 0..MAX_SECURE_STORE_VALUE_BYTES) {
         "Secure local value is too large"
+    }
+}
+
+internal fun validateSecureLocalStoreEncodedSize(encodedCharCount: Int) {
+    require(encodedCharCount in 1..174_800) {
+        "Secure local encoded value is too large"
     }
 }
