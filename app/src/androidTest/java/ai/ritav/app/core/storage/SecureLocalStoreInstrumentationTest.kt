@@ -1,6 +1,7 @@
 package ai.ritav.app.core.storage
 
 import android.content.Context
+import android.util.Base64
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -47,9 +48,14 @@ class SecureLocalStoreInstrumentationTest {
             store.putString(key, value)
             val original = preferences.getString(key, null)
             require(!original.isNullOrEmpty())
-            val last = original.last()
-            val replacement = if (last == 'A') 'B' else 'A'
-            check(preferences.edit().putString(key, original.dropLast(1) + replacement).commit())
+
+            val tamperedBytes = Base64.decode(original, Base64.NO_WRAP)
+            require(tamperedBytes.isNotEmpty())
+            tamperedBytes[tamperedBytes.lastIndex] =
+                (tamperedBytes[tamperedBytes.lastIndex].toInt() xor 0x01).toByte()
+            val tampered = Base64.encodeToString(tamperedBytes, Base64.NO_WRAP)
+
+            check(preferences.edit().putString(key, tampered).commit())
 
             assertThrows(Exception::class.java) {
                 store.getString(key)
