@@ -17,14 +17,17 @@ data class AgentRequest private constructor(
         private val sensitiveFirewall = SensitiveInformationFirewall()
 
         /**
-         * Creates an agent request only after deterministic sensitive-input inspection.
+         * Creates an agent request only after deterministic security checks.
          * Sensitive or uninspectable input is rejected so it cannot reach an agent.
+         * Financial execution is never a valid agent capability, even if a caller
+         * attempts to place it into the scoped capability set.
          */
         fun create(
             taskId: String,
             input: String,
             scope: AgentCapabilityScope
         ): AgentRequest? {
+            if (Capability.FINANCIAL_ACTION in scope.allowedCapabilities) return null
             val inspected = sensitiveFirewall.inspect(input)
             if (!inspected.allowed) return null
             return AgentRequest(taskId, inspected.redactedText, scope)
