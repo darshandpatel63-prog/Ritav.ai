@@ -27,33 +27,14 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Locate Android SDK tools
-        shell: bash
-        run: |
-          set -euo pipefail
-          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-          if [[ -z "$sdk_root" ]]; then
-            echo "Android SDK root is not configured" >&2
-            exit 1
-          fi
-          sdkmanager_path="$(find "$sdk_root/cmdline-tools" -type f -name sdkmanager -print -quit 2>/dev/null || true)"
-          if [[ -z "$sdkmanager_path" || ! -x "$sdkmanager_path" ]]; then
-            echo "sdkmanager was not found under $sdk_root/cmdline-tools" >&2
-            exit 1
-          fi
-          avdmanager_path="$(dirname "$sdkmanager_path")/avdmanager"
-          if [[ ! -x "$avdmanager_path" ]]; then
-            echo "avdmanager was not found next to sdkmanager" >&2
-            exit 1
-          fi
-          echo "ANDROID_SDKMANAGER=$sdkmanager_path" >> "$GITHUB_ENV"
-          echo "ANDROID_AVDMANAGER=$avdmanager_path" >> "$GITHUB_ENV"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Accept Android SDK licenses
-        run: yes | "$ANDROID_SDKMANAGER" --licenses
+        run: yes | sdkmanager --licenses
 
       - name: Install managed-device system image
-        run: "$ANDROID_SDKMANAGER" "system-images;android-30;aosp_atd;x86"
+        run: sdkmanager "system-images;android-30;aosp_atd;x86"
 
       - name: Run JVM unit tests and compile instrumentation tests
         run: gradle --no-daemon testDebugUnitTest assembleDebugAndroidTest
