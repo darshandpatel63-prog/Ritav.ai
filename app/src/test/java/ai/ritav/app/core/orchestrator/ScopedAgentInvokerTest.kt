@@ -33,4 +33,13 @@ class ScopedAgentInvokerTest {
         val request = AgentRequest.create("task-1", "x".repeat(16_385), AgentCapabilityScope(setOf(Capability.APP_LAUNCH)))
         assertNull(request)
     }
+
+    @Test fun rejectsFinancialCapabilityBeforeAgentInvocation() {
+        val request = AgentRequest.create(
+            "task-1",
+            "pay this invoice",
+            AgentCapabilityScope(setOf(Capability.FINANCIAL_ACTION))
+        )
+        assertNull(request)
+    }
 }
