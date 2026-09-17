@@ -9,6 +9,9 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+internal const val MAX_SECURE_STORE_VALUE_BYTES = 131_072
+internal const val MAX_SECURE_STORE_NAME_LENGTH = 128
+
 /**
  * Small platform-only encrypted store for security-sensitive local state.
  *
@@ -16,6 +19,7 @@ import javax.crypto.spec.GCMParameterSpec
  * - Key material stays in Android Keystore.
  * - No network or third-party storage dependency.
  * - Values are encrypted before entering SharedPreferences.
+ * - Stored values are explicitly size-bounded to prevent unbounded resource use.
  *
  * This class is intentionally simple. Larger structured data should move to an
  * encrypted database layer only after that dependency is reviewed.
@@ -29,8 +33,10 @@ class SecureLocalStore(context: Context) {
 
     @Synchronized
     fun putString(name: String, value: String) {
-        require(name.isNotBlank()) { "Preference key must not be blank" }
-        val encrypted = encrypt(value.toByteArray(StandardCharsets.UTF_8))
+        validateSecureLocalStoreName(name)
+        val plainText = value.toByteArray(StandardCharsets.UTF_8)
+        validateSecureLocalStoreValueSize(plainText.size)
+        val encrypted = encrypt(plainText)
         check(preferences.edit().putString(name, encrypted).commit()) {
             "Secure local write failed"
         }
@@ -38,12 +44,14 @@ class SecureLocalStore(context: Context) {
 
     @Synchronized
     fun getString(name: String): String? {
+        validateSecureLocalStoreName(name)
         val encoded = preferences.getString(name, null) ?: return null
         return String(decrypt(encoded), StandardCharsets.UTF_8)
     }
 
     @Synchronized
     fun remove(name: String) {
+        validateSecureLocalStoreName(name)
         check(preferences.edit().remove(name).commit()) {
             "Secure local delete failed"
         }
@@ -107,5 +115,16 @@ class SecureLocalStore(context: Context) {
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val GCM_IV_LENGTH_BYTES = 12
         private const val GCM_TAG_LENGTH_BITS = 128
+    }
+}
+
+internal fun validateSecureLocalStoreName(name: String) {
+    require(name.isNotBlank()) { "Preference key must not be blank" }
+    require(name.length <= MAX_SECURE_STORE_NAME_LENGTH) { "Preference key is too long" }
+}
+
+internal fun validateSecureLocalStoreValueSize(utf8ByteCount: Int) {
+    require(utf8ByteCount in 0..MAX_SECURE_STORE_VALUE_BYTES) {
+        "Secure local value is too large"
     }
 }
