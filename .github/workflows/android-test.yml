@@ -27,5 +27,5 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Run Android unit tests
-        run: gradle --no-daemon testDebugUnitTest
+      - name: Run Android unit tests and instrumentation compile
+        run: gradle --no-daemon testDebugUnitTest assembleDebugAndroidTest
