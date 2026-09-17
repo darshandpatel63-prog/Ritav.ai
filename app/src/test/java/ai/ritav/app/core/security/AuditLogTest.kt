@@ -51,6 +51,68 @@ class AuditLogTest {
         assertEquals("Audit reason contained sensitive information and was suppressed", stored.reason)
     }
 
+    @Test fun inMemoryAuditRetainsNewestEventsWhenCountBoundIsExceeded() {
+        val log = InMemoryAuditLog()
+        repeat(MAX_AUDIT_EVENTS + 5) { index ->
+            log.append(
+                AuditEvent(
+                    timestampEpochMillis = index.toLong(),
+                    sessionId = null,
+                    actionHash = null,
+                    eventType = AuditEventType.POLICY_DECISION,
+                    allowed = false,
+                    verified = false,
+                    reason = "Denied"
+                )
+            )
+        }
+
+        val events = log.readAll()
+        assertEquals(MAX_AUDIT_EVENTS, events.size)
+        assertEquals(5L, events.first().timestampEpochMillis)
+        assertEquals((MAX_AUDIT_EVENTS + 4).toLong(), events.last().timestampEpochMillis)
+    }
+
+    @Test fun serializedRetentionKeepsNewestWholeEventsWithinStorageBound() {
+        val events = (1L..3L).map { timestamp ->
+            AuditEvent(
+                timestampEpochMillis = timestamp,
+                sessionId = null,
+                actionHash = null,
+                eventType = AuditEventType.POLICY_DECISION,
+                allowed = false,
+                verified = false,
+                reason = "Denied"
+            )
+        }
+
+        val retained = retainNewestAuditEvents(events) { 30_000 }
+
+        assertEquals(2, retained.size)
+        assertEquals(2L, retained.first().timestampEpochMillis)
+        assertEquals(3L, retained.last().timestampEpochMillis)
+    }
+
+    @Test fun serializedRetentionNeverExceedsEventCountEvenWhenSizeAllowsMore() {
+        val events = (1L..(MAX_AUDIT_EVENTS + 10).toLong()).map { timestamp ->
+            AuditEvent(
+                timestampEpochMillis = timestamp,
+                sessionId = null,
+                actionHash = null,
+                eventType = AuditEventType.POLICY_DECISION,
+                allowed = false,
+                verified = false,
+                reason = "Denied"
+            )
+        }
+
+        val retained = retainNewestAuditEvents(events) { 1 }
+
+        assertEquals(MAX_AUDIT_EVENTS, retained.size)
+        assertEquals(11L, retained.first().timestampEpochMillis)
+        assertEquals((MAX_AUDIT_EVENTS + 10).toLong(), retained.last().timestampEpochMillis)
+    }
+
     @Test fun rejectedPipelineDecisionIsAuditedWithoutActionContent() {
         val log = InMemoryAuditLog()
         val plan = ActionPlan("demo", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, "s1")
