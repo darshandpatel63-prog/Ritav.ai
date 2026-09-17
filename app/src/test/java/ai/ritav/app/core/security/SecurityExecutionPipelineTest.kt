@@ -61,11 +61,8 @@ class SecurityExecutionPipelineTest {
         val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(),
-                plan = p,
-                authorizationToken = token,
-                identitySession = trustedSession(1_000),
-                nowEpochMillis = 1_000,
+                action = action(), plan = p, authorizationToken = token,
+                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
                 inputText = "Please use OTP 123456"
             )
         )
@@ -84,11 +81,8 @@ class SecurityExecutionPipelineTest {
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(),
-                plan = p,
-                authorizationToken = token,
-                identitySession = trustedSession(1_000),
-                nowEpochMillis = 1_000,
+                action = action(), plan = p, authorizationToken = token,
+                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
                 inputText = "x".repeat(16_385)
             )
         )
@@ -98,11 +92,8 @@ class SecurityExecutionPipelineTest {
 
         val allowedAfterBlockedAttempt = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(),
-                plan = p,
-                authorizationToken = token,
-                identitySession = trustedSession(1_000),
-                nowEpochMillis = 1_000,
+                action = action(), plan = p, authorizationToken = token,
+                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
                 inputText = "benign input"
             )
         )
@@ -118,11 +109,8 @@ class SecurityExecutionPipelineTest {
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(),
-                plan = p,
-                authorizationToken = token,
-                identitySession = trustedSession(1_000),
-                nowEpochMillis = 1_000,
+                action = action(), plan = p, authorizationToken = token,
+                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
                 inputText = "OTP\u00a0123456"
             )
         )
@@ -140,11 +128,8 @@ class SecurityExecutionPipelineTest {
 
         val blocked = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(),
-                plan = p,
-                authorizationToken = token,
-                identitySession = trustedSession(1_000),
-                nowEpochMillis = 1_000,
+                action = action(), plan = p, authorizationToken = token,
+                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
                 inputText = "O\u200b T P 12\u200b 34 56"
             )
         )
@@ -152,11 +137,8 @@ class SecurityExecutionPipelineTest {
 
         val allowed = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(),
-                plan = p,
-                authorizationToken = token,
-                identitySession = trustedSession(1_000),
-                nowEpochMillis = 1_000,
+                action = action(), plan = p, authorizationToken = token,
+                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
                 inputText = "safe input"
             )
         )
@@ -171,14 +153,62 @@ class SecurityExecutionPipelineTest {
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = sensitiveAction,
+                action = sensitiveAction, plan = p,
+                identitySession = trustedSession(1_000), nowEpochMillis = 1_000
+            )
+        )
+
+        assertFalse(result.allowed)
+    }
+
+    @Test fun financeFirewallDeniesBeforeAuthorizationAndReturnsNoAuthorizationPath() {
+        val p = ActionPlan(
+            appId = "bank.app",
+            capability = Capability.FINANCIAL_ACTION,
+            action = "transfer",
+            riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+            sessionId = "finance-session"
+        )
+        val action = ActionRequest(
+            appId = p.appId,
+            action = p.action,
+            riskTier = p.riskTier,
+            capability = p.capability,
+            sessionId = p.sessionId,
+            userExplicitlyRequested = true,
+            authorizationLevel = AuthorizationLevel.DEVICE_AUTHENTICATION
+        )
+        val engine = PolicyEngine()
+        val gate = ActionAuthorizationGate()
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val token = gate.issue(p, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_000)
+
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action,
                 plan = p,
+                authorizationToken = token,
                 identitySession = trustedSession(1_000),
                 nowEpochMillis = 1_000
             )
         )
 
         assertFalse(result.allowed)
+        assertTrue(result.authorizationRequired == AuthorizationLevel.NONE)
+        assertTrue(result.reason.contains("finance firewall"))
+
+        // The finance denial must not consume a token that is never a valid bypass.
+        val secondAttempt = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action,
+                plan = p,
+                authorizationToken = token,
+                identitySession = trustedSession(1_000),
+                nowEpochMillis = 1_000
+            )
+        )
+        assertFalse(secondAttempt.allowed)
+        assertTrue(secondAttempt.reason.contains("finance firewall"))
     }
 
     private fun trustedSession(now: Long) = SecuritySession(
