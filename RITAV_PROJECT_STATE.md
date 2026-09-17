@@ -83,15 +83,20 @@ Regression coverage verifies newest-event retention by count, serialized-size re
 ## Secure local storage / Keystore checkpoint
 `SecureLocalStore` remains Android Keystore-backed AES-256-GCM storage with encrypted values in `SharedPreferences`.
 
-Additional defensive bounds now enforced before writes:
+Defensive bounds now apply on both write and read paths:
 - maximum plaintext value size: 131,072 UTF-8 bytes;
 - maximum preference-key name: 128 characters;
-- validation applies on put/get/remove key usage;
-- multibyte UTF-8 byte-count boundary is tested.
+- maximum encoded stored-value length: 174,800 characters;
+- write validation occurs before encryption/write;
+- read validation occurs before ciphertext decoding and again after authenticated decryption, before plaintext is materialized for return;
+- valid empty values remain supported;
+- malformed, truncated, corrupted or tampered ciphertext fails closed with no plaintext fallback.
 
-The existing authenticated-decryption behavior remains fail-closed: malformed Base64, corrupt/truncated ciphertext, authentication-tag failure or a recreated/missing Keystore key does not fall back to plaintext. Those runtime scenarios are code-traced but not physically Android/Keystore-verified.
+Independent review caught and fixed two read-side correctness bugs: the ciphertext bound now includes IV + GCM tag, and valid empty-string ciphertext is accepted.
 
-The current CI environment runs JVM unit tests only. No existing `SecureLocalStore` instrumentation test suite or configured connected-device test runner was found, so real Keystore round-trip/tamper tests remain an explicit validation gap.
+Android instrumentation coverage now exists for actual `SecureLocalStore` behavior:
+- Keystore-backed encrypted round-trip with an at-rest ciphertext/non-plaintext assertion;
+- decoded-ciphertext-byte tamper test proving authenticated decryption fails instead of returning plaintext.
 
 ## Screen / OCR / Accessibility status
 Blueprint requirements call for sensitive screen content to be classified before model context and sensitive UI regions blocked/redacted whenever technically possible, preferring structured Android/app APIs over visual scraping.
@@ -102,7 +107,7 @@ Current repository inspection found:
 - no production screen-content-to-model context pipeline,
 - no manifest declaration for such a service.
 
-Because there is no real producer/consumer call path, no fake adapter or duplicate privacy component has been added.
+Because there is no real producer/consumer call path, no fake adapter, package heuristic or duplicate privacy component has been added.
 
 ## Execution composition status
 `ExecutionBridge` exists as the final deterministic execution boundary and passes `inputText` through `SecurityExecutionPipeline` before adapter execution. However:
@@ -112,17 +117,42 @@ Because there is no real producer/consumer call path, no fake adapter or duplica
 
 Therefore final execution security is implemented and unit-covered, but production Android action wiring and real adapter behavior are not claimed.
 
+## Resource / memory status
+Repository-wide search found no concrete local-model, vision, speech, media, WorkManager, coroutine workload or existing resource-pressure component to reuse.
+
+Because there is no actual heavy-work producer/lifecycle call path, no standalone resource guard was added. This remains an integration prerequisite rather than dead security code.
+
+## Instrumentation-test infrastructure status
+- `app/build.gradle.kts` declares `androidx.test.runner.AndroidJUnitRunner` as the instrumentation runner.
+- `.github/workflows/android-test.yml` runs both `testDebugUnitTest` and `assembleDebugAndroidTest`.
+- `SecureLocalStoreInstrumentationTest` is present under `app/src/androidTest/...`.
+- The Android-specific security test code is compile-verified in CI, but connected-device execution is not currently available in CI.
+
+## Consolidated security review result
+Finance + agent + audit + secure-storage layers were reviewed together across:
+- call path ordering,
+- capability/policy interaction,
+- authorization timing and replay boundaries,
+- AI/agent ingress,
+- audit data minimization,
+- storage/resource bounds,
+- malformed input and failure behavior,
+- Android test/instrumentation boundaries,
+- dependency/configuration changes.
+
+No existing financial firewall, policy gate, authorization mechanism, Emergency Stop control or execution boundary was removed or weakened. New storage and instrumentation controls are additive.
+
 ## Current verification — 2026-09-17
-- Latest code/test-verified checkpoint: `47a39a4215f362aa17901872ed6e3492e2b55a00`.
-- GitHub Actions run `35185425350` checked out exactly that code commit.
+- Latest code/test-verified checkpoint: `151543ad8f00499f1a0daf27499c7c9ce70f92f4`.
+- GitHub Actions run `35185960431` checked out exactly that code commit.
 - Job `unit-tests` completed successfully.
-- `gradle --no-daemon testDebugUnitTest` completed with `BUILD SUCCESSFUL`.
+- `gradle --no-daemon testDebugUnitTest assembleDebugAndroidTest` completed with `BUILD SUCCESSFUL`.
 - CI used JDK 17 and Gradle 8.13.
-- CI logs confirm `:app:testDebugUnitTest` succeeded.
+- The successful CI job covered JVM unit tests plus Android instrumentation-test APK compilation; it did not execute instrumentation tests on a connected device.
 - Non-fatal warnings remain for a future Kotlin data-class copy-visibility change, deprecated Android biometric API usage, and GitHub Actions Node/action deprecations.
-- `main` is now ahead of the code/test checkpoint only because documentation commits may follow; inspect current HEAD before claiming HEAD itself is test-verified.
-- Physical Android device validation and connected Keystore tests remain unverified.
-- No release APK/security sign-off is claimed from JVM unit-test CI alone.
+- Documentation commits may place `main` ahead of this code/test checkpoint; inspect current branch HEAD before claiming that exact HEAD is test-verified.
+- Physical Android device validation and connected Keystore/instrumentation execution remain unverified.
+- No release APK/security sign-off is claimed from CI alone.
 
 ## Recent security commits
 - `ddcbfb20528daa5c45e9be0810bd0e531f098964` — dedicated financial execution firewall.
@@ -136,7 +166,13 @@ Therefore final execution security is implemented and unit-covered, but producti
 - `b3360550a5ca099ae19a0a0d84f3d839b4821563` — audit retention/session regression tests.
 - `08491cf74d28bf78e3c3423e44edc06a3e87eb47` — secure store value/name bounds.
 - `47a39a4215f362aa17901872ed6e3492e2b55a00` — secure store input-bound regression tests.
-- `3eaceab4418b05e25564c4038ae4a7abf47653be` — README continuation checkpoint sync.
+- `ac965d58048fcbaf396d70ef78d9cdd3d0514f01` — Android instrumentation runner configuration.
+- `9973a7c414accf619d30a51219446939fabf2888` — Android Keystore instrumentation tests.
+- `dee9c0ee042661798f43d69e10f069889043a026` — instrumentation compile CI gate.
+- `ea8ab76d65d3e895c24a05d7455641a7199f375d` — deterministic ciphertext tamper test hardening.
+- `7eb8cae1ca7b48116385c70b97d359a3c4a1682b` — secure store ciphertext boundary correctness fixes.
+- `151543ad8f00499f1a0daf27499c7c9ce70f92f4` — secure store encoded-input regression coverage.
+- `58cc463740303047f64b0c7abe430e30626a6f47` — README instrumentation checkpoint sync.
 
 ## Security invariants
 1. No autonomous consequential action.
@@ -154,14 +190,14 @@ Therefore final execution security is implemented and unit-covered, but producti
 `USER → SECURITY GATE → MASTER ORCHESTRATOR → POLICY → PERMISSION → AUTHORIZATION → EXECUTION → VERIFICATION → AUDIT`
 
 ## Exact next stop point
-**Bounded resource/memory pressure enforcement is next, but only through a real workload/lifecycle call path.** Repository search currently shows no local-model/vision/speech/media workload or existing resource-pressure component to reuse.
+**Real Android device security execution.**
 
 Next action:
-1. Re-search current `main` for any newly introduced workload/resource path before adding code.
-2. If a real heavy-work producer exists, integrate bounded admission/cancellation/degradation with the smallest existing lifecycle boundary and preserve security state.
-3. If no workload producer exists, document the requirement as a future integration prerequisite rather than adding dead security code.
-4. Then perform real Android device security tests for Keystore, lifecycle, Emergency Stop and execution-boundary behavior.
-5. Keep Screen/OCR/Accessibility blocked until a real runtime ingress path exists.
+1. Use a connected physical Android device or approved Android test target to execute the existing `SecureLocalStoreInstrumentationTest` suite.
+2. Verify Keystore round-trip, at-rest encryption, ciphertext-tamper rejection, key deletion/recreation behavior, malformed-storage behavior and relevant `SecurityRuntimeState` / Emergency Stop lifecycle behavior on-device.
+3. Execute on-device execution-boundary/security tests where a concrete runtime composition exists; do not claim `ExecutionBridge` is production-wired until a real adapter composition is evidenced.
+4. Keep bounded resource/memory enforcement deferred until a real heavy-work producer exists.
+5. Keep Screen/OCR/Accessibility deferred until a real runtime ingress path exists.
 
 ## Constraints
 - Android OS restrictions are authoritative.
@@ -174,4 +210,4 @@ Next action:
 For each feature: inspect → map → search/reuse → implement → integrate → continuously self-check → test → adversarial review → verify → document/state update → CI verification.
 
 ## Continuation instruction
-A future chat should read the required workflow/security documents, inspect current `main`, verify CI against the actual current HEAD, and continue from the exact bounded resource/memory pressure stop point without redesigning or duplicating existing security controls.
+A future chat should read the required workflow/security documents, inspect current `main`, verify CI against the actual current HEAD, and continue from the exact real-Android-device security execution stop point without redesigning or duplicating existing security controls.
