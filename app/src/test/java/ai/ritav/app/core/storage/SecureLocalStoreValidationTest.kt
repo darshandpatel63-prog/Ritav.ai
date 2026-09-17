@@ -35,6 +35,22 @@ class SecureLocalStoreValidationTest {
         }
     }
 
+    @Test fun acceptsMaximumEncodedValueLength() {
+        validateSecureLocalStoreEncodedSize(MAX_SECURE_STORE_ENCODED_LENGTH)
+    }
+
+    @Test fun rejectsOversizedEncodedValueLength() {
+        assertIllegalArgument {
+            validateSecureLocalStoreEncodedSize(MAX_SECURE_STORE_ENCODED_LENGTH + 1)
+        }
+    }
+
+    @Test fun rejectsEmptyEncodedValue() {
+        assertIllegalArgument {
+            validateSecureLocalStoreEncodedSize(0)
+        }
+    }
+
     @Test fun rejectsNegativeSize() {
         assertIllegalArgument {
             validateSecureLocalStoreValueSize(-1)
