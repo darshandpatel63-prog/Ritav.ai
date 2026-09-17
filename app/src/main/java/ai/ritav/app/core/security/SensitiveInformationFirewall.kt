@@ -11,6 +11,9 @@ class SensitiveInformationFirewall {
     fun inspect(text: String): FirewallResult {
         if (text.length > MAX_INPUT_LENGTH) return FirewallResult(false, "", emptyList(), FirewallBlockReason.INPUT_TOO_LARGE)
         if (text.isEmpty()) return FirewallResult(true, text, emptyList())
+        if (LOGIN_PASSWORD_OBFUSCATED.containsMatchIn(text)) {
+            return FirewallResult(false, "", emptyList(), FirewallBlockReason.NORMALIZATION_INSPECTION_FAILED)
+        }
         val matches = findDirectMatches(text)
         if (matches.isNotEmpty()) {
             var redacted = text
