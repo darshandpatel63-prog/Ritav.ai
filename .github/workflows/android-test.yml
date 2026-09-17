@@ -27,6 +27,12 @@ jobs:
         with:
           gradle-version: "8.13"
 
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Install managed-device system image
+        run: sdkmanager "system-images;android-30;aosp_atd;x86"
+
       - name: Run JVM unit tests and compile instrumentation tests
         run: gradle --no-daemon testDebugUnitTest assembleDebugAndroidTest
 
