@@ -12,6 +12,13 @@ class CapabilityPolicyGateTest {
                 capability = Capability.APP_LAUNCH,
                 actions = setOf("open"),
                 riskTier = RiskTier.TIER_1_REVERSIBLE
+            ),
+            AppCapabilitySpec(
+                packageName = "com.example.finance",
+                capability = Capability.FINANCIAL_ACTION,
+                actions = setOf("pay", "transfer"),
+                riskTier = RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED,
+                financialCategory = true
             )
         )
     )
@@ -35,5 +42,18 @@ class CapabilityPolicyGateTest {
 
     @Test fun financialCapabilityIsDenied() {
         assertFalse(gate.evaluate(ActionRequest("com.example.safe", "pay", RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED, Capability.FINANCIAL_ACTION)).allowed)
+    }
+
+    @Test fun registeredFinancialAppIsDeniedEvenForNonFinancialCapability() {
+        assertFalse(
+            gate.evaluate(
+                ActionRequest(
+                    "com.example.finance",
+                    "open",
+                    RiskTier.TIER_1_REVERSIBLE,
+                    Capability.APP_LAUNCH
+                )
+            ).allowed
+        )
     }
 }
