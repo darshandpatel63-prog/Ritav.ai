@@ -67,7 +67,9 @@ class SecureAuditLog(private val store: SecureLocalStore) : AuditLog {
         val safe = validate(event)
         val existing = store.getString(STORAGE_KEY).orEmpty()
         val existingEvents = decodeAll(existing)
-        val retained = retainNewestAuditEvents(existingEvents + safe, ::encode)
+        val retained = retainNewestAuditEvents(existingEvents + safe) { auditEvent ->
+            encode(auditEvent).length
+        }
         val updated = retained.joinToString("\n", transform = ::encode)
         if (updated.isEmpty()) {
             store.remove(STORAGE_KEY)
@@ -89,8 +91,8 @@ class SecureAuditLog(private val store: SecureLocalStore) : AuditLog {
         return boundedRaw.lineSequence()
             .filter { it.isNotBlank() }
             .mapNotNull { decode(it) }
-            .takeLast(MAX_AUDIT_EVENTS)
             .toList()
+            .takeLast(MAX_AUDIT_EVENTS)
     }
 
     private fun encode(event: AuditEvent): String = listOf(
