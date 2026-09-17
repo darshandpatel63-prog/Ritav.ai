@@ -115,24 +115,32 @@ Current bounds:
 Regression coverage verifies count retention, serialized-size retention, newest-event preservation and oversized-session rejection.
 
 ## 9. Secure local storage checkpoint
-`SecureLocalStore` remains Android Keystore-backed AES-GCM storage. Additional defensive bounds were added:
+`SecureLocalStore` remains Android Keystore-backed AES-GCM storage. Defensive input and read-side bounds now include:
 - maximum plaintext value size: 131,072 UTF-8 bytes;
 - maximum preference-key name: 128 characters;
-- validation occurs before encryption/write;
-- empty/oversized keys and oversized values fail closed rather than being written;
-- UTF-8 byte-based validation is covered for multibyte Unicode values.
+- maximum encoded stored-value length: 174,800 characters;
+- validation occurs before encryption/write and before ciphertext decoding/plaintext materialization;
+- decrypted plaintext size is checked again after authenticated decryption;
+- empty values remain valid;
+- malformed/corrupted/tampered ciphertext fails closed with no plaintext fallback.
 
-The existing encrypted-storage behavior remains unchanged for valid values. Malformed/corrupted ciphertext continues to fail during authenticated decryption rather than falling back to plaintext. Real Android/Keystore runtime behavior is still not device-verified.
+A correctness review fixed two edge cases in the read-side bound: the ciphertext bound now includes IV + GCM tag, and valid empty-string ciphertext is accepted.
+
+Android instrumentation coverage now exists for actual `SecureLocalStore` behavior:
+- Keystore-backed encrypted round-trip with an at-rest ciphertext/non-plaintext assertion;
+- deterministic ciphertext-byte tamper test proving authenticated decryption fails instead of returning plaintext.
+
+The instrumentation suite is compile-verified in CI, but it is not executed on a connected Android device in current CI.
 
 ## 10. Current verified state
 Latest code/test-verified checkpoint:
-- commit `47a39a4215f362aa17901872ed6e3492e2b55a00`;
-- GitHub Actions run `35185425350`;
+- commit `151543ad8f00499f1a0daf27499c7c9ce70f92f4`;
+- GitHub Actions run `35185960431`;
 - job `unit-tests`: success;
-- `gradle --no-daemon testDebugUnitTest`: `BUILD SUCCESSFUL`;
+- `gradle --no-daemon testDebugUnitTest assembleDebugAndroidTest`: `BUILD SUCCESSFUL`;
 - JDK 17; Gradle 8.13.
 
-The current `main` branch may be one or more documentation commits ahead of that code/test checkpoint. Always inspect current `main` before claiming the current HEAD itself is test-verified.
+The CI run checked out the exact `151543ad...` commit and successfully executed JVM unit tests plus Android instrumentation-test APK compilation. The instrumentation tests themselves were not executed on a physical/connected Android device.
 
 Non-fatal CI warnings remain for a future Kotlin data-class copy-visibility change, deprecated Android biometric API usage, and GitHub Actions Node/action deprecations.
 
@@ -151,26 +159,32 @@ Blueprint requirements require screen content to be classified before model cont
 
 Current repository state contains no concrete `AccessibilityService`, OCR/screen-capture ingestion component, manifest service declaration, or screen-content-to-model production path. No fake ingestion component has been added solely to satisfy the requirement.
 
-## 13. Known limitations
+## 13. Resource / memory status
+Repository-wide search found no concrete local-model, vision, speech, media, WorkManager, coroutine workload, or existing resource-pressure component to reuse.
+
+Because there is no actual heavy-work producer/lifecycle call path, no standalone resource guard was added. This remains an integration prerequisite rather than dead security code.
+
+## 14. Known limitations
 - Pattern-based sensitive detection is not complete contextual classification.
 - Real model/context ingestion boundary remains future work.
 - Real banking/UPI package/component integration is not present.
 - Confirmation/read-back UI is not yet the final production path.
-- Android instrumentation tests for real Keystore/ciphertext corruption are not currently configured in CI.
-- Resource/memory pressure enforcement still needs implementation.
+- Instrumentation tests for real Keystore behavior now exist and compile in CI, but connected-device execution is still unavailable in current CI.
+- Resource/memory pressure enforcement remains pending until a real heavy-work producer exists.
 - Physical Android device validation is not complete.
 - Release APK/security sign-off is not claimed from unit-test CI alone.
 
-## 14. Exact next stop point — START HERE
-**Continue with bounded resource/memory pressure enforcement.**
+## 15. Exact next stop point — START HERE
+**Real Android device security execution.**
 
-First search the repository for any existing lifecycle/resource-budget component. If none exists, design the smallest Android-specific guard that can observe memory pressure, reject/cancel optional heavy work, preserve security state, and avoid silently bypassing security controls.
+Before adding another major feature:
+1. Run the existing `SecureLocalStoreInstrumentationTest` suite on a connected physical Android device or equivalent approved Android test target.
+2. Verify Keystore round-trip, ciphertext tamper rejection, key deletion/recreation behavior, malformed storage behavior, `SecurityRuntimeState` / Emergency Stop lifecycle behavior, and the execution-boundary tests on-device where the required runtime components exist.
+3. Keep resource/memory enforcement deferred until a real heavy workload is introduced; do not create a speculative workload just to exercise the guard.
+4. Keep Screen/OCR/Accessibility deferred until a real runtime ingress path exists.
+5. After real-device validation, continue with only the next concrete integration gap found by repository evidence.
 
-Use the 4 GB RAM / 32 GB storage floor as a compatibility constraint, not as a reason to assume unlimited resources. Do not introduce large models or background services merely for testing this layer.
-
-After resource/memory enforcement is logically complete, perform a consolidated security review, then move to real Android device security tests. Screen/OCR/Accessibility remains blocked on the absence of a concrete runtime ingress path.
-
-## 15. Important recent commits
+## 16. Important recent commits
 - `ddcbfb20528daa5c45e9be0810bd0e531f098964` — dedicated finance execution firewall.
 - `7756b313a08b0c9d76953b01b8318e9e8f700d8a` — finance firewall in pipeline.
 - `0729e1bd8174ce5f4fa8ccd2cee1f213386e4244` — finance deny before authorization/token consumption.
@@ -182,6 +196,12 @@ After resource/memory enforcement is logically complete, perform a consolidated 
 - `b3360550a5ca099ae19a0a0d84f3d839b4821563` — audit retention/session regression tests.
 - `08491cf74d28bf78e3c3423e44edc06a3e87eb47` — secure store value/name bounds.
 - `47a39a4215f362aa17901872ed6e3492e2b55a00` — secure store input-bound regression tests.
+- `ac965d58048fcbaf396d70ef78d9cdd3d0514f01` — Android instrumentation runner configuration.
+- `9973a7c414accf619d30a51219446939fabf2888` — Android Keystore instrumentation tests.
+- `dee9c0ee042661798f43d69e10f069889043a026` — instrumentation compile CI gate.
+- `ea8ab76d65d3e895c24a05d7455641a7199f375d` — deterministic ciphertext tamper test hardening.
+- `7eb8cae1ca7b48116385c70b97d359a3c4a1682b` — secure store ciphertext boundary correctness fixes.
+- `151543ad8f00499f1a0daf27499c7c9ce70f92f4` — secure store encoded-input regression coverage.
 
-## 16. Continuation instruction
-A future chat should read the required workflow/security documents, inspect current `main`, verify CI against the actual current HEAD, and continue from the exact bounded resource/memory pressure stop point without redesigning or duplicating existing security controls.
+## 17. Continuation instruction
+A future chat should read the required workflow/security documents, inspect current `main`, verify CI against the actual current HEAD, and continue from the exact real-Android-device security execution stop point without redesigning or duplicating existing security controls.
