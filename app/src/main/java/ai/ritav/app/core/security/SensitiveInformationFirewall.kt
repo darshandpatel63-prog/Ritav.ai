@@ -48,7 +48,7 @@ class SensitiveInformationFirewall {
     }.distinctBy { Triple(it.type, it.start, it.end) }.sortedWith(compareBy<SensitiveMatch> { it.start }.thenByDescending { it.end - it.start }).let(::removeOverlappingMatches)
 
     private fun containsSensitivePattern(vararg candidates: String): Boolean = candidates.any { candidate ->
-        listOf(OTP, OTP_COMPACT, UPI_PIN, UPI_PIN_COMPACT, CVV, CVV_COMPACT, PRIVATE_KEY, API_KEY, API_KEY_COMPACT, STANDALONE_API_KEY, RECOVERY_CODE, PASSWORD_CONTEXT, PASSWORD_CONTEXT_COMPACT, LOGIN_PASSWORD_COMPACT, LOGIN_PASSWORD_OBFUSCATED).any { it.containsMatchIn(candidate) }
+        listOf(OTP, OTP_COMPACT, UPI_PIN, UPI_PIN_COMPACT, CVV, CVV_COMPACT, PRIVATE_KEY, API_KEY, API_KEY_COMPACT, STANDALONE_API_KEY, RECOVERY_CODE, PASSWORD_CONTEXT, PASSWORD_CONTEXT_COMPACT, LOGIN_PASSWORD_COMPACT).any { it.containsMatchIn(candidate) }
     }
     private fun compactCodePoints(text: String): String = buildString(text.length) { var i = 0; while (i < text.length) { val cp = text.codePointAt(i); if (!Character.isWhitespace(cp) && Character.getType(cp) != Character.FORMAT.toInt()) appendCodePoint(cp); i += Character.charCount(cp) } }
     private fun compactSensitiveLabels(text: String): String = buildString(text.length) { var i = 0; while (i < text.length) { val cp = text.codePointAt(i); val type = Character.getType(cp); if (!isPunctuation(type) || cp == ':'.code || cp == '='.code) appendCodePoint(cp); i += Character.charCount(cp) } }
