@@ -1,13 +1,19 @@
 # Ritav.ai — Combined Master Requirements
 
 ## Source basis
+Ritav.ai development uses the product/design reference, `RITAV_BLUEPRINT.md`, the security workflow/addendum, and the active cross-platform architecture decision in `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md`.
 
-Ritav.ai development uses **both** of these sources together:
+## Product scope
+Ritav.ai is a cross-platform personal AI assistant/automation system. Target platforms and form factors are:
 
-1. The user-provided `Ritav_AI_Master_Blueprint.pdf` — the broader product, security and feature suggestions supplied as the project design reference.
-2. `RITAV_BLUEPRINT.md` — the repository engineering blueprint that converts the project discussion into implementation rules.
+- Android — phones/tablets and supported Android devices.
+- iOS/iPadOS — iPhone/iPad and supported Apple devices.
+- Windows — laptops/desktops/2-in-1 devices where supported.
+- macOS — laptops/desktops.
+- Linux — supported laptop/desktop environments.
+- ChromeOS — supported runtime/form factors where required capabilities are exposed.
 
-Neither source is silently discarded. The PDF is treated as the broader product/design reference; the repository blueprint is the implementation contract. Where they describe the same requirement, the implementation preserves the intent of both. Any future conflict must be recorded as an explicit architecture decision rather than silently choosing one.
+The product uses one platform-neutral core plus platform-native adapters and UI/runtime implementations. A platform is not considered supported merely because a contract or build target exists; real implementation, integration, testing, packaging/build verification and platform-specific security review are required.
 
 ## Combined rules being implemented
 
@@ -16,31 +22,33 @@ Neither source is silently discarded. The PDF is treated as the broader product/
 - User remains the authority; AI is never the security boundary.
 - Deterministic policy/security gates sit below the model/agent layer.
 - Dynamic Universal Master Orchestrator with task-specific specialist agents.
-- Agents receive scoped capabilities, not unrestricted Android privileges.
+- Agents receive scoped capabilities, not unrestricted OS privileges.
 - Granular permissions: global → app → capability → action → session/context.
 - Financial/UPI automation is isolated and denied by default.
 - OTP, PIN, password, CVV, recovery code and equivalent secrets are hard privacy boundaries.
 - Consequential actions require risk-appropriate authorization and confirmation.
 - Generated unseen messages require exact read-back before sending where policy requires it.
 - Voice identity and optional local face verification are authorization signals, not universal proof.
-- Accessibility and Android automation are constrained by platform rules and must verify outcomes.
+- Screen capture, accessibility, automation and other privileged platform capabilities are explicit opt-in boundaries and are constrained by each OS.
 - External/app/document content is untrusted data and cannot override security policy.
 - Network access is capability-controlled and audited.
-- Local memory is encrypted and must not retain secrets.
+- Local memory is encrypted where supported and must not retain secrets.
 - Emergency Stop/Safe Mode can stop AI-driven external actions.
 - Testing must include privacy, egress, permission, prompt-injection, identity, sensitive-data isolation and regression tests.
-- CI/CD must verify code before APK release; signing keys never enter the repository.
+- CI/CD must verify each platform build/test path before release; signing keys never enter the repository.
+- Platform-specific limitations must reduce capability rather than weaken security controls.
 
 ## Current implementation strategy
 
-Build the secure foundation first:
+1. Preserve the existing Android security foundation and application build.
+2. Maintain a platform-neutral Kotlin Multiplatform core for contracts and genuinely shared logic.
+3. Maintain `RitavPlatform`/`DeviceProfile` capability facts and `RitavPlatformAdapter` as the runtime boundary.
+4. Implement concrete platform adapters one platform at a time using native APIs and permission models.
+5. Add platform-native UI/runtime packaging for Android, iOS/iPadOS, Windows, macOS and Linux, with ChromeOS support where the selected runtime permits it.
+6. Add per-platform CI and real-device/real-host verification.
+7. Only then claim a platform as supported.
 
-1. Android shell and premium UI foundation.
-2. Deterministic policy/security model.
-3. Permission and capability model.
-4. Safe mode/emergency stop.
-5. Local persistence abstraction.
-6. Testable orchestration contracts.
-7. Only then add voice, local AI and Android automation adapters.
+The product must remain safe when a platform capability, AI runtime, network, voice recognition or automation service is unavailable.
 
-The product must remain functional and safe even when AI models, network access, voice recognition or automation services are unavailable.
+## Security preservation rule
+The cross-platform expansion does not replace or weaken any existing security layer. Finance firewall, sensitive-information firewall, deterministic policy, capability/permission gates, authorization, Emergency Stop, egress controls, result verification and audit remain authoritative. Platform adapters may only expose capabilities already permitted by the common security model and the host OS.
