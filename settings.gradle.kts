@@ -18,3 +18,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Ritav"
 include(":app")
+include(":core")
