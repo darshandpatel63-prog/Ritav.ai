@@ -11,6 +11,7 @@ import javax.crypto.spec.GCMParameterSpec
 
 internal const val MAX_SECURE_STORE_VALUE_BYTES = 131_072
 internal const val MAX_SECURE_STORE_NAME_LENGTH = 128
+internal const val MAX_SECURE_STORE_ENCODED_LENGTH = 174_800
 
 /**
  * Small platform-only encrypted store for security-sensitive local state.
@@ -98,7 +99,7 @@ class SecureLocalStore(context: Context) {
 
     private fun decrypt(encoded: String): ByteArray {
         val combined = Base64.decode(encoded, Base64.NO_WRAP)
-        require(combined.size > GCM_IV_LENGTH_BYTES + GCM_TAG_LENGTH_BYTES) {
+        require(combined.size >= GCM_IV_LENGTH_BYTES + GCM_TAG_LENGTH_BYTES) {
             "Corrupt secure value"
         }
         require(combined.size <= MAX_SECURE_STORE_CIPHERTEXT_BYTES) {
@@ -125,8 +126,7 @@ class SecureLocalStore(context: Context) {
         private const val GCM_TAG_LENGTH_BITS = 128
         private const val GCM_TAG_LENGTH_BYTES = GCM_TAG_LENGTH_BITS / 8
         private const val MAX_SECURE_STORE_CIPHERTEXT_BYTES =
-            MAX_SECURE_STORE_VALUE_BYTES + GCM_TAG_LENGTH_BYTES
-        private const val MAX_SECURE_STORE_ENCODED_LENGTH = 174_800
+            MAX_SECURE_STORE_VALUE_BYTES + GCM_IV_LENGTH_BYTES + GCM_TAG_LENGTH_BYTES
     }
 }
 
@@ -142,7 +142,7 @@ internal fun validateSecureLocalStoreValueSize(utf8ByteCount: Int) {
 }
 
 internal fun validateSecureLocalStoreEncodedSize(encodedCharCount: Int) {
-    require(encodedCharCount in 1..174_800) {
+    require(encodedCharCount in 1..MAX_SECURE_STORE_ENCODED_LENGTH) {
         "Secure local encoded value is too large"
     }
 }
