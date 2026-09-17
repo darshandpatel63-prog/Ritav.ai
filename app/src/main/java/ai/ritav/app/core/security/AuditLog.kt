@@ -129,6 +129,7 @@ class SecureAuditLog(private val store: SecureLocalStore) : AuditLog {
 
     private companion object {
         const val STORAGE_KEY = "security_audit_v1"
+        const val MAX_SESSION_ID_LENGTH = 128
         const val UNSAFE_REASON = "Audit reason contained sensitive information and was suppressed"
     }
 }
@@ -154,6 +155,7 @@ internal fun retainNewestAuditEvents(
 
 private fun sanitizeAndValidate(event: AuditEvent, unsafeReason: String): AuditEvent {
     require(event.timestampEpochMillis >= 0) { "Invalid audit timestamp" }
+    require(event.sessionId?.length ?: 0 <= 128) { "Invalid session id" }
     require(event.actionHash?.length ?: 0 <= 128) { "Invalid action hash" }
     require(event.reason.length <= 512) { "Audit reason is too long" }
     require(!event.reason.contains('\n') && !event.reason.contains('\r')) {
