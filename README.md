@@ -399,3 +399,12 @@ Exact new commits:
 - caf3ae845af41d92f2285eaf38770496dd3a9225 — test: cover execution request validation boundaries
 
 Current stop: authorization/pipeline input-validation hardening implemented and source-reviewed; executable verification pending.
+
+
+## Latest execution-boundary hardening — 2026-09-18
+- ExecutionBridge now validates ActionPlan structure before capability evaluation or adapter execution.
+- Regression coverage confirms malformed plans cannot reach the adapter.
+- Source/integration/adversarial review completed across plan → capability → pipeline → authorization → adapter → result verification; no new bypass was identified in this change.
+- Tests/build/CI remain unexecuted/unverified in the current environment.
+- Exact commits: `00631d10274b54e907e67dbc079abdb370c50a96` (security), `a3eeef39ed6b83f0c82364884b1f637d8e65be04` (test).
+- Current stop: authorization/execution-boundary validation package is implemented and reviewed; executable verification is pending.
