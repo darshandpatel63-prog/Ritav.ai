@@ -380,3 +380,22 @@ Current stop: continue security/runtime hardening after verification evidence be
 - Agent proposals are now bounded and validated before leaving the agent boundary: task identity, agent ID, action text and rationale are checked; financial proposals are hard-denied.
 - Regression coverage added for malformed and financial proposals.
 - Source-reviewed; Gradle/CI execution remains unverified.
+
+
+## 24. Latest security hardening — 2026-09-18
+- ActionPlan.isValid() now enforces deterministic bounds/non-blank requirements for app ID, action, expected state and optional session ID.
+- ActionAuthorizationGate now rejects malformed plans, bounds token length, and rejects authorization TTL clock overflow.
+- SecurityExecutionPipeline now rejects malformed plans/requests and requires session binding for protected actions before authorization.
+- Regression coverage added for malformed plans, oversized requests/tokens, protected-session binding and authorization-clock overflow.
+- Source/integration review completed for the affected authorization → pipeline path.
+- Gradle/CI execution remains unverified.
+
+Exact new commits:
+- e9d0d5c153c5affdfc2d3be868d59bb7cc9c475a — security: validate action plan structure
+- c9ed4fee861e4e6f2262651a67b5bcf7ce10be51 — security: bound authorization token and plan validation
+- 4d71177bca448ca57064a5b4461742754ebd2270 — security: reject malformed execution requests early
+- 9adabc18ae77f7ed80254e218fb7daf9d2d302ab — fix: correct security pipeline class closure
+- 0681f6eae43f0448a65206bf92780a0e098a90f1 — test: cover authorization bounds and clock overflow
+- caf3ae845af41d92f2285eaf38770496dd3a9225 — test: cover execution request validation boundaries
+
+Current stop: authorization/pipeline input-validation hardening implemented and source-reviewed; executable verification pending.
