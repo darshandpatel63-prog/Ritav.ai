@@ -237,8 +237,6 @@ class ExecutionBridgeTest {
         assertEquals(4000L, execution.timestampEpochMillis)
         assertEquals(5000L, verification.timestampEpochMillis)
     }
-}
-
 
     @Test fun mismatchedObservedStateCannotBeReportedAsVerified() {
         val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
