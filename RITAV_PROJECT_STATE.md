@@ -73,10 +73,11 @@ Android instrumentation tests exist for Keystore encryption round-trip and ciphe
 No speculative screen/OCR/accessibility ingestion or standalone resource guard has been added without a real producer/consumer path. Concrete heavy AI/vision/speech/media workloads must receive bounded-resource and safe-cancellation controls when introduced.
 
 ## Current verification
-The latest adapter-contract commit `7a5c80ef01a1180cd4d29b17cd2c957a9cec7149` has no associated workflow run returned by the connected GitHub commit-workflow query, so it is not claimed CI-verified. Earlier Android JVM/instrumentation-compile checkpoints remain documented historically; they do not establish verification of the current cross-platform HEAD.
+The Android instrumentation-test compilation failure from `b5a502346c41321f58f1859bd09ebfd3d58b103b` was fixed by replacing unavailable `kotlin.test` assertion imports with the existing JUnit assertion API in commit `7d7c4a2df8495ab6c83e1702ee421e704a093174`. A post-fix successful workflow/device run has not yet been observed through the connected GitHub tooling, so CI green and real-device execution remain unverified.
 
 ## Known limitations
-- Native Android/iOS/iPadOS/Windows/macOS/Linux/ChromeOS adapters are not yet complete.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS adapters are not yet complete.
+- Android `RitavPlatformAdapter` is implemented, but its latest instrumentation test has not yet been post-fix CI/device verified.
 - Native UI and packaging for non-Android platforms are not yet complete.
 - Platform-specific CI and real-device/real-host verification are not yet complete.
 - Real model/context ingestion boundary remains future work.
@@ -86,14 +87,15 @@ The latest adapter-contract commit `7a5c80ef01a1180cd4d29b17cd2c957a9cec7149` ha
 - No release APK or non-Android production package sign-off is claimed.
 
 ## Exact next stop point
-**Verify the platform-neutral core build/test path, then implement the first concrete platform adapter without moving or duplicating the deterministic security boundary.**
+**Verify the Android instrumentation-test compilation fix and complete the consolidated cross-platform foundation + Android adapter review.**
 
 Next:
-1. Run/verify core common tests and the Android build/CI against current `main`.
-2. Implement Android `RitavPlatformAdapter` using actual Android APIs and runtime capability detection.
-3. Add adapter integration tests and preserve existing security gates.
-4. Establish native CI runners/targets, then implement Apple and desktop adapters incrementally.
-5. Keep unsupported capabilities unavailable rather than emulating or bypassing OS restrictions.
+1. Verify the post-fix GitHub Actions workflow on current `main`.
+2. Verify JVM tests, Android instrumentation-test compilation and managed-device instrumentation.
+3. Complete the consolidated system-level review of the cross-platform foundation + Android adapter.
+4. Reconcile stale Android-only wording through minimal targeted documentation edits.
+5. Then continue with the next concrete platform/runtime implementation.
+6. Keep unsupported capabilities unavailable rather than emulating or bypassing OS restrictions.
 
 ## Continuation rule
 Read the required workflow/security documents and this state before development. Treat `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` as the active product-scope decision. Do not redesign or duplicate existing security controls.
