@@ -75,4 +75,4 @@ jobs:
         run: gradle --no-daemon testDebugUnitTest assembleDebugAndroidTest
 
       - name: Run Android instrumentation tests on managed device
-        run: gradle --no-daemon pixel2api30DebugAndroidTest
+        run: gradle --no-daemon -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect pixel2api30DebugAndroidTest
