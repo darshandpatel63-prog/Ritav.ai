@@ -200,3 +200,12 @@ Exact commits:
 
 Current stop: identity/session authorization hardening is implemented and source/adversarial reviewed; executable verification remains pending.
 Next action: obtain a post-change Android CI run and verify JVM + instrumentation + managed-device tests before advancing to production execution composition.
+
+
+## Latest continuation checkpoint — 2026-09-18
+- Confirmed by repository tree/source search that the current executable implementation is Android-centric: `app` contains the Android application, Android security/storage/agent-boundary code, and `AndroidRitavPlatformAdapter`; `core` currently has only `commonMain` platform contracts plus a JVM target.
+- No native iOS/iPadOS/Windows/macOS/Linux/ChromeOS source tree, runtime adapter, UI, packaging or native CI exists yet. Those platforms remain target architecture/roadmap, not implemented platform support.
+- GitHub Actions run 145 (`35317140064`) completed with failure after the Android-test compilation path succeeded. The failure was in JVM unit-test compilation: one `ExecutionBridgeTest` fixture omitted the now-required `expectedState`, and `ResultVerificationTest` had malformed/obsolete verifier calls/structure.
+- Both regressions were corrected together in `9dd36b4b8dd6e32d5e6e5677d6f84b63ed004d12` to avoid another fragmented test-fix sequence.
+- New GitHub Actions run 146 (`35317701968`) is currently in progress for that test-fix commit; at the latest inspection it is still installing the managed-device system image. No success/failure conclusion is claimed yet.
+- Documentation was clarified in `a832c1d5fa68054099337608c48d0269b4ec1827` so future continuations distinguish cross-platform target architecture from currently implemented Android/JVM code.
