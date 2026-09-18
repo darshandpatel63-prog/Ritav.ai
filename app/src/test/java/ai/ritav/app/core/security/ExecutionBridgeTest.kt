@@ -31,7 +31,7 @@ class ExecutionBridgeTest {
 
     private fun identity(sessionId: String = "s1"): SecuritySession {
         val now = System.currentTimeMillis()
-        return SecuritySession(sessionId, IdentityLevel.OWNER_SIGNAL, now - 1_000L, now + 60_000L)
+        return IdentitySessionManager().createSession(IdentityLevel.OWNER_SIGNAL, now - 1_000L, 60_000L)
     }
 
     @Test fun unregisteredCapabilityNeverReachesAdapter() {
