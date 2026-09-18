@@ -8,7 +8,7 @@ data class AgentCapabilityScope(
     val allowedCapabilities: Set<Capability>
 )
 
-data class AgentRequest private constructor(
+data class AgentRequest constructor(
     val taskId: String,
     val input: String,
     val scope: AgentCapabilityScope
@@ -27,11 +27,15 @@ data class AgentRequest private constructor(
             input: String,
             scope: AgentCapabilityScope
         ): AgentRequest? {
+            if (taskId.isBlank() || taskId.length > MAX_TASK_ID_LENGTH) return null
             if (Capability.FINANCIAL_ACTION in scope.allowedCapabilities) return null
             val inspected = sensitiveFirewall.inspect(input)
             if (!inspected.allowed) return null
-            return AgentRequest(taskId, inspected.redactedText, scope)
+            val safeScope = AgentCapabilityScope(scope.allowedCapabilities.toSet())
+            return AgentRequest(taskId, inspected.redactedText, safeScope)
         }
+
+        private const val MAX_TASK_ID_LENGTH = 256
     }
 }
 
