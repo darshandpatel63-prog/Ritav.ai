@@ -37,4 +37,11 @@ class AndroidExecutionRuntime(
             gate = authorizationGate,
             deviceAuthorization = AndroidDeviceAuthorizationGateway(activity)
         )
+
+    val capabilityGrantService: CapabilityGrantService =
+        CapabilityGrantService(
+            registry = capabilityRegistry,
+            permissionStore = securityState.permissionStore,
+            authorizationGate = authorizationGate
+        )
 }
