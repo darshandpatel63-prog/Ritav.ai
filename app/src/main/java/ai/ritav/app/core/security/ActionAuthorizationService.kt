@@ -14,7 +14,10 @@ class ActionAuthorizationService(
         confirmedPlanHash: String,
         nowEpochMillis: Long
     ): String? {
+        if (!plan.isValid()) return null
+        if (plan.riskTier != RiskTier.TIER_2_CONTENT_MUTATION) return null
         if (confirmedPlanHash != plan.stableHash()) return null
+        if (nowEpochMillis < 0) return null
         return gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, nowEpochMillis)
     }
 
