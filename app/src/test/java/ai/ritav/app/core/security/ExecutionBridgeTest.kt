@@ -10,7 +10,7 @@ class ExecutionBridgeTest {
         var calls = 0
         override fun execute(plan: ActionPlan): ExecutionResult {
             calls++
-            return ExecutionResult(true, false, "adapter called")
+            return ExecutionResult(true, false, "adapter called", observedState = plan.expectedState)
         }
     }
 
@@ -38,7 +38,7 @@ class ExecutionBridgeTest {
         val adapter = RecordingAdapter()
         val policy = PolicyEngine()
         val bridge = ExecutionBridge(CapabilityPolicyGate(AppCapabilityRegistry()), pipelineFor(policy), adapter)
-        val result = bridge.execute(ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE), true)
+        val result = bridge.execute(ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED"), true)
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
@@ -78,7 +78,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun sensitiveInputIsBlockedAtBridgeAndAuthorizationTokenRemainsUsable() {
-        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, "s1")
+        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
         val policy = PolicyEngine(permissions)
@@ -110,7 +110,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun financialCapabilityCannotReachAdapterEvenWhenRegistered() {
-        val plan = ActionPlan("bank.app", Capability.FINANCIAL_ACTION, "transfer", RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED)
+        val plan = ActionPlan("bank.app", Capability.FINANCIAL_ACTION, "transfer", RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED, expectedState = "TRANSFERRED")
         val adapter = RecordingAdapter()
         val registry = AppCapabilityRegistry(listOf(AppCapabilitySpec(plan.appId, plan.capability, setOf(plan.action), plan.riskTier, financialCategory = true)))
         val policy = PolicyEngine()
@@ -238,3 +238,18 @@ class ExecutionBridgeTest {
         assertEquals(5000L, verification.timestampEpochMillis)
     }
 }
+
+
+    @Test fun mismatchedObservedStateCannotBeReportedAsVerified() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val adapter = object : AndroidActionAdapter {
+            override fun execute(plan: ActionPlan) =
+                ExecutionResult(true, false, "wrong state", observedState = "CLOSED")
+        }
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions)
+        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+        assertFalse(result.success)
+        assertFalse(result.verified)
+    }
