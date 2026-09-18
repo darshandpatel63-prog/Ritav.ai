@@ -19,10 +19,14 @@ data class VerificationResult(
 class ResultVerifier {
     fun verify(
         expectedSuccess: Boolean,
-        evidence: ActionResultEvidence
+        evidence: ActionResultEvidence,
+        expectedState: String
     ): VerificationResult = when {
         !expectedSuccess -> VerificationResult(false, "Expected outcome was not success")
-        evidence.success -> VerificationResult(true, "Adapter evidence confirms success")
-        else -> VerificationResult(false, evidence.errorCode ?: "Success was not verified")
+        expectedState.isBlank() -> VerificationResult(false, "Expected result state is invalid")
+        !evidence.success -> VerificationResult(false, evidence.errorCode ?: "Action execution failed")
+        evidence.observedState == null -> VerificationResult(false, "Observed result state is missing")
+        evidence.observedState != expectedState -> VerificationResult(false, "Observed result state does not match expected state")
+        else -> VerificationResult(true, "Observed result state matches expected state")
     }
 }
