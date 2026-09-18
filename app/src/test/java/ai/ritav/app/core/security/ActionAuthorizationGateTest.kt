@@ -9,7 +9,7 @@ class ActionAuthorizationGateTest {
         appId = "com.example.app",
         capability = Capability.SEND_MESSAGE,
         action = "send",
-        riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+        riskTier = RiskTier.TIER_2_CONTENT_MUTATION,
         expectedState = "SENT",
         sessionId = "session-1"
     )
@@ -88,6 +88,17 @@ class ActionAuthorizationGateTest {
         )
 
         assertFalse(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 2_001L))
+    }
+
+    @Test
+    fun lowerAuthorizationTokenCannotBeMintedForHigherRiskPlan() {
+        val gate = ActionAuthorizationGate()
+        try {
+            gate.issue(plan.copy(riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE), AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+            assertFalse(true)
+        } catch (_: IllegalArgumentException) {
+            assertTrue(true)
+        }
     }
 
     @Test
