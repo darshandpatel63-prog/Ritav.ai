@@ -17,15 +17,17 @@ data class VerificationResult(
  * Verification is deliberately deterministic and does not trust AI-generated claims.
  */
 class ResultVerifier {
+    private companion object { const val MAX_STATE_LENGTH = 256 }
     fun verify(
         expectedSuccess: Boolean,
         evidence: ActionResultEvidence,
         expectedState: String
     ): VerificationResult = when {
         !expectedSuccess -> VerificationResult(false, "Expected outcome was not success")
-        expectedState.isBlank() -> VerificationResult(false, "Expected result state is invalid")
+        expectedState.isBlank() || expectedState.length > MAX_STATE_LENGTH -> VerificationResult(false, "Expected result state is invalid")
         !evidence.success -> VerificationResult(false, evidence.errorCode ?: "Action execution failed")
         evidence.observedState == null -> VerificationResult(false, "Observed result state is missing")
+        evidence.observedState.length > MAX_STATE_LENGTH -> VerificationResult(false, "Observed result state is too large")
         evidence.observedState != expectedState -> VerificationResult(false, "Observed result state does not match expected state")
         else -> VerificationResult(true, "Observed result state matches expected state")
     }
