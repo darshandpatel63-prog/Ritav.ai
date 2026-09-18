@@ -144,7 +144,7 @@ Completed:
 
 Not yet completed:
 - Concrete iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime adapters.
-- Post-fix Android CI/managed-device verification is still not observable through the connected GitHub workflow-run API.
+- Latest capability-registry CI/managed-device verification is confirmed by workflow run #176; older package-specific verification notes below are historical.
 - Platform-native UIs and packaging for each target.
 - Native platform automation implementations.
 - Platform-specific CI matrices and real-device/real-host validation.
@@ -172,7 +172,7 @@ The Android adapter test compilation fix is committed in `7d7c4a2df8495ab6c83e17
 - Native OS permission, accessibility, background, screen capture and secure-storage semantics still require platform-specific implementations and tests.
 - Pattern-based sensitive detection is not complete contextual classification.
 - Real model/context ingestion boundary remains future work.
-- Connected-device Android instrumentation execution remains unverified.
+- Some older storage-specific instrumentation execution remains unverified; run #176 verified the latest capability-registry package on a managed Android device.
 - Release APK and non-Android packages are not yet production artifacts.
 
 ## 15. Exact next stop point
