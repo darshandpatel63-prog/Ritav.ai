@@ -5,7 +5,8 @@ This README is the hand-off guide for future AI/development chats. Continue the 
 ## 1. Project identity
 - Project: Ritav.ai
 - Repository: `darshandpatel63-prog/Ritav.ai`
-- **Product scope: cross-platform** — Android, iOS/iPadOS, Windows, macOS, Linux and supported ChromeOS/device form factors.
+- **Product target: cross-platform** — Android, iOS/iPadOS, Windows, macOS, Linux and supported ChromeOS/device form factors.
+- **Current executable implementation: Android + JVM-targeted shared contracts/security only.** Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes are not present in this repository yet.
 - Android application ID: `ai.ritav.app`
 - Branch: `main`
 - Stage: Phase 0 — secure foundation and cross-platform architecture expansion
