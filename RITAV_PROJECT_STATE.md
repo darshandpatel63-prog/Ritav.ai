@@ -178,3 +178,23 @@ Exact commits:
 
 Current stop: workflow audit and minimal optimization are source-reviewed; executable post-change CI verification remains the gate before treating the optimization as fully verified.
 Next action: obtain/execute a post-change Android CI run, then perform the final trigger-matrix/accidental-skip review against the actual run behavior before continuing the pending security verification work.
+
+
+## Latest identity-session hardening — 2026-09-18
+- SecuritySession is now opaque/private-constructor and protected-session issuance is internal-only.
+- Session validity is bounded to the authenticated lifetime; future-clock use is rejected and TTL addition overflow is rejected.
+- SecurityExecutionPipeline now requires exact identity-session ID == protected action/plan session ID.
+- Adversarial source review identified and closed the prior source-level ability to construct a trusted session directly and the missing exact session-to-identity binding.
+- Regression tests added for lifecycle bounds and mismatched identity sessions.
+- Gradle/CI/managed-device execution remains unverified.
+
+Exact commits:
+- 1b990b39137931c044365ee7cae386044b030e93 — session lifecycle hardening.
+- be7263894fcdb17ce471aab3ac635367ae70fa0a — session lifecycle tests.
+- 5ceaf46d1d20834d9761f3aab3bec4a5393139bf — exact session binding in pipeline.
+- 2782416c2bb063603da9935ac6d4af4f189e3062 — pipeline regression helper update.
+- 8314a00d6b867e3193ba39c45ef611fc9b56ca5f — mismatched-session bridge regression test.
+- 06d0fc17d0b0f46e2759c633413c3fa382e2355a — matching-session audit test correction.
+
+Current stop: identity/session authorization hardening is implemented and source/adversarial reviewed; executable verification remains pending.
+Next action: obtain a post-change Android CI run and verify JVM + instrumentation + managed-device tests before advancing to production execution composition.
