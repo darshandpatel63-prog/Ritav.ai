@@ -13,7 +13,12 @@ interface PermissionStore {
     fun isGranted(appId: String, capability: Capability, action: String, sessionId: String?): Boolean
 }
 
-class InMemoryPermissionStore(grants: Set<CapabilityGrant> = emptySet()) : PermissionStore {
+interface MutablePermissionStore : PermissionStore {
+    fun grant(grant: CapabilityGrant)
+    fun revoke(grant: CapabilityGrant)
+}
+
+class InMemoryPermissionStore(grants: Set<CapabilityGrant> = emptySet()) : MutablePermissionStore {
     private val grants = grants.toMutableSet()
 
     override fun isGranted(appId: String, capability: Capability, action: String, sessionId: String?): Boolean =
@@ -25,6 +30,6 @@ class InMemoryPermissionStore(grants: Set<CapabilityGrant> = emptySet()) : Permi
                 grant.sessionId == sessionId
         }
 
-    fun grant(grant: CapabilityGrant) { grants.add(grant) }
-    fun revoke(grant: CapabilityGrant) { grants.remove(grant) }
+    override fun grant(grant: CapabilityGrant) { grants.add(grant) }
+    override fun revoke(grant: CapabilityGrant) { grants.remove(grant) }
 }
