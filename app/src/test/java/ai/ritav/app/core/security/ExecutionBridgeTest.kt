@@ -31,7 +31,7 @@ class ExecutionBridgeTest {
 
     private fun identity(sessionId: String = "s1"): SecuritySession {
         val now = System.currentTimeMillis()
-        return IdentitySessionManager().createSession(IdentityLevel.OWNER_SIGNAL, now - 1_000L, 60_000L)
+        return SecuritySession.create(sessionId, IdentityLevel.OWNER_SIGNAL, now - 1_000L, now + 60_000L)
     }
 
     @Test fun unregisteredCapabilityNeverReachesAdapter() {
@@ -116,6 +116,28 @@ class ExecutionBridgeTest {
         val policy = PolicyEngine()
         val bridge = ExecutionBridge(CapabilityPolicyGate(registry), pipelineFor(policy), adapter)
         val result = bridge.execute(plan, true)
+        assertFalse(result.success)
+        assertEquals(0, adapter.calls)
+    }
+
+    @Test fun mismatchedIdentitySessionCannotAuthorizeProtectedAction() {
+        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
+        val adapter = RecordingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val policy = PolicyEngine(permissions)
+        val gate = ActionAuthorizationGate()
+        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
+        val mismatchedSession = SecuritySession.create("other-session", IdentityLevel.OWNER_SIGNAL, System.currentTimeMillis() - 1_000L, System.currentTimeMillis() + 60_000L)
+
+        val result = bridge.execute(
+            plan,
+            userExplicitlyRequested = true,
+            authorizationLevel = AuthorizationLevel.USER_CONFIRMATION,
+            authorizationToken = token,
+            identitySession = mismatchedSession
+        )
+
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
