@@ -4,6 +4,7 @@ import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.RiskTier
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ScopedAgentInvokerTest {
@@ -32,6 +33,19 @@ class ScopedAgentInvokerTest {
     @Test fun rejectsOversizedInputBeforeAgentInvocation() {
         val request = AgentRequest.create("task-1", "x".repeat(16_385), AgentCapabilityScope(setOf(Capability.APP_LAUNCH)))
         assertNull(request)
+    }
+
+    @Test fun rejectsBlankAndOversizedTaskIdsAtAgentIngress() {
+        assertNull(AgentRequest.create("", "open", AgentCapabilityScope(setOf(Capability.APP_LAUNCH))))
+        assertNull(AgentRequest.create("x".repeat(257), "open", AgentCapabilityScope(setOf(Capability.APP_LAUNCH))))
+    }
+
+    @Test fun copiesCapabilityScopeAtAgentIngress() {
+        val mutable = mutableSetOf(Capability.APP_LAUNCH)
+        val request = AgentRequest.create("task-1", "open", AgentCapabilityScope(mutable))
+        mutable.clear()
+        assertNotNull(request)
+        assertTrue(Capability.APP_LAUNCH in request!!.scope.allowedCapabilities)
     }
 
     @Test fun rejectsFinancialCapabilityBeforeAgentInvocation() {
