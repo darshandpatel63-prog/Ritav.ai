@@ -16,7 +16,6 @@ class ResultVerifierTest {
         val result = verifier.verify(true, ActionResultEvidence(success = false, errorCode = "FAILED"), "OPENED")
         assertFalse(result.verified)
     }
-}
 
     @Test fun missingObservedStateCannotBeVerified() {
         val result = verifier.verify(true, ActionResultEvidence(success = true), "OPENED")
