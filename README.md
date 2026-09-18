@@ -374,3 +374,9 @@ Then:
 Exact commits: `b957fe6064b25f86311f713ca64e6400f4b962f9` and `bf33673ed43fc67aed304694f244699a49b29850f` (implementation), `8b1f96e01bc31e66ccc8b7ad60cf7726684c289a` (regression tests).
 
 Current stop: continue security/runtime hardening after verification evidence becomes available; do not claim CI green or real-device execution without evidence.
+
+
+## 23. Latest agent-boundary hardening — 2026-09-18
+- Agent proposals are now bounded and validated before leaving the agent boundary: task identity, agent ID, action text and rationale are checked; financial proposals are hard-denied.
+- Regression coverage added for malformed and financial proposals.
+- Source-reviewed; Gradle/CI execution remains unverified.
