@@ -1,13 +1,13 @@
 # Ritav.ai — Elite Security Addendum
 
-This addendum strengthens the existing Ritav.ai security workflow. It is additive only: it does **not** weaken, replace, or override any existing Ritav.ai security invariant, firewall, authorization rule, audit gate, Android-only scope, or verification requirement.
+This addendum strengthens the existing Ritav.ai security workflow. It is additive only: it does **not** weaken, replace, or override any existing Ritav.ai security invariant, firewall, authorization rule, audit gate, active cross-platform product scope, or verification requirement.
 
 ## 1. Maximum-assurance security posture
 For authentication, personal data, AI/data processing, device access, or money-adjacent functionality, apply the strongest practical security posture by default. Security is risk reduction, not a promise of perfect safety.
 
 ## 2. Secure-by-construction
 Security must be designed into implementation, not postponed to review:
-- Prefer strongly typed and memory-safe mechanisms already supported by the Android/Kotlin stack.
+- Prefer strongly typed and memory-safe mechanisms supported by the selected platform/runtime stack.
 - Never execute dynamic code derived from untrusted input (`eval`, dynamic code generation, or equivalent).
 - Never construct queries or commands by concatenating untrusted input; use parameterized APIs or safe typed interfaces.
 - Validate untrusted input at every trust boundary; client-side validation is never the sole control.
@@ -44,8 +44,8 @@ If an attack succeeds, fix it and repeat the same attack. Do not knowingly ship 
 ## 5. Evidence-based red-team rule
 Where executable testing is available, write and actually run the attack/regression test. Where execution is unavailable, trace the complete path manually and label the result unverified. Never convert a manual trace into a claim that a test passed.
 
-## 6. OWASP-style coverage, adapted to Android
-For relevant functionality, explicitly consider the major application-security classes: injection, broken authentication, broken access control, sensitive-data exposure, insecure deserialization/parsing, security misconfiguration, client/UI content injection, vulnerable dependencies, insufficient logging/monitoring, and denial-of-service/resource exhaustion. Browser-only controls such as CSP or CSRF are not blindly added to an Android-native path; instead apply the platform-appropriate equivalent where the threat exists.
+## 6. OWASP-style coverage, adapted to the active platform
+For relevant functionality, explicitly consider the major application-security classes: injection, broken authentication, broken access control, sensitive-data exposure, insecure deserialization/parsing, security misconfiguration, client/UI content injection, vulnerable dependencies, insufficient logging/monitoring, and denial-of-service/resource exhaustion. Browser-only controls such as CSP or CSRF are not blindly added to native paths; instead apply the platform-appropriate equivalent where the threat exists.
 
 ## 7. Secrets and sensitive data
 - Never hardcode API keys, tokens, passwords, private keys, recovery codes, OTPs, UPI PINs, CVVs, or equivalent credentials.
