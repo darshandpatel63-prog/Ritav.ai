@@ -418,3 +418,15 @@ Current stop: authorization/pipeline input-validation hardening implemented and 
 - Exact commits: `6aad41edf7e4e0f78c6b53088057a2ee743ce648`, `04a6fe995d3b84f98d5af690d87a2c7981fb2c61`, `a41f1fd7571d44f138dc308c12e31bf63950b616`, `7da4243103e77450570aaa118b9d2883ff013def`, `b9c2e69376d4b289be4c4a7c3af4e466bec07212`.
 
 Current stop: major authorization hardening checkpoint reached; executable verification is the remaining gate before the next major security layer.
+
+
+## 25. GitHub Actions efficiency audit — 2026-09-18
+- Audited the complete `.github/workflows` tree: exactly one workflow is present, `.github/workflows/android-test.yml`; no `.yaml` workflow and no second workflow/action directory was found.
+- The Android CI workflow remains one job with all existing JVM, Android instrumentation compilation, and managed-device verification steps intact.
+- Added precise path filters so Android CI runs only for `app/**`, `core/**`, Gradle/build configuration, wrapper-related paths, or the workflow itself; documentation-only and unrelated repository changes no longer start this CI job.
+- Added PR-only concurrency cancellation so a newer commit supersedes an older in-progress PR verification; pushes to `main` are intentionally not cancelled.
+- No release/APK workflow currently exists in the repository, so no release functionality was removed or altered. Existing documentation still requires release APK generation to be explicitly controlled/manual.
+- No workflow-to-workflow trigger (`workflow_run`, `workflow_call`, `repository_dispatch`, etc.) exists in the audited workflow, so there is no indirect workflow chain to optimize.
+- `gradle/actions/setup-gradle@v4` already provides Gradle caching; no additional cache layer was added because the current repository has no Gradle wrapper/version-catalog structure to safely optimize further without changing build behavior.
+- Exact workflow optimization commit: `36e8afc7d94e704787f23708f76a747e827e0a5b`.
+- Common workflow policy update: `6271963c933b40e1c1486c38314575001dbaf2b4`.
