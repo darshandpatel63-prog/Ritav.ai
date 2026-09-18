@@ -455,3 +455,12 @@ Current stop: major authorization hardening checkpoint reached; executable verif
 
 ### Current stop point
 The immediate package is Android authorization-clock hardening plus restoration of the real Activity → AndroidExecutionRuntime startup call path, with an Activity startup regression test. Do not mark the package complete until the current queued workflow reaches JVM tests and managed-device instrumentation successfully.
+
+
+## Latest continuation checkpoint — 2026-09-18
+- Current executable main head: `dd07f44cdc3b346259dcaea1260cca778b660706`.
+- Actions run #165 (`35331595059`) completed successfully for the negative authorization-issuance clock hardening: JVM test/build stage passed and managed-device instrumentation completed successfully with 3 tests.
+- Additional authorization hardening then closed three source-level failure paths: negative clocks are rejected during token consumption; user-confirmation issuance fails closed on gate exceptions; device-auth callbacks are one-shot and platform/auth-clock failures resolve to a single null callback rather than escaping.
+- ExecutionBridge and SecurityExecutionPipeline now validate `ActionPlan` structure before computing its stable hash, avoiding unnecessary hashing work on oversized/malformed input.
+- Regression coverage was added for these authorization and async failure paths.
+- The latest current-head workflow is #174 (`35332166648`) for `dd07f44cdc3b346259dcaea1260cca778b660706`; it is currently pending because an earlier run is still consuming the runner. No current-head green result is claimed yet.
