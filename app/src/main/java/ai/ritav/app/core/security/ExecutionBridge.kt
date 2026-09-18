@@ -8,7 +8,8 @@ interface AndroidActionAdapter {
 data class ExecutionResult(
     val success: Boolean,
     val verified: Boolean,
-    val message: String
+    val message: String,
+    val observedState: String? = null
 )
 
 /** Final execution boundary. No adapter execution occurs before the full security pipeline passes. */
@@ -84,8 +85,10 @@ class ExecutionBridge(
             expectedSuccess = true,
             evidence = ActionResultEvidence(
                 success = adapterResult.success,
+                observedState = adapterResult.observedState,
                 errorCode = if (adapterResult.success) null else "ADAPTER_EXECUTION_FAILED"
-            )
+            ),
+            expectedState = plan.expectedState
         )
         auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
             adapterResult.success, verification.verified,
@@ -94,7 +97,8 @@ class ExecutionBridge(
         return ExecutionResult(
             success = adapterResult.success && verification.verified,
             verified = verification.verified,
-            message = verification.reason
+            message = verification.reason,
+            observedState = adapterResult.observedState
         )
     }
 }
