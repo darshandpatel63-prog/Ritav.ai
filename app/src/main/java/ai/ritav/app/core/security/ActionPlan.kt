@@ -12,6 +12,13 @@ data class ActionPlan(
     val expectedState: String,
     val sessionId: String? = null
 ) {
+    /** Deterministic structural validation for every security boundary that accepts a plan. */
+    fun isValid(): Boolean =
+        appId.isNotBlank() && appId.length <= MAX_APP_ID_LENGTH &&
+            action.isNotBlank() && action.length <= MAX_ACTION_LENGTH &&
+            expectedState.isNotBlank() && expectedState.length <= MAX_EXPECTED_STATE_LENGTH &&
+            (sessionId == null || (sessionId.isNotBlank() && sessionId.length <= MAX_SESSION_ID_LENGTH))
+
     fun stableHash(): String {
         val canonical = listOf(
             appId,
@@ -26,6 +33,11 @@ data class ActionPlan(
             .joinToString("") { "%02x".format(it) }
     }
 }
+
+private const val MAX_APP_ID_LENGTH = 256
+private const val MAX_ACTION_LENGTH = 4096
+private const val MAX_EXPECTED_STATE_LENGTH = 256
+private const val MAX_SESSION_ID_LENGTH = 256
 
 /** Authorization request bound to the exact action plan, not merely an app/session. */
 data class AuthorizationRequest(
