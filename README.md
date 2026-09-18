@@ -142,7 +142,8 @@ Completed:
 - `RitavPlatformAdapter` runtime adapter contract and regression test have been added.
 
 Not yet completed:
-- Concrete Android/iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime adapters.
+- Concrete iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime adapters.
+- Android adapter CI/managed-device verification remains pending for the latest test fix.
 - Platform-native UIs and packaging for each target.
 - Native platform automation implementations.
 - Platform-specific CI matrices and real-device/real-host validation.
@@ -162,7 +163,7 @@ Latest repository commits relevant to the cross-platform expansion:
 - `2f99367a0d09309ee15de290ccabfac2f75aca62` — `RitavPlatformAdapter` runtime contract.
 - `7a5c80ef01a1180cd4d29b17cd2c957a9cec7149` — adapter contract regression test.
 
-The latest adapter-contract commit currently has no associated pull-request workflow run returned by the connected GitHub workflow query, so it is not claimed CI-verified yet.
+The Android adapter test compilation fix is committed in `7d7c4a2df8495ab6c83e1702ee421e704a093174`. The connected workflow/status query has not yet returned a post-fix successful run, so the fix is not claimed CI-verified.
 
 ## 14. Known limitations
 - Cross-platform contracts are implemented; native platform implementations are not yet complete.
@@ -174,13 +175,13 @@ The latest adapter-contract commit currently has no associated pull-request work
 - Release APK and non-Android packages are not yet production artifacts.
 
 ## 15. Exact next stop point
-**Build the first concrete platform adapter while preserving the common security boundary.**
+**Verify the Android instrumentation-test compilation fix and then complete the consolidated review of the cross-platform foundation + Android adapter.**
 
 Next action:
-1. Verify the current `core` multiplatform build/test path on the available CI environment.
-2. Implement the Android platform adapter against real Android APIs without moving or duplicating the deterministic security boundary.
-3. Add the first native-host capability mapping and integration tests.
-4. Then expand to Apple and desktop targets through platform-specific adapters and CI runners.
+1. Confirm a post-fix GitHub Actions run for `7d7c4a2df8495ab6c83e1702ee421e704a093174`.
+2. Verify JVM tests, Android instrumentation-test compilation and managed-device instrumentation.
+3. Reconcile stale Android-only wording through minimal targeted documentation edits.
+4. Then continue with the next concrete platform/runtime implementation while preserving the common security boundary.
 5. Keep unsupported capabilities unavailable rather than emulating or bypassing platform restrictions.
 
 ## 16. Continuation rule
@@ -339,7 +340,7 @@ The active cross-platform architecture decision does NOT weaken the Android secu
 
 ## 21. Exact next stop point for the next chat
 
-**Start by fixing and verifying the known Android instrumentation-test compilation failure. Do not start another major platform implementation before this checkpoint is clean.**
+**Start by verifying the Android instrumentation-test compilation fix committed as `7d7c4a2df8495ab6c83e1702ee421e704a093174`. Do not start another major platform implementation before this checkpoint is clean.**
 
 Then:
 1. Inspect current `main` and latest commit again.
