@@ -24,6 +24,35 @@ class SecurityExecutionPipelineTest {
         authorizationLevel = AuthorizationLevel.USER_CONFIRMATION
     )
 
+    @Test fun malformedPlanIsDeniedBeforeSecurityProcessing() {
+        val p = plan().copy(expectedState = "")
+        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
+        val result = pipeline.authorize(SecurityExecutionRequest(action(), p, null, trustedSession(1_000), 1_000))
+        assertFalse(result.allowed)
+    }
+
+    @Test fun malformedExecutionRequestIsDeniedBeforeAuthorization() {
+        val p = plan()
+        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val gate = ActionAuthorizationGate()
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+        val malformed = action().copy(action = "x".repeat(4_097))
+        val result = pipeline.authorize(SecurityExecutionRequest(malformed, p, token, trustedSession(1_000), 1_000))
+        assertFalse(result.allowed)
+        assertTrue(gate.consume(token, p, AuthorizationLevel.USER_CONFIRMATION, 1_001))
+    }
+
+    @Test fun protectedActionWithoutSessionBindingIsDenied() {
+        val p = plan().copy(sessionId = null)
+        val action = action().copy(sessionId = null)
+        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", null))))
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
+        val result = pipeline.authorize(SecurityExecutionRequest(action, p, null, null, 1_000))
+        assertFalse(result.allowed)
+    }
+
     @Test fun mismatchedPlanIsDenied() {
         val p = plan()
         val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
