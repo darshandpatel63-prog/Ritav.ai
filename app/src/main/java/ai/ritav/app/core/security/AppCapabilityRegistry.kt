@@ -22,23 +22,25 @@ data class AppCapabilitySpec(
 class AppCapabilityRegistry(
     specs: Collection<AppCapabilitySpec> = emptyList()
 ) {
+    private val immutableSpecs = specs.map { it.copy(actions = it.actions.toSet()) }
+
     init {
-        specs.forEach { validate(it) }
-        require(specs.groupBy { Triple(it.packageName, it.capability, it.actions) }
+        immutableSpecs.forEach { validate(it) }
+        require(immutableSpecs.groupBy { Triple(it.packageName, it.capability, it.actions) }
             .values.all { entries -> entries.map { it.riskTier }.distinct().size <= 1 }) {
             "Conflicting risk metadata for the same app capability/action set"
         }
-        require(specs.none { it.financialCategory && it.capability != Capability.FINANCIAL_ACTION }) {
+        require(immutableSpecs.none { it.financialCategory && it.capability != Capability.FINANCIAL_ACTION }) {
             "Financial category must use FINANCIAL_ACTION capability"
         }
-        require(specs.groupBy { it.packageName }.values.all { entries ->
+        require(immutableSpecs.groupBy { it.packageName }.values.all { entries ->
             entries.map { it.trustedCertificateSha256 }.distinct().size <= 1
         }) {
             "Conflicting trusted certificate metadata for the same app package"
         }
     }
 
-    private val specsByPackage = specs.groupBy { it.packageName }
+    private val specsByPackage = immutableSpecs.groupBy { it.packageName }
 
     fun isRegistered(packageName: String): Boolean =
         specsByPackage.containsKey(packageName)
@@ -62,7 +64,7 @@ class AppCapabilityRegistry(
         specsByPackage[packageName].orEmpty()
 
     private fun validate(spec: AppCapabilitySpec) {
-        require(spec.packageName.matches(PACKAGE_NAME_REGEX)) { "Invalid package name" }
+        require(spec.packageName.length <= MAX_PACKAGE_NAME_LENGTH && spec.packageName.matches(PACKAGE_NAME_REGEX)) { "Invalid package name" }
         require(spec.actions.isNotEmpty()) { "Capability must expose at least one action" }
         require(spec.actions.all { it.isNotBlank() && it.length <= MAX_ACTION_LENGTH }) {
             "Invalid capability action"
@@ -79,6 +81,7 @@ class AppCapabilityRegistry(
     private companion object {
         val PACKAGE_NAME_REGEX = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$")
         const val MAX_ACTION_LENGTH = 128
+        const val MAX_PACKAGE_NAME_LENGTH = 256
         val CERTIFICATE_DIGEST_REGEX = Regex("^[A-Fa-f0-9]{64}$")
     }
 }
