@@ -28,7 +28,9 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Empty trusted registry keeps external actions deny-by-default until a reviewed allowlist exists.\n        executionRuntime = AndroidExecutionRuntime(this, AppCapabilityRegistry())\n        securityState = executionRuntime.securityState
+        // Empty trusted registry keeps external actions deny-by-default until a reviewed allowlist exists.
+        executionRuntime = AndroidExecutionRuntime(this, AppCapabilityRegistry())
+        securityState = executionRuntime.securityState
 
         setContent {
             var stopped by remember { mutableStateOf(securityState.isEmergencyStopActive()) }
