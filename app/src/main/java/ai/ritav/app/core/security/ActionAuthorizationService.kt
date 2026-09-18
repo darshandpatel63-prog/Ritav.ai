@@ -1,5 +1,7 @@
 package ai.ritav.app.core.security
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 /**
  * Only trusted UI/device-authentication paths can mint execution tokens.
  * Callers cannot self-assert DEVICE_AUTHENTICATION by passing an enum.
@@ -18,7 +20,9 @@ class ActionAuthorizationService(
         if (plan.riskTier != RiskTier.TIER_2_CONTENT_MUTATION) return null
         if (confirmedPlanHash != plan.stableHash()) return null
         if (nowEpochMillis < 0) return null
-        return gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, nowEpochMillis)
+        return runCatching {
+            gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, nowEpochMillis)
+        }.getOrNull()
     }
 
     fun issueDeviceAuthenticationToken(
@@ -26,24 +30,41 @@ class ActionAuthorizationService(
         reason: String,
         callback: (token: String?) -> Unit
     ) {
-        if (!plan.isValid() ||
-            plan.riskTier != RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE ||
-            reason.isBlank() || reason.length > MAX_REASON_LENGTH ||
-            !deviceAuthorization.isDeviceAuthenticationAvailable()
-        ) {
-            callback(null)
+        val responds = AtomicBoolean(false)
+        fun respond(token: String?) {
+            if (responds.compareAndSet(false, true)) {
+                callback(token)
+            }
+        }
+
+        val validRequest = runCatching {
+            plan.isValid() &&
+                plan.riskTier == RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE &&
+                reason.isNotBlank() &&
+                reason.length <= MAX_REASON_LENGTH &&
+                deviceAuthorization.isDeviceAuthenticationAvailable()
+        }.getOrDefault(false)
+
+        if (!validRequest) {
+            respond(null)
             return
         }
-        deviceAuthorization.authenticate(reason) { success ->
-            if (!success) {
-                callback(null)
-                return@authenticate
+
+        runCatching {
+            deviceAuthorization.authenticate(reason) { success ->
+                if (!success) {
+                    respond(null)
+                    return@authenticate
+                }
+                val token = runCatching {
+                    val now = clockEpochMillis()
+                    if (now < 0) null
+                    else gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, now)
+                }.getOrNull()
+                respond(token)
             }
-            val now = clockEpochMillis()
-            val token = runCatching {
-                gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, now)
-            }.getOrNull()
-            callback(token)
+        }.onFailure {
+            respond(null)
         }
     }
 
