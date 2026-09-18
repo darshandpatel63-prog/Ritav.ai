@@ -18,6 +18,13 @@ class ActionAuthorizationServiceTest {
         assertNotNull(service.issueUserConfirmationToken(plan, plan.stableHash(), 1000L))
     }
 
+    @Test fun userConfirmationCannotAuthorizeHigherRiskPlan() {
+        val gate = ActionAuthorizationGate()
+        val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
+        val highRisk = plan.copy(riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE)
+        assertNull(service.issueUserConfirmationToken(highRisk, highRisk.stableHash(), 1000L))
+    }
+
     @Test fun deviceTokenCannotBeMintedWhenAuthenticationIsUnavailable() {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(
