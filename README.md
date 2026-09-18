@@ -143,7 +143,7 @@ Completed:
 
 Not yet completed:
 - Concrete iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime adapters.
-- Android adapter CI/managed-device verification remains pending for the latest test fix.
+- Post-fix Android CI/managed-device verification is still not observable through the connected GitHub workflow-run API.
 - Platform-native UIs and packaging for each target.
 - Native platform automation implementations.
 - Platform-specific CI matrices and real-device/real-host validation.
@@ -163,7 +163,7 @@ Latest repository commits relevant to the cross-platform expansion:
 - `2f99367a0d09309ee15de290ccabfac2f75aca62` — `RitavPlatformAdapter` runtime contract.
 - `7a5c80ef01a1180cd4d29b17cd2c957a9cec7149` — adapter contract regression test.
 
-The Android adapter test compilation fix is committed in `7d7c4a2df8495ab6c83e1702ee421e704a093174`. The connected workflow/status query has not yet returned a post-fix successful run, so the fix is not claimed CI-verified.
+The Android adapter test compilation fix is committed in `7d7c4a2df8495ab6c83e1702ee421e704a093174`. Subsequent documentation commits and the Android network-capability correction are on `main`; the connected workflow-run API currently returns no runs for these push commits, so CI is not claimed green.
 
 ## 14. Known limitations
 - Cross-platform contracts are implemented; native platform implementations are not yet complete.
@@ -175,13 +175,13 @@ The Android adapter test compilation fix is committed in `7d7c4a2df8495ab6c83e17
 - Release APK and non-Android packages are not yet production artifacts.
 
 ## 15. Exact next stop point
-**Verify the Android instrumentation-test compilation fix and then complete the consolidated review of the cross-platform foundation + Android adapter.**
+**Obtain post-fix CI/device evidence, then continue the Android adapter integration work without bypassing the common security boundary.**
 
 Next action:
-1. Confirm a post-fix GitHub Actions run for `7d7c4a2df8495ab6c83e1702ee421e704a093174`.
-2. Verify JVM tests, Android instrumentation-test compilation and managed-device instrumentation.
-3. Reconcile stale Android-only wording through minimal targeted documentation edits.
-4. Then continue with the next concrete platform/runtime implementation while preserving the common security boundary.
+1. Confirm a post-fix GitHub Actions run for the current `main` head; the connected workflow-run API currently returns no runs for push commits.
+2. Verify JVM tests, Android instrumentation-test compilation and managed-device instrumentation when CI evidence is available.
+3. Continue with the concrete Android adapter/runtime path only after that verification checkpoint.
+4. Preserve the common deterministic security boundary and keep unsupported capabilities unavailable.
 5. Keep unsupported capabilities unavailable rather than emulating or bypassing platform restrictions.
 
 ## 16. Continuation rule
