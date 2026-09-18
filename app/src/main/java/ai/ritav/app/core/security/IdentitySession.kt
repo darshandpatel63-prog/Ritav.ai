@@ -9,23 +9,48 @@ enum class IdentityLevel {
     TRUSTED_SIGNAL
 }
 
-data class SecuritySession(
-    val id: String = UUID.randomUUID().toString(),
-    val identity: IdentityLevel = IdentityLevel.UNKNOWN,
+class SecuritySession private constructor(
+    val id: String,
+    val identity: IdentityLevel,
     val authenticatedAtEpochMillis: Long,
     val expiresAtEpochMillis: Long
 ) {
-    fun isActive(nowEpochMillis: Long): Boolean = nowEpochMillis <= expiresAtEpochMillis
+    fun isActive(nowEpochMillis: Long): Boolean =
+        nowEpochMillis >= authenticatedAtEpochMillis && nowEpochMillis <= expiresAtEpochMillis
+
+    companion object {
+        internal fun create(
+            id: String = UUID.randomUUID().toString(),
+            identity: IdentityLevel,
+            authenticatedAtEpochMillis: Long,
+            expiresAtEpochMillis: Long
+        ): SecuritySession {
+            require(id.isNotBlank() && id.length <= MAX_ID_LENGTH)
+            require(authenticatedAtEpochMillis >= 0)
+            require(expiresAtEpochMillis >= authenticatedAtEpochMillis)
+            return SecuritySession(id, identity, authenticatedAtEpochMillis, expiresAtEpochMillis)
+        }
+
+        private const val MAX_ID_LENGTH = 256
+    }
 }
 
 class IdentitySessionManager {
-    fun createSession(
+    /**
+     * Internal issuance boundary. Production callers must obtain the identity
+     * level from a trusted authentication gateway before calling this method.
+     */
+    internal fun createSession(
         identity: IdentityLevel,
         nowEpochMillis: Long,
         ttlMillis: Long = DEFAULT_TTL_MILLIS
     ): SecuritySession {
+        require(identity != IdentityLevel.UNKNOWN)
+        require(nowEpochMillis >= 0)
         require(ttlMillis in 1..MAX_TTL_MILLIS)
-        return SecuritySession(
+        require(nowEpochMillis <= Long.MAX_VALUE - ttlMillis)
+
+        return SecuritySession.create(
             identity = identity,
             authenticatedAtEpochMillis = nowEpochMillis,
             expiresAtEpochMillis = nowEpochMillis + ttlMillis
@@ -34,6 +59,7 @@ class IdentitySessionManager {
 
     fun permitsProtectedCapability(session: SecuritySession?, nowEpochMillis: Long): Boolean =
         session != null &&
+            nowEpochMillis >= 0 &&
             session.isActive(nowEpochMillis) &&
             session.identity != IdentityLevel.UNKNOWN
 
