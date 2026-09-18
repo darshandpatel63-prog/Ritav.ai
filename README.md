@@ -430,3 +430,14 @@ Current stop: major authorization hardening checkpoint reached; executable verif
 - `gradle/actions/setup-gradle@v4` already provides Gradle caching; no additional cache layer was added because the current repository has no Gradle wrapper/version-catalog structure to safely optimize further without changing build behavior.
 - Exact workflow optimization commit: `36e8afc7d94e704787f23708f76a747e827e0a5b`.
 - Common workflow policy update: `6271963c933b40e1c1486c38314575001dbaf2b4`.
+
+
+## 2026-09-18 identity-session hardening checkpoint
+- SecuritySession is now opaque with a private constructor; protected-session issuance is restricted to the internal session boundary.
+- Session validity now requires the current time to be at/after authentication and at/before expiry; negative time and expiry overflow are rejected.
+- Protected execution now requires the supplied identity-session ID to exactly match the action/plan session binding.
+- Regression coverage was added for pre-authentication use, unknown identity, clock/TTL overflow, and mismatched protected-session identity.
+- This closes a source-level bypass in which a caller could construct a trusted session object directly or present a different active session for a protected action.
+- Gradle/CI execution remains unverified; these changes are source-reviewed only until executable evidence is available.
+- Exact implementation/test commits: 1b990b39137931c044365ee7cae386044b030e93, be7263894fcdb17ce471aab3ac635367ae70fa0a, 5ceaf46d1d20834d9761f3aab3bec4a5393139bf, 2782416c2bb063603da9935ac6d4af4f189e3062, 8314a00d6b867e3193ba39c45ef611fc9b56ca5f, 06d0fc17d0b0f46e2759c633413c3fa382e2355a.
+
