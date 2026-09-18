@@ -73,11 +73,11 @@ Android instrumentation tests exist for Keystore encryption round-trip and ciphe
 No speculative screen/OCR/accessibility ingestion or standalone resource guard has been added without a real producer/consumer path. Concrete heavy AI/vision/speech/media workloads must receive bounded-resource and safe-cancellation controls when introduced.
 
 ## Current verification
-The Android instrumentation-test compilation failure from `b5a502346c41321f58f1859bd09ebfd3d58b103b` was fixed by replacing unavailable `kotlin.test` assertion imports with the existing JUnit assertion API in commit `7d7c4a2df8495ab6c83e1702ee421e704a093174`. A post-fix successful workflow/device run has not yet been observed through the connected GitHub tooling, so CI green and real-device execution remain unverified.
+The Android instrumentation-test compilation failure from `b5a502346c41321f58f1859bd09ebfd3d58b103b` was fixed by replacing unavailable `kotlin.test` assertion imports with the existing JUnit assertion API in commit `7d7c4a2df8495ab6c83e1702ee421e704a093174`. A post-fix successful workflow/device run has not yet been observed through the connected GitHub workflow-run API; it currently returns no runs for the push commits, so CI green and real-device execution remain unverified.
 
 ## Known limitations
 - Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS adapters are not yet complete.
-- Android `RitavPlatformAdapter` is implemented, but its latest instrumentation test has not yet been post-fix CI/device verified.
+- Android `RitavPlatformAdapter` is implemented; its instrumentation test source compiles against the existing JUnit Android-test API, but post-fix CI/device execution remains unverified.
 - Native UI and packaging for non-Android platforms are not yet complete.
 - Platform-specific CI and real-device/real-host verification are not yet complete.
 - Real model/context ingestion boundary remains future work.
@@ -87,7 +87,7 @@ The Android instrumentation-test compilation failure from `b5a502346c41321f58f18
 - No release APK or non-Android production package sign-off is claimed.
 
 ## Exact next stop point
-**Verify the Android instrumentation-test compilation fix and complete the consolidated cross-platform foundation + Android adapter review.**
+**Obtain post-fix CI/device evidence and continue Android adapter/runtime integration incrementally.**
 
 Next:
 1. Verify the post-fix GitHub Actions workflow on current `main`.
