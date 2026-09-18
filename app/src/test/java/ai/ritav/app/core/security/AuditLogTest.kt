@@ -137,7 +137,7 @@ class AuditLogTest {
 
     @Test fun rejectedPipelineDecisionIsAuditedWithoutActionContent() {
         val log = InMemoryAuditLog()
-        val plan = ActionPlan("demo", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, "s1")
+        val plan = ActionPlan("demo", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
         val engine = PolicyEngine(InMemoryPermissionStore())
         val pipeline = SecurityExecutionPipeline(
             engine,
