@@ -65,7 +65,7 @@ For every Android permission or privileged capability:
 - default to no permission when necessity is uncertain.
 
 ## 9. Dependency and configuration hygiene
-Before adding or upgrading a dependency, verify that it is necessary, maintained, compatible with the existing Android/Kotlin stack, and does not introduce avoidable attack surface. Review known vulnerabilities when tooling/network access permits. Keep configuration fail-closed and never commit secrets. Security tooling or CI additions must remain within the Android-only project scope.
+Before adding or upgrading a dependency, verify that it is necessary, maintained, compatible with the existing Android/Kotlin stack, and does not introduce avoidable attack surface. Review known vulnerabilities when tooling/network access permits. Keep configuration fail-closed and never commit secrets. Security tooling or CI additions must remain within the active project/platform scope and must not weaken platform-specific security boundaries.
 
 ## 10. Logging and audit safety
 Security logs must help detect failures and abuse without becoming a secret-exfiltration channel. Never log raw credentials or full sensitive payloads. Prefer safe event types, identifiers that are non-secret, reason codes, and minimal metadata. Audit failure must not silently convert a denied operation into an allowed operation.
