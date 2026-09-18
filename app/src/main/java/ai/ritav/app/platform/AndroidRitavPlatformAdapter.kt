@@ -60,12 +60,12 @@ class AndroidRitavPlatformAdapter(
         return manager?.areNotificationsEnabled() == true
     }
 
-    private fun hasValidatedInternet(): Boolean {
+    private fun hasValidatedInternet(): Boolean = runCatching {
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
         val network = manager.activeNetwork ?: return false
         val capabilities = manager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-    }
+        capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }.getOrDefault(false)
 
     private fun isAccessibilityServiceEnabled(): Boolean {
         val enabled = Settings.Secure.getString(
