@@ -9,7 +9,7 @@ package ai.ritav.app.core.security
  */
 class CapabilityGrantService(
     private val registry: AppCapabilityRegistry,
-    private val permissionStore: SecurePermissionStore,
+    private val permissionStore: MutablePermissionStore,
     private val authorizationGate: ActionAuthorizationGate
 ) {
     fun createGrantPlan(
