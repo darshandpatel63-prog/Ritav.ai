@@ -121,7 +121,8 @@ class SecurityExecutionPipeline(
             AuditEventType.POLICY_DECISION, false, false, reason
         ))
         return SecurityExecutionDecision(false, reason, required)
-    }}
+    }
+}
 
 private const val MAX_APP_ID_LENGTH = 256
 private const val MAX_ACTION_LENGTH = 4096
