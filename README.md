@@ -133,7 +133,7 @@ Android instrumentation coverage exists for encrypted round-trip and ciphertext 
 ## 10. Production execution status
 `ExecutionBridge` is the final deterministic execution boundary and `inputText` passes through `SecurityExecutionPipeline` before adapter execution.
 
-Repository tracing still shows no production construction/composition of `ExecutionBridge` and no concrete production `AndroidActionAdapter`. Therefore production action composition and real adapter behavior are not claimed.
+A production Android composition root now exists in `AndroidExecutionRuntime` and is instantiated by `MainActivity`. The current application supplies an empty trusted capability registry, so external action execution remains deny-by-default. `AndroidIntentActionAdapter` implements only `APP_LAUNCH` + `open`, requires a trusted package signing-certificate pin, and reports only `LAUNCH_DISPATCHED`; final target-UI state is not independently observed. Real external-app execution therefore remains disabled until a reviewed allowlist, package visibility, permission/grant path, and platform-specific result observation are deliberately added.
 
 ## 11. Cross-platform implementation status
 Completed:
@@ -213,7 +213,7 @@ This section is the authoritative short handoff for the next development chat. I
 - Concrete `AndroidRitavPlatformAdapter` exists and reads actual Android host facts such as OS version, form factor, Keystore availability, device-authentication state, microphone availability, screen-capture API availability, accessibility-service state, notifications and network availability.
 - Conservative unsupported/default values remain for background execution and local-model runtime because no authoritative runtime producer exists yet.
 - Android instrumentation test exists for the adapter contract.
-- The adapter has NOT been connected to a new execution composition root; no production `ExecutionBridge` construction or concrete production `AndroidActionAdapter` was invented.
+- `AndroidExecutionRuntime` now composes the deterministic security pipeline, authorization gate/service, capability gate and concrete Android launch adapter. The default application registry is empty, so no external app is currently executable.
 
 ### Security foundation already present and must not be weakened or duplicated
 
