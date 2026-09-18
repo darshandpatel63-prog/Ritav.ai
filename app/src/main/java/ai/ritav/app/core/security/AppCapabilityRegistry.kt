@@ -7,7 +7,9 @@ data class AppCapabilitySpec(
     val actions: Set<String>,
     val riskTier: RiskTier,
     val sensitiveContentBlocked: Boolean = true,
-    val financialCategory: Boolean = false
+    val financialCategory: Boolean = false,
+    /** SHA-256 digest of the trusted Android signing certificate for this package. */
+    val trustedCertificateSha256: String? = null
 )
 
 /**
@@ -29,6 +31,11 @@ class AppCapabilityRegistry(
         require(specs.none { it.financialCategory && it.capability != Capability.FINANCIAL_ACTION }) {
             "Financial category must use FINANCIAL_ACTION capability"
         }
+        require(specs.groupBy { it.packageName }.values.all { entries ->
+            entries.map { it.trustedCertificateSha256 }.distinct().size <= 1
+        }) {
+            "Conflicting trusted certificate metadata for the same app package"
+        }
     }
 
     private val specsByPackage = specs.groupBy { it.packageName }
@@ -48,6 +55,9 @@ class AppCapabilityRegistry(
     fun isFinancial(packageName: String): Boolean =
         specsByPackage[packageName].orEmpty().any { it.financialCategory }
 
+    fun trustedCertificateSha256(packageName: String): String? =
+        specsByPackage[packageName].orEmpty().firstOrNull()?.trustedCertificateSha256
+
     fun specsFor(packageName: String): List<AppCapabilitySpec> =
         specsByPackage[packageName].orEmpty()
 
@@ -56,6 +66,9 @@ class AppCapabilityRegistry(
         require(spec.actions.isNotEmpty()) { "Capability must expose at least one action" }
         require(spec.actions.all { it.isNotBlank() && it.length <= MAX_ACTION_LENGTH }) {
             "Invalid capability action"
+        }
+        spec.trustedCertificateSha256?.let {
+            require(it.matches(CERTIFICATE_DIGEST_REGEX)) { "Invalid trusted certificate digest" }
         }
         if (spec.financialCategory) {
             require(spec.capability == Capability.FINANCIAL_ACTION)
@@ -66,5 +79,6 @@ class AppCapabilityRegistry(
     private companion object {
         val PACKAGE_NAME_REGEX = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$")
         const val MAX_ACTION_LENGTH = 128
+        val CERTIFICATE_DIGEST_REGEX = Regex("^[A-Fa-f0-9]{64}$")
     }
 }
