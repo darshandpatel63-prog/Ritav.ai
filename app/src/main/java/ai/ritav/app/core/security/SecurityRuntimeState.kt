@@ -3,7 +3,7 @@ package ai.ritav.app.core.security
 import android.content.Context
 import ai.ritav.app.core.storage.SecureLocalStore
 
-/** Runtime security composition root with shared emergency-stop and audit state. */
+/** Runtime security composition root with shared emergency-stop, permissions, and audit state. */
 class SecurityRuntimeState private constructor(
     private val emergencyStopController: EmergencyStopController,
     val permissionStore: MutablePermissionStore,
@@ -17,13 +17,26 @@ class SecurityRuntimeState private constructor(
         deps.auditLog
     )
 
+    private constructor(
+        emergencyStopController: EmergencyStopController,
+        permissionStore: MutablePermissionStore,
+        auditLog: AuditLog
+    ) : this(
+        emergencyStopController = emergencyStopController,
+        permissionStore = permissionStore,
+        policyEngine = PolicyEngine(
+            permissionStore = permissionStore,
+            emergencyStop = emergencyStopController
+        ),
+        auditLog = auditLog
+    )
+
     constructor(context: Context) : this(RuntimeDeps(context.applicationContext))
 
     /** Constructor retained for lightweight unit tests. */
     constructor(emergencyStopController: EmergencyStopController = EmergencyStopController()) : this(
         emergencyStopController = emergencyStopController,
         permissionStore = InMemoryPermissionStore(),
-        policyEngine = PolicyEngine(emergencyStop = emergencyStopController),
         auditLog = InMemoryAuditLog()
     )
 
