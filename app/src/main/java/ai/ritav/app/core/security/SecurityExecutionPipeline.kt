@@ -27,11 +27,10 @@ class SecurityExecutionPipeline(
     private val financeFirewall: FinanceExecutionFirewall = FinanceExecutionFirewall()
 ) {
     fun authorize(request: SecurityExecutionRequest): SecurityExecutionDecision {
-        val actionHash = request.plan.stableHash()
-
         if (!request.plan.isValid()) {
-            return denyAndAudit(request, actionHash, "Action plan is malformed or exceeds security bounds", AuthorizationLevel.NONE)
+            return denyAndAudit(request, null, "Action plan is malformed or exceeds security bounds", AuthorizationLevel.NONE)
         }
+        val actionHash = request.plan.stableHash()
         if (request.action.appId.isBlank() || request.action.appId.length > MAX_APP_ID_LENGTH ||
             request.action.action.isBlank() || request.action.action.length > MAX_ACTION_LENGTH ||
             (request.action.sessionId != null &&
@@ -117,7 +116,7 @@ class SecurityExecutionPipeline(
 
     private fun denyAndAudit(
         request: SecurityExecutionRequest,
-        actionHash: String,
+        actionHash: String?,
         reason: String,
         required: AuthorizationLevel
     ): SecurityExecutionDecision {
