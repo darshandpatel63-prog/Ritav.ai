@@ -9,19 +9,20 @@ class ActionAuthorizationServiceTest {
     private val plan = ActionPlan(
         "demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE, expectedState = "OPENED"
     )
+    private val userConfirmationPlan = plan.copy(riskTier = RiskTier.TIER_2_CONTENT_MUTATION)
 
     @Test fun userConfirmationRequiresExactPlanHash() {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
 
-        assertNull(service.issueUserConfirmationToken(plan, "wrong-hash", 1000L))
-        assertNotNull(service.issueUserConfirmationToken(plan, plan.stableHash(), 1000L))
+        assertNull(service.issueUserConfirmationToken(userConfirmationPlan, "wrong-hash", 1000L))
+        assertNotNull(service.issueUserConfirmationToken(userConfirmationPlan, userConfirmationPlan.stableHash(), 1000L))
     }
 
     @Test fun userConfirmationCannotAuthorizeHigherRiskPlan() {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
-        val highRisk = plan.copy(riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE)
+        val highRisk = plan
         assertNull(service.issueUserConfirmationToken(highRisk, highRisk.stableHash(), 1000L))
     }
 
