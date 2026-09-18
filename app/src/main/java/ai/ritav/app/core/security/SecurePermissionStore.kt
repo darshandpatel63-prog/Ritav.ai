@@ -10,7 +10,7 @@ import ai.ritav.app.core.storage.SecureLocalStore
  */
 class SecurePermissionStore(
     private val store: SecureLocalStore
-) : PermissionStore {
+) : MutablePermissionStore {
 
     override fun isGranted(
         appId: String,
@@ -26,7 +26,7 @@ class SecurePermissionStore(
     }
 
     @Synchronized
-    fun grant(grant: CapabilityGrant) {
+    override fun grant(grant: CapabilityGrant) {
         require(grant.appId.isNotBlank())
         require(grant.action.isNotBlank())
         if (grant.capability == Capability.FINANCIAL_ACTION) return
@@ -34,7 +34,7 @@ class SecurePermissionStore(
     }
 
     @Synchronized
-    fun revoke(grant: CapabilityGrant) {
+    override fun revoke(grant: CapabilityGrant) {
         saveGrants(loadGrants().filterNot { it == grant })
     }
 
