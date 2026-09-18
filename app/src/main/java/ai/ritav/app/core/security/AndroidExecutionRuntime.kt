@@ -29,7 +29,7 @@ class AndroidExecutionRuntime(
     val executionBridge: ExecutionBridge = ExecutionBridge(
         capabilityPolicyGate = CapabilityPolicyGate(capabilityRegistry),
         securityPipeline = securityPipeline,
-        adapter = AndroidIntentActionAdapter(activity.applicationContext)
+        adapter = AndroidIntentActionAdapter(activity.applicationContext, capabilityRegistry)
     )
 
     val authorizationService: ActionAuthorizationService =
