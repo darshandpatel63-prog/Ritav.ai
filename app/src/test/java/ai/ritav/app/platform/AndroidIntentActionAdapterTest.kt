@@ -61,6 +61,15 @@ class AndroidIntentActionAdapterTest {
         assertEquals(0, dispatcher.calls)
     }
 
+    @Test fun unexpectedExpectedStateNeverReachesDispatcher() {
+        val dispatcher = RecordingDispatcher(true)
+        val adapter = AndroidIntentActionAdapter(dispatcher) { true }
+        val result = adapter.execute(trustedPlan(expectedState = "OPENED"))
+
+        assertFalse(result.success)
+        assertEquals(0, dispatcher.calls)
+    }
+
     @Test fun successfulDispatchReturnsOnlyDispatchObservation() {
         val dispatcher = RecordingDispatcher(true)
         val adapter = AndroidIntentActionAdapter(dispatcher) { true }
