@@ -8,7 +8,7 @@ data class AgentCapabilityScope(
     val allowedCapabilities: Set<Capability>
 )
 
-data class AgentRequest constructor(
+class AgentRequest private constructor(
     val taskId: String,
     val input: String,
     val scope: AgentCapabilityScope
