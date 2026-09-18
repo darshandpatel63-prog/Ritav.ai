@@ -92,7 +92,7 @@ For sufficiently complex tasks, use a final synthesis/QA role to remove duplicat
 Use a single agent for simple work, small teams for moderate work, and larger teams only when complexity, risk, specialization, parallelism, or verification value genuinely justifies them. Do not create agents or repeat repository reads merely to appear thorough.
 
 ## 30. Testing / build / CI
-For every meaningful security change, add/update tests covering success, rejection, boundaries, malformed/adversarial input, failure behavior, and interaction with existing security layers. Check the real build system before changing it; do not assume Gradle wrapper or CI exists. Any build/CI addition must preserve Android-only scope. If tests cannot actually be executed, state: **Tests were not executed.**
+For every meaningful security change, add/update tests covering success, rejection, boundaries, malformed/adversarial input, failure behavior, and interaction with existing security layers. Check the real build system before changing it; do not assume Gradle wrapper or CI exists. Any build/CI addition must preserve the active platform scope and must not weaken platform-specific security boundaries; Android-specific CI remains scoped to Android workflows. If tests cannot actually be executed, state: **Tests were not executed.**
 
 ## 31. Documentation state
 After meaningful work, update `README.md` and `RITAV_PROJECT_STATE.md` where appropriate with actual completed work, verification status, known limitations/issues, next action, and exact commit SHA. Never document unverified work as verified.
