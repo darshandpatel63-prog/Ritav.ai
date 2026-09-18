@@ -105,3 +105,15 @@ Next:
 
 ## Continuation rule
 Read the required workflow/security documents and this state before development. Treat `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` as the active product-scope decision. Do not redesign or duplicate existing security controls.
+
+
+## Latest security hardening — 2026-09-18
+- Agent ingress now bounds task IDs (non-blank, max 256 chars) and defensively copies capability scope.
+- `AgentRequest` remains private-constructor/factory-only, so callers cannot bypass deterministic sensitive-data and financial-capability checks.
+- Regression coverage added for task-ID bounds and post-validation scope mutation.
+- Source path reviewed; Gradle/CI execution remains unverified.
+
+Exact commits: `b957fe6064b25f86311f713ca64e6400f4b962f9`, `8b1f96e01bc31e66ccc8b7ad60cf7726684c289a`, `bf33673ed43fc67aed304694f244699a49b29850f`.
+
+## Exact next stop point
+**Verify the latest security changes with JVM tests, then continue the next security/runtime work package.**
