@@ -3,10 +3,10 @@
 **Project:** Ritav.ai  
 **Repository:** `darshandpatel63-prog/Ritav.ai`  
 **Status:** Blueprint / architecture phase  
-**Primary platform:** Android  
+**Product scope:** Cross-platform — Android, iOS/iPadOS, Windows, macOS, Linux and supported ChromeOS runtimes  
 **Core principle:** Local-first, privacy-first, user-authorized AI automation.
 
-> This document is the canonical product/engineering blueprint. Implementation must conform to it unless a later, explicitly reviewed architecture decision supersedes it.
+> This document is the canonical product/engineering blueprint. The active cross-platform scope is defined by `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md`, which supersedes the earlier Android-only product-scope statements in this blueprint while preserving the applicable Android security and platform constraints.
 
 ---
 
@@ -29,7 +29,7 @@
 
 # 1. Product definition
 
-Ritav.ai is a personal Android AI assistant/agent that can understand natural-language and voice commands, reason locally when possible, and operate supported device/app workflows on the user's behalf under an explicit permission and safety policy.
+Ritav.ai is a personal cross-platform AI assistant/agent that can understand natural-language and voice commands, reason locally when possible, and operate supported device/app workflows on the user's behalf under an explicit permission and safety policy. Platform-native UI/input/runtime layers connect to a shared platform-neutral core and deterministic security boundary.
 
 Example goals:
 
