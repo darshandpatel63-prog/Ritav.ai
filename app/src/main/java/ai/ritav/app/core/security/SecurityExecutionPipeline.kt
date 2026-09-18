@@ -29,6 +29,21 @@ class SecurityExecutionPipeline(
     fun authorize(request: SecurityExecutionRequest): SecurityExecutionDecision {
         val actionHash = request.plan.stableHash()
 
+        if (!request.plan.isValid()) {
+            return denyAndAudit(request, actionHash, "Action plan is malformed or exceeds security bounds", AuthorizationLevel.NONE)
+        }
+        if (request.action.appId.isBlank() || request.action.appId.length > MAX_APP_ID_LENGTH ||
+            request.action.action.isBlank() || request.action.action.length > MAX_ACTION_LENGTH ||
+            (request.action.sessionId != null &&
+                (request.action.sessionId.isBlank() || request.action.sessionId.length > MAX_SESSION_ID_LENGTH)) ||
+            request.nowEpochMillis < 0
+        ) {
+            return denyAndAudit(request, actionHash, "Execution request is malformed or exceeds security bounds", AuthorizationLevel.NONE)
+        }
+        if (request.action.riskTier >= RiskTier.TIER_2_CONTENT_MUTATION && request.action.sessionId == null) {
+            return denyAndAudit(request, actionHash, "Protected action requires a session binding", AuthorizationLevel.NONE)
+        }
+
         if (request.plan.appId != request.action.appId ||
             request.plan.capability != request.action.capability ||
             request.plan.action != request.action.action ||
@@ -106,5 +121,8 @@ class SecurityExecutionPipeline(
             AuditEventType.POLICY_DECISION, false, false, reason
         ))
         return SecurityExecutionDecision(false, reason, required)
-    }
-}
+    }}
+
+private const val MAX_APP_ID_LENGTH = 256
+private const val MAX_ACTION_LENGTH = 4096
+private const val MAX_SESSION_ID_LENGTH = 256
