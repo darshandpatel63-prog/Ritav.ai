@@ -408,3 +408,13 @@ Current stop: authorization/pipeline input-validation hardening implemented and 
 - Tests/build/CI remain unexecuted/unverified in the current environment.
 - Exact commits: `00631d10274b54e907e67dbc079abdb370c50a96` (security), `a3eeef39ed6b83f0c82364884b1f637d8e65be04` (test).
 - Current stop: authorization/execution-boundary validation package is implemented and reviewed; executable verification is pending.
+
+
+## Authorization risk-binding hardening — 2026-09-18
+- AuthorizationGate now binds minted/consumed token level to the ActionPlan risk tier, preventing a USER_CONFIRMATION token from being used as a DEVICE_AUTHENTICATION authorization for a higher-risk plan.
+- Service/test coverage separates Tier-2 user confirmation from Tier-3 device authentication.
+- Consolidated review lenses completed: auth/access-control, adversarial token misuse, execution integration, privacy/finance boundary interaction, and failure paths. The affected path remains fail-closed.
+- Executable Gradle/CI/device verification remains unverified.
+- Exact commits: `6aad41edf7e4e0f78c6b53088057a2ee743ce648`, `04a6fe995d3b84f98d5af690d87a2c7981fb2c61`, `a41f1fd7571d44f138dc308c12e31bf63950b616`, `7da4243103e77450570aaa118b9d2883ff013def`, `b9c2e69376d4b289be4c4a7c3af4e466bec07212`.
+
+Current stop: major authorization hardening checkpoint reached; executable verification is the remaining gate before the next major security layer.
