@@ -58,6 +58,21 @@ class ActionAuthorizationGateTest {
     }
 
     @Test
+    fun negativeAuthorizationClockCannotConsumeAuthorizationToken() {
+        val gate = ActionAuthorizationGate()
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+
+        assertFalse(
+            gate.consume(
+                token,
+                plan,
+                AuthorizationLevel.USER_CONFIRMATION,
+                -1L
+            )
+        )
+    }
+
+    @Test
     fun tokenCanBeConsumedOnlyOnce() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
