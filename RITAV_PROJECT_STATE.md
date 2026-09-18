@@ -325,3 +325,20 @@ Inspect run #174 for JVM results, Android-test compilation and managed-device in
 ### Exact next action
 
 Perform the independent audit checkpoint. If no blocking finding remains, begin the reviewed trusted-app allowlist / permission-grant security layer. Do not weaken or bypass finance hard-deny, sensitive-data isolation, Emergency Stop, exact plan/authorization binding, package identity verification, result verification, or fail-closed behavior.
+
+
+## 2026-09-18 independent security audit checkpoint
+
+Audit scope: current main execution/security path and repository configuration, including ActionPlan, PolicyEngine / ExecutionPolicyGate, CapabilityPolicyGate, AppCapabilityRegistry, SecurePermissionStore, authorization gate/service, identity/session binding, SecurityExecutionPipeline, ExecutionBridge, Emergency Stop, sensitive-data firewall, finance firewall, prompt-injection boundary, egress firewall, result verification, Android launch adapter, tests, and the single GitHub Actions workflow.
+
+Findings:
+- CRITICAL: none identified in the reviewed path.
+- HIGH: none identified in the reviewed path.
+- MEDIUM: existing architectural limitations remain: no reviewed trusted-app allowlist is populated, final target-app state is not independently observed, real model-context ingestion is absent, and screen/OCR/accessibility filtering is absent.
+- LOW/INFO: PromptInjectionBoundary is currently a lightweight untrusted-content wrapper and trim operation; it does not by itself constitute a complete model-ingestion defense. This is explicitly treated as incomplete until a real context-ingestion path exists. Pattern-based sensitive-data detection is defense-in-depth, not complete contextual classification.
+
+Adversarial checks included malformed/oversized plans and identifiers, authorization mismatch/replay/clock cases, asynchronous duplicate-auth callback handling, emergency-stop state visibility, capability-registry mutation, financial capability hard-deny, sensitive-data ingress, dynamic-code search, and workflow scope. Relevant automated regressions exist, and run #176 provides managed-device evidence for the latest registry package. This audit did not execute a new local test suite; GitHub Actions is the executable verification source available for the repository.
+
+Audit decision: No blocking CRITICAL/HIGH finding. The mandatory independent-audit gate is satisfied for the capability-registry work package. The next major security layer may begin, subject to preserving all existing deterministic boundaries and adding its own tests, adversarial review, consolidated review, and CI verification.
+
+Exact next action: begin the trusted-app allowlist / permission-grant lifecycle layer, first by tracing the existing AppCapabilityRegistry + SecurePermissionStore responsibility and adding authorization for grant/revoke rather than introducing a parallel permission system.
