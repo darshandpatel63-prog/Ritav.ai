@@ -18,14 +18,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ai.ritav.app.core.security.AndroidExecutionRuntime
+import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.SecurityRuntimeState
 
 class MainActivity : FragmentActivity() {
+    private lateinit var executionRuntime: AndroidExecutionRuntime
     private lateinit var securityState: SecurityRuntimeState
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        securityState = SecurityRuntimeState(applicationContext)
+        // Empty trusted registry keeps external actions deny-by-default until a reviewed allowlist exists.\n        executionRuntime = AndroidExecutionRuntime(this, AppCapabilityRegistry())\n        securityState = executionRuntime.securityState
 
         setContent {
             var stopped by remember { mutableStateOf(securityState.isEmergencyStopActive()) }
