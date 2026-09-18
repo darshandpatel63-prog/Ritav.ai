@@ -38,6 +38,71 @@ class ActionAuthorizationServiceTest {
         assertNull(token)
     }
 
+    @Test fun userConfirmationFailsClosedOnAuthorizationClockOverflow() {
+        val gate = ActionAuthorizationGate()
+        val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
+
+        assertNull(
+            service.issueUserConfirmationToken(
+                userConfirmationPlan,
+                userConfirmationPlan.stableHash(),
+                Long.MAX_VALUE
+            )
+        )
+    }
+
+    @Test fun deviceAuthenticationCallbackCanMintOnlyOneToken() {
+        val gate = ActionAuthorizationGate()
+        var authenticationCallback: ((Boolean) -> Unit)? = null
+        val gateway = object : DeviceAuthorizationGateway {
+            override fun isDeviceAuthenticationAvailable(): Boolean = true
+
+            override fun authenticate(reason: String, callback: (success: Boolean) -> Unit) {
+                authenticationCallback = callback
+            }
+        }
+        val service = ActionAuthorizationService(gate, gateway, clockEpochMillis = { 1_000L })
+
+        val tokens = mutableListOf<String?>()
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { tokens += it }
+        authenticationCallback!!.invoke(true)
+        authenticationCallback!!.invoke(true)
+
+        assertEquals(1, tokens.size)
+        assertNotNull(tokens.single())
+    }
+
+    @Test fun deviceAuthenticationFailureInPlatformGatewayFailsClosed() {
+        val gate = ActionAuthorizationGate()
+        val gateway = object : DeviceAuthorizationGateway {
+            override fun isDeviceAuthenticationAvailable(): Boolean = true
+
+            override fun authenticate(reason: String, callback: (success: Boolean) -> Unit) {
+                error("platform authentication failure")
+            }
+        }
+        val service = ActionAuthorizationService(gate, gateway)
+
+        var token: String? = "unexpected"
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
+
+        assertNull(token)
+    }
+
+    @Test fun deviceAuthenticationClockFailureFailsClosedAndCallsBack() {
+        val gate = ActionAuthorizationGate()
+        val service = ActionAuthorizationService(
+            gate,
+            StubDeviceAuthorizationGateway(available = true, result = true),
+            clockEpochMillis = { error("clock failure") }
+        )
+
+        var token: String? = "unexpected"
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
+
+        assertNull(token)
+    }
+
     @Test fun deviceTokenIsMintedOnlyAfterSuccessfulAuthentication() {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(
