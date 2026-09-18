@@ -16,7 +16,7 @@ import ai.ritav.app.core.security.ExecutionResult
  * dispatch-state expectation. The common security boundary remains authoritative.
  */
 class AndroidIntentActionAdapter internal constructor(
-    dispatcher: AndroidAppLaunchDispatcher,
+    private val dispatcher: AndroidAppLaunchDispatcher,
     private val isTrustedPackage: (String) -> Boolean
 ) : AndroidActionAdapter {
 
@@ -94,10 +94,11 @@ private class AndroidPackageIdentityVerifier(
                 )
             }
             val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.signingInfo.apkContentsSigners
+                val signingInfo = packageInfo.signingInfo ?: return@runCatching false
+                signingInfo.apkContentsSigners ?: return@runCatching false
             } else {
                 @Suppress("DEPRECATION")
-                packageInfo.signatures
+                packageInfo.signatures ?: return@runCatching false
             }
             signatures.any { signature ->
                 sha256(signature.toByteArray()) == expected
