@@ -32,6 +32,11 @@ class ExecutionBridge(
     ): ExecutionResult {
         val now = clock()
         val actionHash = plan.stableHash()
+        if (!plan.isValid()) {
+            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+                false, false, "Action plan is malformed or exceeds security bounds"))
+            return ExecutionResult(false, false, "Action plan is malformed or exceeds security bounds")
+        }
         val action = ActionRequest(
             appId = plan.appId,
             action = plan.action,
