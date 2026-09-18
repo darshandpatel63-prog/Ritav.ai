@@ -46,6 +46,7 @@ class ActionAuthorizationGate {
         nowEpochMillis: Long
     ): Boolean {
         if (token.isBlank() || token.length > MAX_TOKEN_LENGTH) return false
+        if (nowEpochMillis < 0) return false
         if (!plan.isValid()) return false
         if (providedLevel != requiredAuthorizationFor(plan)) return false
 
