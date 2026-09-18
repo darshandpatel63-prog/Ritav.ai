@@ -8,6 +8,8 @@ data class ActionPlan(
     val capability: Capability,
     val action: String,
     val riskTier: RiskTier,
+    /** Deterministic post-action state that must be observed before success is reported. */
+    val expectedState: String,
     val sessionId: String? = null
 ) {
     fun stableHash(): String {
@@ -16,6 +18,7 @@ data class ActionPlan(
             capability.name,
             action,
             riskTier.name,
+            expectedState,
             sessionId ?: ""
         ).joinToString("\u001f")
         return MessageDigest.getInstance("SHA-256")
