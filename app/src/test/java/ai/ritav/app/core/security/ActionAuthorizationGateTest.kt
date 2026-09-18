@@ -10,6 +10,7 @@ class ActionAuthorizationGateTest {
         capability = Capability.SEND_MESSAGE,
         action = "send",
         riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+        expectedState = "SENT",
         sessionId = "session-1"
     )
 
