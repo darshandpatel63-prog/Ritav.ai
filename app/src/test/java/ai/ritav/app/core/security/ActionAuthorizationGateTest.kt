@@ -37,6 +37,18 @@ class ActionAuthorizationGateTest {
         }
     }
 
+
+    @Test
+    fun negativeAuthorizationClockCannotMintAuthorizationToken() {
+        val gate = ActionAuthorizationGate()
+        try {
+            gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, -1L)
+            assertFalse(true)
+        } catch (_: IllegalArgumentException) {
+            assertTrue(true)
+        }
+    }
+
     @Test
     fun oversizedTokenIsRejectedWithoutChangingValidTokenState() {
         val gate = ActionAuthorizationGate()
