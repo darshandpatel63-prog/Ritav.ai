@@ -117,3 +117,8 @@ Exact commits: `b957fe6064b25f86311f713ca64e6400f4b962f9`, `8b1f96e01bc31e66ccc8
 
 ## Exact next stop point
 **Verify the latest security changes with JVM tests, then continue the next security/runtime work package.**
+
+
+## Latest agent-boundary hardening — 2026-09-18
+- Scoped agent proposals are now bounded/validated before orchestration and financial proposals are deterministically rejected.
+- Regression coverage added; Gradle/CI execution remains unverified.
