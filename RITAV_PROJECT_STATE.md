@@ -269,3 +269,31 @@ Android runtime startup wiring and negative authorization-clock hardening are im
 
 ### Exact next action
 Verify run #168 on current head through compilation, JVM tests, Android instrumentation-test execution and managed-device Activity startup; fix only concrete failures found by that run, then perform the consolidated system-level review before advancing to another security layer.
+
+
+## Latest continuation checkpoint — 2026-09-18
+- Current main head: `dd07f44cdc3b346259dcaea1260cca778b660706`.
+- Verified baseline: Actions run #165 (`35331595059`) succeeded end-to-end for commit `ed64a884baaaf4ad751e686703699f984d478db4`: JVM test/build stage passed and the managed Android device ran all 3 instrumentation tests successfully.
+- Follow-on authorization hardening implemented after that verified baseline:
+  - `ActionAuthorizationGate.consume()` rejects negative clocks.
+  - `ActionAuthorizationService.issueUserConfirmationToken()` catches authorization-gate failures and returns null.
+  - Device-auth request validation is fail-closed when platform availability checks throw.
+  - Asynchronous device-auth callbacks are guarded with `AtomicBoolean` so only the first callback can mint/respond with a token.
+  - Clock failures and platform authentication exceptions resolve to a single fail-closed null callback.
+- ExecutionBridge and SecurityExecutionPipeline now validate the ActionPlan before hashing it, preventing oversized/malformed plans from triggering unnecessary stable-hash work before rejection.
+- Regression tests cover negative consumption clocks, gate clock overflow through the service, duplicate authentication callbacks, platform authentication exceptions, and clock failures.
+- Current-head run #174 (`35332166648`) targets this latest code and was pending at the latest inspection. Run #171 was still in progress on an intermediate commit and run #174 had no job yet. Therefore the latest package remains executable-unverified until the current-head workflow completes.
+
+### Consolidated review of latest source changes
+- Authorization/authentication: fail-closed validation, exact plan/risk binding, bounded token lifetime, negative-clock rejection, one-shot async callback handling.
+- Execution path: malformed plan rejected before hashing in both bridge and pipeline; adapter remains downstream of capability/policy/authorization checks.
+- Resource boundary: invalid oversized plans no longer incur stable-hash computation before rejection.
+- Finance/sensitive-data: no new bypass or relaxation; existing deterministic hard-deny layers remain upstream.
+- Failure paths: platform-auth availability/authentication/clock/gate failures all resolve to denial/null rather than accidental authorization.
+- Evidence status: source review is complete for this package; current-head executable verification is pending.
+
+### Current stop point
+Authorization/runtime hardening is implemented and source-reviewed. The remaining completion gate is current-head CI/device evidence.
+
+### Exact next action
+Inspect run #174 for JVM results, Android-test compilation and managed-device instrumentation; fix only concrete failures, then update project state and proceed to the next major security layer only after the consolidated completion review.
