@@ -159,3 +159,22 @@ Current stop: authorization/pipeline input-validation hardening implemented and 
 - Exact commits: `6aad41edf7e4e0f78c6b53088057a2ee743ce648`, `04a6fe995d3b84f98d5af690d87a2c7981fb2c61`, `a41f1fd7571d44f138dc308c12e31bf63950b616`, `7da4243103e77450570aaa118b9d2883ff013def`, `b9c2e69376d4b289be4c4a7c3af4e466bec07212`.
 
 Current stop: major authorization hardening checkpoint reached; executable verification is the remaining gate before the next major security layer.
+
+
+## Latest GitHub Actions efficiency audit — 2026-09-18
+- Audited all repository `.github/workflows/*.yml` and `.yaml` files; exactly one workflow exists: `.github/workflows/android-test.yml`.
+- Existing CI functionality is preserved: JVM unit tests, Android instrumentation-test compilation, and managed-device instrumentation remain in the same job.
+- Trigger optimization is now limited to Android/runtime/build-relevant paths plus the workflow file itself. Documentation-only and unrelated changes no longer consume this CI runner.
+- PR concurrency cancellation is enabled only for `pull_request` runs; direct `main` pushes are not cancelled, preserving post-merge verification.
+- No indirect workflow trigger chain was found. No release workflow currently exists, so release/APK behavior was not removed or weakened.
+- Gradle caching was not duplicated because `gradle/actions/setup-gradle@v4` is already present. Further SDK caching/build-step consolidation was deliberately not applied without executable evidence that it preserves the current Android managed-device verification path.
+- Estimated savings cannot be stated as a fixed monthly minute number without historical workflow-duration/run-frequency data. Each path-filtered skip saves the full runner duration that the old workflow would have consumed; each cancelled superseded PR run saves its remaining runner time.
+- GitHub Actions syntax semantics were cross-checked against current GitHub documentation for `paths` and conditional `concurrency`.
+- Post-change workflow execution is not yet independently verified through the connected workflow-run API, which is limited for this repository; do not claim CI green from the source change alone.
+
+Exact commits:
+- `36e8afc7d94e704787f23708f76a747e827e0a5b` — CI trigger/concurrency optimization.
+- `6271963c933b40e1c1486c38314575001dbaf2b4` — common workflow rule for Actions efficiency and verification preservation.
+
+Current stop: workflow audit and minimal optimization are source-reviewed; executable post-change CI verification remains the gate before treating the optimization as fully verified.
+Next action: obtain/execute a post-change Android CI run, then perform the final trigger-matrix/accidental-skip review against the actual run behavior before continuing the pending security verification work.
