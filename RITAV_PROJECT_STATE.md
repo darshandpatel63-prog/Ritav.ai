@@ -72,6 +72,13 @@ Android instrumentation tests exist for Keystore encryption round-trip and ciphe
 ## Resource / screen privacy status
 No speculative screen/OCR/accessibility ingestion or standalone resource guard has been added without a real producer/consumer path. Concrete heavy AI/vision/speech/media workloads must receive bounded-resource and safe-cancellation controls when introduced.
 
+### Result verification hardening
+- ActionPlan now includes a deterministic expected post-action state and binds it into the exact plan hash used for authorization.
+- ExecutionBridge passes adapter-observed state into ResultVerifier.
+- ResultVerifier fails closed on invalid/oversized expected state, missing/oversized observed state, execution failure, or exact-state mismatch.
+- Regression coverage was added for missing, mismatched and oversized result evidence.
+- This change has not been executed through Gradle/CI in the available environment.
+
 ## Current verification
 The Android instrumentation-test compilation failure from `b5a502346c41321f58f1859bd09ebfd3d58b103b` was fixed by replacing unavailable `kotlin.test` assertion imports with the existing JUnit assertion API in commit `7d7c4a2df8495ab6c83e1702ee421e704a093174`. A post-fix successful workflow/device run has not yet been observed through the connected GitHub workflow-run API; the connected commit-workflow query is limited to pull-request-triggered runs and therefore cannot establish push-run status; CI green and real-device execution remain unverified.
 
