@@ -26,6 +26,7 @@ class ActionAuthorizationGate {
         require(plan.isValid())
         require(requiredLevel == requiredAuthorizationFor(plan))
         require(ttlMillis in 1..MAX_TTL_MILLIS)
+        require(nowEpochMillis >= 0)
         require(nowEpochMillis <= Long.MAX_VALUE - ttlMillis)
 
         val token = UUID.randomUUID().toString()
