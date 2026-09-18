@@ -8,12 +8,12 @@ class ResultVerificationTest {
     private val verifier = ResultVerifier()
 
     @Test fun successfulAdapterEvidenceIsVerified() {
-        val result = verifier.verify(true, ActionResultEvidence(success = true))
+        val result = verifier.verify(true, ActionResultEvidence(success = true, observedState = "OPENED"), "OPENED")
         assertTrue(result.verified)
     }
 
     @Test fun failedAdapterEvidenceCannotBeReportedAsSuccess() {
-        val result = verifier.verify(true, ActionResultEvidence(success = false, errorCode = "NOT_CONFIRMED"))
+        val result = verifier.verify(true, ActionResultEvidence(success = false, errorCode = "NOT_CONFIRMED"), "OPENED")
         assertFalse(result.verified)
     }
 
@@ -22,3 +22,14 @@ class ResultVerificationTest {
         assertFalse(result.verified)
     }
 }
+
+
+    @Test fun missingObservedStateCannotBeVerified() {
+        val result = verifier.verify(true, ActionResultEvidence(success = true), "OPENED")
+        assertFalse(result.verified)
+    }
+
+    @Test fun mismatchedObservedStateCannotBeVerified() {
+        val result = verifier.verify(true, ActionResultEvidence(success = true, observedState = "CLOSED"), "OPENED")
+        assertFalse(result.verified)
+    }
