@@ -342,3 +342,19 @@ Adversarial checks included malformed/oversized plans and identifiers, authoriza
 Audit decision: No blocking CRITICAL/HIGH finding. The mandatory independent-audit gate is satisfied for the capability-registry work package. The next major security layer may begin, subject to preserving all existing deterministic boundaries and adding its own tests, adversarial review, consolidated review, and CI verification.
 
 Exact next action: begin the trusted-app allowlist / permission-grant lifecycle layer, first by tracing the existing AppCapabilityRegistry + SecurePermissionStore responsibility and adding authorization for grant/revoke rather than introducing a parallel permission system.
+
+
+## 2026-09-18 trusted capability grant layer — in progress
+
+- Independent audit gate completed with no CRITICAL/HIGH blocking finding.
+- Implemented `AppCapabilityRegistry.riskTierFor(...)` so grant authorization can bind to exact registered app/capability/action metadata.
+- Added `CapabilityGrantService` as the single deterministic mutation boundary for capability grants. It rejects unknown/unregistered targets and prohibited/financial capabilities, binds grants to an exact grant `ActionPlan`, requires a one-shot authorization token, and maps lower-risk grants to at least user-confirmation authorization while preserving device-auth requirements for tier-3 targets.
+- Formalized `MutablePermissionStore` and wired `SecurePermissionStore` / `InMemoryPermissionStore` through it. Runtime policy and grant mutation now share the same permission store instance.
+- Integrated `CapabilityGrantService` into `AndroidExecutionRuntime`; no trusted external-app registry entries have been populated, so external execution remains deny-by-default.
+- Added adversarial unit coverage for exact-plan authorization, token replay, wrong-plan substitution, unknown/financial grant rejection, and invalid authorization clocks.
+
+**Verification status:** CI run #186 (`35361743561`) for head `46fd251da9ce53648f198fce881f605c036087b4` is currently pending. The new grant layer is therefore not yet CI/device verified and is not complete.
+
+**Current stop point:** trusted capability grant lifecycle implementation + integration are in place; executable verification is pending.
+
+**Next action:** inspect run #186; fix only concrete failures, then perform the grant-layer consolidated system review and update documentation with verified results before marking this security layer complete.
