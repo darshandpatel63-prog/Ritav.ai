@@ -122,3 +122,21 @@ Exact commits: `b957fe6064b25f86311f713ca64e6400f4b962f9`, `8b1f96e01bc31e66ccc8
 ## Latest agent-boundary hardening — 2026-09-18
 - Scoped agent proposals are now bounded/validated before orchestration and financial proposals are deterministically rejected.
 - Regression coverage added; Gradle/CI execution remains unverified.
+
+
+## Latest security hardening — 2026-09-18
+- Deterministic ActionPlan structural validation now bounds app/action/expected-state/session fields.
+- Authorization tokens are length-bounded; malformed plans are rejected; TTL arithmetic overflow is rejected.
+- SecurityExecutionPipeline now fails closed on malformed execution requests and requires protected actions to carry a session binding.
+- Regression coverage added for these boundaries.
+- Source/integration review completed; Gradle/CI execution remains unverified.
+
+Exact new commits:
+- e9d0d5c153c5affdfc2d3be868d59bb7cc9c475a
+- c9ed4fee861e4e6f2262651a67b5bcf7ce10be51
+- 4d71177bca448ca57064a5b4461742754ebd2270
+- 9adabc18ae77f7ed80254e218fb7daf9d2d302ab
+- 0681f6eae43f0448a65206bf92780a0e098a90f1
+- caf3ae845af41d92f2285eaf38770496dd3a9225
+
+Current stop: authorization/pipeline input-validation hardening implemented and source-reviewed; executable verification pending.
