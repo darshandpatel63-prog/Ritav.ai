@@ -464,3 +464,28 @@ The immediate package is Android authorization-clock hardening plus restoration 
 - ExecutionBridge and SecurityExecutionPipeline now validate `ActionPlan` structure before computing its stable hash, avoiding unnecessary hashing work on oversized/malformed input.
 - Regression coverage was added for these authorization and async failure paths.
 - The latest current-head workflow is #174 (`35332166648`) for `dd07f44cdc3b346259dcaea1260cca778b660706`; it is currently pending because an earlier run is still consuming the runner. No current-head green result is claimed yet.
+
+
+## 2026-09-18 verified security checkpoint — AppCapabilityRegistry
+
+- Current capability-registry hardening is implemented in commits `4d0984376ff99baaa475ae3d18488618c6a15525` and `9ac432d0e5b69e0449958599be5b384cb988f738`.
+- `AppCapabilityRegistry` now defensively freezes each capability's action set at construction and rejects oversized package identifiers, preventing caller-side mutation and unbounded registry metadata.
+- Regression tests cover post-construction action-set mutation and oversized package identifiers.
+- GitHub Actions run #176 (`35347302181`) for `9ac432d0e5b69e0449958599be5b384cb988f738` completed successfully.
+- The successful job completed JVM unit tests, Android instrumentation-test compilation/APK assembly, managed-device instrumentation execution, and the full workflow without failure.
+- This is executable CI/device evidence for the latest capability-registry hardening package. It does not establish universal real-device compatibility or production readiness.
+
+### Independent security checkpoint
+
+A consolidated review of the affected execution path was performed across authorization/access control, adversarial token misuse, identity/session binding, capability registry integrity, finance/sensitive-data boundaries, Emergency Stop, adapter ordering, result verification, audit/failure paths, and resource bounds.
+
+No new CRITICAL or HIGH bypass was identified in the reviewed path. The following limitations remain explicit:
+- The production trusted-app registry is still empty/deny-by-default.
+- `AndroidIntentActionAdapter` currently supports only `APP_LAUNCH` + `open`.
+- Final target-app UI state is not independently observed; `LAUNCH_DISPATCHED` is only dispatch evidence.
+- Real AI/model-context ingestion and screen/OCR/accessibility producer-consumer filtering are not implemented.
+- Native non-Android runtimes remain unimplemented.
+
+**Current stop point:** the capability-registry hardening package is implemented, consolidated-reviewed, and CI/device verified. Per the mandatory security workflow, this is now an audit gate before starting the next major security layer.
+
+**Next action:** perform the independent audit checkpoint, then—only if clean—begin the reviewed trusted-app allowlist/permission-grant layer while preserving finance hard-deny, sensitive-data isolation, Emergency Stop, exact authorization binding, and fail-closed behavior.
