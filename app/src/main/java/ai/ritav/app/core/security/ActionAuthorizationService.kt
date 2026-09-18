@@ -26,18 +26,28 @@ class ActionAuthorizationService(
         reason: String,
         callback: (token: String?) -> Unit
     ) {
-        if (!deviceAuthorization.isDeviceAuthenticationAvailable()) {
+        if (!plan.isValid() ||
+            plan.riskTier != RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE ||
+            reason.isBlank() || reason.length > MAX_REASON_LENGTH ||
+            !deviceAuthorization.isDeviceAuthenticationAvailable()
+        ) {
             callback(null)
             return
         }
         deviceAuthorization.authenticate(reason) { success ->
-            callback(
-                if (success) gate.issue(
-                    plan,
-                    AuthorizationLevel.DEVICE_AUTHENTICATION,
-                    clockEpochMillis()
-                ) else null
-            )
+            if (!success) {
+                callback(null)
+                return@authenticate
+            }
+            val now = clockEpochMillis()
+            val token = runCatching {
+                gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, now)
+            }.getOrNull()
+            callback(token)
         }
+    }
+
+    private companion object {
+        const val MAX_REASON_LENGTH = 512
     }
 }
