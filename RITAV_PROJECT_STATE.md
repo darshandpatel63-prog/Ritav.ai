@@ -252,3 +252,20 @@ Android security foundation is implemented and substantially source-reviewed, bu
 - GitHub Actions run `163` (`35330728748`) is attached to this exact head and is currently `pending`; no conclusion is claimed.
 - Runs `161` and `162` were cancelled before providing verification for the full current package. The current code/test head therefore remains executable-unverified until run `163` completes.
 - No local Gradle/Android build was executed in this environment.
+
+
+## Latest continuation checkpoint — 2026-09-18
+- Current main head: `03576a484266c2b8629fbeb19de36ab5a320b230`.
+- CI run #164 (`35331294938`) confirmed that the previous Android package-identity compilation fix worked: `compileDebugKotlin`, `compileDebugAndroidTestKotlin`, and `assembleDebugAndroidTest` all completed. One JVM test then failed: `ActionAuthorizationServiceTest.deviceAuthorizationRejectsInvalidPostAuthenticationClock`.
+- Root cause found by tracing the trusted token-minting path: `ActionAuthorizationGate.issue()` checked TTL overflow but did not reject negative `nowEpochMillis`, so an invalid clock could still mint a token.
+- Central fail-closed fix committed in `ed64a884baaaf4ad751e686703699f984d478db4`; direct regression coverage committed in `07844a039729bfe345250afd8d1026475e9b525d`.
+- During integration review, a second concrete defect was found in `MainActivity.kt`: the runtime initialization was embedded in a literal `\\n` sequence on the comment line, so the source compiled but `AndroidExecutionRuntime` was not actually instantiated. Corrected in `6e63b42699507a6228bf902086cc9c0b21569ec8`.
+- Added managed-device Activity startup regression test `MainActivityTest` in `03576a484266c2b8629fbeb19de36ab5a320b230`, using the existing AndroidX test stack rather than adding a dependency.
+- Run #166 for the intermediate test commit was cancelled by the subsequent startup-wiring change. Run #168 targets the current head and was queued at the latest inspection. No CI/device pass is claimed yet.
+- Source review confirms the resulting call path is now: `MainActivity.onCreate()` → `AndroidExecutionRuntime` → `SecurityRuntimeState` / authorization gate-service / security pipeline / capability gate / `AndroidIntentActionAdapter`.
+
+### Current stop point
+Android runtime startup wiring and negative authorization-clock hardening are implemented and source-reviewed. Executable verification remains the completion gate.
+
+### Exact next action
+Verify run #168 on current head through compilation, JVM tests, Android instrumentation-test execution and managed-device Activity startup; fix only concrete failures found by that run, then perform the consolidated system-level review before advancing to another security layer.
