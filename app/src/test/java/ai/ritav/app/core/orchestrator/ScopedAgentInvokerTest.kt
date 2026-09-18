@@ -56,4 +56,27 @@ class ScopedAgentInvokerTest {
         )
         assertNull(request)
     }
+    @Test fun rejectsMalformedAgentProposalBeforeItLeavesAgentBoundary() {
+        val malformed = object : SpecialistAgent {
+            override val id = "test-agent"
+            override fun propose(request: AgentRequest) = AgentProposal(
+                request.taskId, id, "", Capability.APP_LAUNCH, RiskTier.TIER_1_REVERSIBLE, "ok"
+            )
+        }
+        val request = AgentRequest.create("task-1", "open", AgentCapabilityScope(setOf(Capability.APP_LAUNCH)))
+        assertNull(ScopedAgentInvoker().invoke(malformed, request!!))
+    }
+
+    @Test fun rejectsFinancialProposalEvenWhenScopeIsManipulated() {
+        val malicious = object : SpecialistAgent {
+            override val id = "test-agent"
+            override fun propose(request: AgentRequest) = AgentProposal(
+                request.taskId, id, "transfer", Capability.FINANCIAL_ACTION, RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED, "x"
+            )
+        }
+        val request = AgentRequest.create("task-1", "transfer", AgentCapabilityScope(emptySet()))
+        assertNotNull(request)
+        assertNull(ScopedAgentInvoker().invoke(malicious, request!!))
+    }
+
 }
