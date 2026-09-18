@@ -7,7 +7,7 @@ import org.junit.Test
 
 class ActionAuthorizationServiceTest {
     private val plan = ActionPlan(
-        "demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE
+        "demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE, expectedState = "OPENED"
     )
 
     @Test fun userConfirmationRequiresExactPlanHash() {
