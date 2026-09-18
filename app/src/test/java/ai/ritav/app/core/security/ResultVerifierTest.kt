@@ -18,7 +18,6 @@ class ResultVerifierTest {
     }
 }
 
-
     @Test fun missingObservedStateCannotBeVerified() {
         val result = verifier.verify(true, ActionResultEvidence(success = true), "OPENED")
         assertFalse(result.verified)
@@ -39,3 +38,5 @@ class ResultVerifierTest {
         val result = verifier.verify(true, ActionResultEvidence(success = true, observedState = "x".repeat(257)), "x".repeat(257))
         assertFalse(result.verified)
     }
+
+}
