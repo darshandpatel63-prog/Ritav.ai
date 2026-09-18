@@ -362,3 +362,15 @@ Then:
 - `d6cc599f5ca21f1773ca2a43c9e76130a3797aad` — README cross-platform scope update.
 - `fbee545a881aadc4f9f325d202cc4802c84ec932` — master requirements cross-platform update.
 - `d5d4d3394f87918d23d8f16e54f2b02fcf3340ae` — project state synchronization.
+
+
+## 22. Latest security hardening — 2026-09-18
+- Agent ingress now rejects blank/oversized task IDs before agent exposure.
+- Agent capability scope is defensively copied at ingress to prevent caller-side mutation after validation.
+- `AgentRequest` remains factory-only constructed, preserving deterministic sensitive/financial ingress checks.
+- Regression tests cover task-ID bounds and scope isolation.
+- These changes are source-reviewed but not executed through Gradle/CI in the available environment.
+
+Exact commits: `b957fe6064b25f86311f713ca64e6400f4b962f9` and `bf33673ed43fc67aed304694f244699a49b29850f` (implementation), `8b1f96e01bc31e66ccc8b7ad60cf7726684c289a` (regression tests).
+
+Current stop: continue security/runtime hardening after verification evidence becomes available; do not claim CI green or real-device execution without evidence.
