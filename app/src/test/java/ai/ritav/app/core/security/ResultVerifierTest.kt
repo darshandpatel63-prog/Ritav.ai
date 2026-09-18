@@ -33,3 +33,9 @@ class ResultVerifierTest {
         val result = verifier.verify(true, ActionResultEvidence(success = true, observedState = "OPENED"), " ")
         assertFalse(result.verified)
     }
+
+
+    @Test fun oversizedObservedStateCannotBeVerified() {
+        val result = verifier.verify(true, ActionResultEvidence(success = true, observedState = "x".repeat(257)), "x".repeat(257))
+        assertFalse(result.verified)
+    }
