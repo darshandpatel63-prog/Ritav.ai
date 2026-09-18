@@ -82,6 +82,59 @@ class ActionAuthorizationServiceTest {
         )
     }
 
+    @Test fun malformedDeviceAuthorizationRequestFailsClosedWithoutThrowing() {
+        val gate = ActionAuthorizationGate()
+        val service = ActionAuthorizationService(
+            gate,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
+
+        var token: String? = "unexpected"
+        service.issueDeviceAuthenticationToken(plan.copy(expectedState = ""), "Authorize action") { token = it }
+
+        assertNull(token)
+    }
+
+    @Test fun deviceAuthorizationRejectsWrongRiskTier() {
+        val gate = ActionAuthorizationGate()
+        val service = ActionAuthorizationService(
+            gate,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
+
+        var token: String? = "unexpected"
+        service.issueDeviceAuthenticationToken(userConfirmationPlan, "Authorize action") { token = it }
+
+        assertNull(token)
+    }
+
+    @Test fun deviceAuthorizationRejectsInvalidPostAuthenticationClock() {
+        val gate = ActionAuthorizationGate()
+        val service = ActionAuthorizationService(
+            gate,
+            StubDeviceAuthorizationGateway(available = true, result = true),
+            clockEpochMillis = { -1L }
+        )
+
+        var token: String? = "unexpected"
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
+
+        assertNull(token)
+    }
+
+    @Test fun deviceAuthorizationBoundsAuthenticationReason() {
+        val gate = ActionAuthorizationGate()
+        val service = ActionAuthorizationService(
+            gate,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
+
+        var token: String? = "unexpected"
+        service.issueDeviceAuthenticationToken(plan, "x".repeat(513)) { token = it }
+
+        assertNull(token)
+    }
+
     @Test fun failedDeviceAuthenticationCannotMintToken() {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(
