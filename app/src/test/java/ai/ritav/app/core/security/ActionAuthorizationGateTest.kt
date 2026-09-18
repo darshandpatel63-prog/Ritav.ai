@@ -15,6 +15,37 @@ class ActionAuthorizationGateTest {
     )
 
     @Test
+    fun malformedPlanCannotMintAuthorizationToken() {
+        val gate = ActionAuthorizationGate()
+        val malformed = plan.copy(expectedState = "")
+        try {
+            gate.issue(malformed, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+            assertFalse(true)
+        } catch (_: IllegalArgumentException) {
+            assertTrue(true)
+        }
+    }
+
+    @Test
+    fun authorizationTtlCannotOverflowClock() {
+        val gate = ActionAuthorizationGate()
+        try {
+            gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, Long.MAX_VALUE, 1L)
+            assertFalse(true)
+        } catch (_: IllegalArgumentException) {
+            assertTrue(true)
+        }
+    }
+
+    @Test
+    fun oversizedTokenIsRejectedWithoutChangingValidTokenState() {
+        val gate = ActionAuthorizationGate()
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+        assertFalse(gate.consume("x".repeat(129), plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
+        assertTrue(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
+    }
+
+    @Test
     fun tokenCanBeConsumedOnlyOnce() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
