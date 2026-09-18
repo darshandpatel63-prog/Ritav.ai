@@ -69,7 +69,7 @@ Audit retention and session metadata are bounded. `SecureLocalStore` remains And
 Android instrumentation tests exist for Keystore encryption round-trip and ciphertext tamper rejection, but connected-device execution is still unverified.
 
 ## Execution composition
-`ExecutionBridge` remains the final deterministic execution boundary and `inputText` passes through the security pipeline before adapter execution. No production construction/composition of `ExecutionBridge` or concrete production `AndroidActionAdapter` is currently evidenced. Therefore real action execution is not claimed.
+`ExecutionBridge` remains the final deterministic execution boundary and `inputText` passes through the security pipeline before adapter execution. `AndroidExecutionRuntime` is now the Android composition root and is instantiated by `MainActivity`. Its trusted capability registry is currently empty, so external action execution remains deny-by-default. `AndroidIntentActionAdapter` implements only `APP_LAUNCH` + `open`, requires a trusted package signing-certificate SHA-256 pin, and observes only `LAUNCH_DISPATCHED`; target-app UI state is not independently observed.
 
 ## Resource / screen privacy status
 No speculative screen/OCR/accessibility ingestion or standalone resource guard has been added without a real producer/consumer path. Concrete heavy AI/vision/speech/media workloads must receive bounded-resource and safe-cancellation controls when introduced.
@@ -225,3 +225,23 @@ Android security foundation is implemented and substantially source-reviewed, bu
 1. Obtain a post-fix Android workflow result through an available GitHub Actions path.
 2. If executable evidence is green, perform the consolidated system-level review of the Android adapter + security runtime + authorization/execution/result-verification path.
 3. Then design the concrete Android execution adapter/composition incrementally, only for capabilities with authoritative host integration, keeping finance and unsupported capabilities denied.
+
+
+## Latest Android execution composition checkpoint — 2026-09-18
+- Added `AndroidExecutionRuntime` as the single Android composition root for `SecurityRuntimeState`, `SecurityExecutionPipeline`, `ActionAuthorizationGate`, `ActionAuthorizationService`, `CapabilityPolicyGate`, and the concrete Android launch adapter.
+- Connected `MainActivity` to construct that runtime with an empty `AppCapabilityRegistry`; this preserves deny-by-default until a reviewed allowlist exists.
+- Added `AndroidIntentActionAdapter` with one supported operation: `Capability.APP_LAUNCH` + action `open`. It requires expected state `LAUNCH_DISPATCHED`, catches host dispatch failures, and does not claim final target-UI observation.
+- Added Android package signing-certificate SHA-256 metadata to `AppCapabilitySpec`; conflicting pins and invalid digest formats are rejected. The production launch adapter verifies the installed package certificate before dispatch.
+- Hardened `ActionAuthorizationService.issueDeviceAuthenticationToken()` to reject malformed/wrong-risk/oversized/invalid-clock requests and to fail closed if token issuance throws.
+- Added JVM regression coverage for launch-adapter rejection/success semantics, registry certificate constraints, and device-auth failure paths.
+- A post-fix Actions query currently shows run `161` pending for earlier commit `ec479436b3133774148df92bedb3cc1ece6326dd`; no workflow run is currently associated with current main head `abf5155fa3ae54ef6a604e4a51e5e509183913d9`. Therefore the current package is source-reviewed but not CI-verified.
+- Do not claim green until a run actually builds/tests `abf5155fa3ae54ef6a604e4a51e5e509183913d9`.
+
+### Consolidated review result
+- Authorization: existing exact-plan, risk-bound, single-use token checks remain in the call path; device-auth service now fails closed on malformed issuance requests.
+- Package identity: package name is no longer the only production launch identity signal; certificate pinning is required by the concrete adapter.
+- Execution ordering: `ExecutionBridge` still gates before adapter execution, and adapter exceptions are contained.
+- Sensitive/finance: no bypass was introduced; sensitive input and finance hard-deny remain upstream of adapter execution.
+- Permissions/privacy: no new Android permission was added. App launch uses explicit package resolution and remains unavailable without trusted registry metadata. Broad package visibility is not introduced.
+- Result verification: adapter reports only dispatch observation; final UI state remains explicitly unverified.
+- Unsupported capabilities: remain unavailable because the concrete adapter handles only one bounded action and the application registry is empty.
