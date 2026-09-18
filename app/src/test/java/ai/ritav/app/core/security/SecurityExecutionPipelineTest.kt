@@ -10,6 +10,7 @@ class SecurityExecutionPipelineTest {
         capability = Capability.UI_AUTOMATION,
         action = "edit",
         riskTier = RiskTier.TIER_2_CONTENT_MUTATION,
+        expectedState = "EDITED",
         sessionId = "session-1"
     )
 
@@ -167,6 +168,7 @@ class SecurityExecutionPipelineTest {
             capability = Capability.FINANCIAL_ACTION,
             action = "transfer",
             riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+            expectedState = "TRANSFERRED",
             sessionId = "finance-session"
         )
         val action = ActionRequest(
