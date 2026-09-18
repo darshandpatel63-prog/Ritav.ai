@@ -62,6 +62,15 @@ jobs:
       - name: Install managed-device system image
         run: sdkmanager "system-images;android-30;aosp_atd;x86"
 
+      - name: Enable Android emulator hardware acceleration
+        run: |
+          if [ ! -e /dev/kvm ]; then
+            echo "::error::/dev/kvm is unavailable; managed-device x86 emulation cannot run on this runner."
+            exit 1
+          fi
+          sudo chmod 666 /dev/kvm
+          ls -l /dev/kvm
+
       - name: Run JVM unit tests and compile instrumentation tests
         run: gradle --no-daemon testDebugUnitTest assembleDebugAndroidTest
 
