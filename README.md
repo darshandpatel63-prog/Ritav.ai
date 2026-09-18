@@ -442,3 +442,16 @@ Current stop: major authorization hardening checkpoint reached; executable verif
 - Gradle/CI execution remains unverified; these changes are source-reviewed only until executable evidence is available.
 - Exact implementation/test commits: 1b990b39137931c044365ee7cae386044b030e93, be7263894fcdb17ce471aab3ac635367ae70fa0a, 5ceaf46d1d20834d9761f3aab3bec4a5393139bf, 2782416c2bb063603da9935ac6d4af4f189e3062, 8314a00d6b867e3193ba39c45ef611fc9b56ca5f, 06d0fc17d0b0f46e2759c633413c3fa382e2355a.
 
+
+
+## 2026-09-18 latest continuation checkpoint
+- Current main head: `03576a484266c2b8629fbeb19de36ab5a320b230`.
+- CI run #164 (`35331294938`) reached successful Android/app compilation and Android-test APK assembly, but one JVM regression failed: `ActionAuthorizationServiceTest.deviceAuthorizationRejectsInvalidPostAuthenticationClock`. The source cause was that `ActionAuthorizationGate.issue()` rejected overflow but accepted negative authorization timestamps.
+- Fixed centrally by rejecting `nowEpochMillis < 0` in `ActionAuthorizationGate.issue()`, and added a direct regression test for negative authorization clocks.
+- Restored real `MainActivity` startup wiring: the security runtime construction had been accidentally placed inside a literal `\\n` sequence in the source comment, leaving the runtime initialization commented out even though compilation succeeded.
+- Added `MainActivityTest` using AndroidX `ActivityScenario` to exercise Activity startup on the managed Android test target.
+- Current run #166 for `07844a039729bfe345250afd8d1026475e9b525d` was cancelled by a newer push; run #168 for the current head `03576a484266c2b8629fbeb19de36ab5a320b230` is queued at the latest inspection. Therefore current CI/device verification is still unverified.
+- No local Gradle execution is available in this environment.
+
+### Current stop point
+The immediate package is Android authorization-clock hardening plus restoration of the real Activity → AndroidExecutionRuntime startup call path, with an Activity startup regression test. Do not mark the package complete until the current queued workflow reaches JVM tests and managed-device instrumentation successfully.
