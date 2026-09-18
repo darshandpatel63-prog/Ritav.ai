@@ -23,8 +23,10 @@ class ActionAuthorizationGate {
         nowEpochMillis: Long,
         ttlMillis: Long = DEFAULT_TTL_MILLIS
     ): String {
+        require(plan.isValid())
         require(requiredLevel != AuthorizationLevel.NONE)
         require(ttlMillis in 1..MAX_TTL_MILLIS)
+        require(nowEpochMillis <= Long.MAX_VALUE - ttlMillis)
 
         val token = UUID.randomUUID().toString()
         grants[token] = Grant(
@@ -42,7 +44,8 @@ class ActionAuthorizationGate {
         providedLevel: AuthorizationLevel,
         nowEpochMillis: Long
     ): Boolean {
-        if (token.isBlank()) return false
+        if (token.isBlank() || token.length > MAX_TOKEN_LENGTH) return false
+        if (!plan.isValid()) return false
 
         val grant = grants.remove(token) ?: return false
         if (nowEpochMillis > grant.expiresAtEpochMillis) return false
@@ -63,5 +66,6 @@ class ActionAuthorizationGate {
     private companion object {
         const val DEFAULT_TTL_MILLIS = 60_000L
         const val MAX_TTL_MILLIS = 5 * 60_000L
+        const val MAX_TOKEN_LENGTH = 128
     }
 }
