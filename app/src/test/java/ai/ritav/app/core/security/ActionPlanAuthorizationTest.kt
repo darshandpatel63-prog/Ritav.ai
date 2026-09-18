@@ -10,6 +10,7 @@ class ActionPlanAuthorizationTest {
         capability = Capability.SEND_MESSAGE,
         action = action,
         riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+        expectedState = "SENT",
         sessionId = "session-1"
     )
 
