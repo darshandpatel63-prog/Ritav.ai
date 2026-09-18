@@ -94,15 +94,14 @@ The Android instrumentation-test compilation failure from `b5a502346c41321f58f18
 - No release APK or non-Android production package sign-off is claimed.
 
 ## Exact next stop point
-**Obtain post-fix CI/device evidence and continue Android adapter/runtime integration incrementally.**
+**Verify the deterministic result-state verification change before starting another runtime/security layer.**
 
 Next:
-1. Verify the post-fix GitHub Actions workflow on current `main`.
+1. Verify the current GitHub Actions result for the latest result-verification changes when exposed by the available integration.
 2. Verify JVM tests, Android instrumentation-test compilation and managed-device instrumentation.
-3. Complete the consolidated system-level review of the cross-platform foundation + Android adapter.
-4. Reconcile stale Android-only wording through minimal targeted documentation edits.
-5. Then continue with the next concrete platform/runtime implementation.
-6. Keep unsupported capabilities unavailable rather than emulating or bypassing OS restrictions.
+3. Perform the consolidated system-level review of ActionPlan hashing, authorization, execution, observed-state verification, audit and failure paths.
+4. If that checkpoint is clean, continue with production Android execution composition and adapter integration incrementally.
+5. Keep unsupported capabilities unavailable rather than emulating or bypassing OS restrictions.
 
 ## Continuation rule
 Read the required workflow/security documents and this state before development. Treat `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` as the active product-scope decision. Do not redesign or duplicate existing security controls.
