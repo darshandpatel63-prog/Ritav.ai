@@ -358,3 +358,23 @@ Exact next action: begin the trusted-app allowlist / permission-grant lifecycle 
 **Current stop point:** trusted capability grant lifecycle implementation + integration are in place; executable verification is pending.
 
 **Next action:** inspect run #186; fix only concrete failures, then perform the grant-layer consolidated system review and update documentation with verified results before marking this security layer complete.
+
+
+## 2026-09-18 product architecture update — optional online identity and premium layer
+
+The product requirement has been reconciled into the blueprint as a **future, optional online identity/premium entitlement layer** without making the current offline-first app dependent on a backend.
+
+Decisions recorded:
+- Core local/offline functionality must remain usable without account, backend or payment.
+- Google account / Google Sign-In is one canonical identity path; "Gmail login" is not a separate security identity. Ritav must never collect a Google password.
+- Future premium access is a server-authoritative entitlement, not a client-side flag.
+- Future payment provider integration (Razorpay is only an example; no provider is selected yet) must use server-side verification/webhooks and replay-safe entitlement state.
+- Payment secrets, OAuth client secrets, backend secrets and authoritative premium rules must never be shipped as client authority.
+- Release builds may use Android R8/minification and equivalent platform protections to increase reverse-engineering cost, but the project explicitly does not claim decompilation can be made impossible.
+- Local AI memory/task history/security audit data remains local by default; the future backend stores only minimum account/entitlement/online-feature data.
+- A free-tier backend is feasible for early scale. Current public pricing checked 2026-09-18 shows Supabase Free includes social OAuth, 50K MAU, 500 MB database and 1 GB file storage; Firebase Spark also provides no-cost social authentication with documented limits. These are time-sensitive vendor quotas, not a guarantee of permanent free service.
+- No online authentication/payment SDK or backend code was added to the current offline runtime. This is deliberate: architecture is reserved now; implementation will begin only when the online identity/premium phase is reached and after a dedicated security threat model/review.
+
+**Current status:** architecture recorded; no executable premium/backend integration claimed.
+
+**Exact next action:** finish and verify the current trusted capability grant lifecycle first. Later, when online identity is scheduled, perform provider selection, threat modeling, backend authorization design, secure session/token implementation, sandbox payment integration, and independent security review before production enablement.
