@@ -3,7 +3,7 @@
 This is the common operating contract for every AI/chat working on Ritav.ai. It complements `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_BLUEPRINT.md`, and `docs/MASTER_REQUIREMENTS_MATRIX.md`.
 
 ## 1. Existing project / platform
-Ritav.ai is an existing Android-only, privacy-first, local-first project. Continue the existing project; never restart or replace working architecture without explicit user instruction. Do not add web, iOS, or desktop implementations unless explicitly requested.
+Ritav.ai is a cross-platform, privacy-first, local-first project. The active product scope is defined by `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md`: Android, iOS/iPadOS, Windows, macOS, Linux and supported ChromeOS runtimes. Continue the existing architecture; never restart or replace working architecture without explicit user instruction. Native platform implementations must be added only through explicit, verified platform adapters and must preserve the common deterministic security boundary. Current executable implementation remains Android + JVM-targeted shared contracts/security; do not claim platform support merely from contracts or enums.
 
 ## 2. New-chat protocol
 When the user says `Start` or `Continue`, resume from the repository and project state. At the beginning of a new chat, read this file once together with `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_BLUEPRINT.md`, and `docs/MASTER_REQUIREMENTS_MATRIX.md`, plus the relevant build/config/source/test files. Do not repeatedly reread this workflow file during the same chat unless context is lost, requirements change, or rereading is needed for correctness. Do not make the user repeat known project context.
@@ -56,7 +56,7 @@ Websites, apps, notifications, messages, documents, OCR, files, and external-ser
 Use scoped capabilities and layered permissions: global → app → capability → action → session/context. Authorization must be explicit, scoped, appropriately time-bounded, bound to the exact intended action/plan, single-use where appropriate, replay-resistant, and invalidated when security state requires it. Emergency Stop must be enforced by the execution path and unsafe/consequential execution must stop while active.
 
 ## 18. Execution + result verification
-Where applicable follow: User → Interaction/Security Gate → Intent/Context → Master Orchestrator → Policy → Permission → Sensitive/Finance Firewall → Confirmation/Device Auth → Approved Android Adapter → Result Verification → Local Audit. Never assume adapter return means success; observe and verify expected state and report failure/uncertainty honestly.
+Where applicable follow: User → Interaction/Security Gate → Intent/Context → Master Orchestrator → Policy → Permission → Sensitive/Finance Firewall → Confirmation/Device Auth → Approved platform adapter → Result Verification → Local Audit. Platform adapters are native execution boundaries for their host OS and must never weaken the common deterministic security boundary. Never assume adapter return means success; observe and verify expected state and report failure/uncertainty honestly.
 
 ## 19. Privacy/local-first
 Prefer local processing/storage, minimal permissions, minimal dependencies, zero-egress by default, and no hidden telemetry. Review every network/data-egress path and dependency for privacy implications.
