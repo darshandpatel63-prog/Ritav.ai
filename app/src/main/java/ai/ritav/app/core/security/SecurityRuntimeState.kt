@@ -6,11 +6,13 @@ import ai.ritav.app.core.storage.SecureLocalStore
 /** Runtime security composition root with shared emergency-stop and audit state. */
 class SecurityRuntimeState private constructor(
     private val emergencyStopController: EmergencyStopController,
+    val permissionStore: MutablePermissionStore,
     val policyEngine: PolicyEngine,
     val auditLog: AuditLog
 ) {
     private constructor(deps: RuntimeDeps) : this(
         deps.emergencyStopController,
+        deps.permissionStore,
         deps.policyEngine,
         deps.auditLog
     )
@@ -20,7 +22,8 @@ class SecurityRuntimeState private constructor(
     /** Constructor retained for lightweight unit tests. */
     constructor(emergencyStopController: EmergencyStopController = EmergencyStopController()) : this(
         emergencyStopController = emergencyStopController,
-        policyEngine = PolicyEngine(emergencyStop = emergencyStopController),
+        permissionStore = InMemoryPermissionStore(),
+        policyEngine = PolicyEngine(permissionStore = InMemoryPermissionStore(), emergencyStop = emergencyStopController),
         auditLog = InMemoryAuditLog()
     )
 
@@ -63,8 +66,9 @@ class SecurityRuntimeState private constructor(
     private class RuntimeDeps(context: Context) {
         private val secureStore = SecureLocalStore(context)
         val emergencyStopController = EmergencyStopController()
+        val permissionStore: MutablePermissionStore = SecurePermissionStore(secureStore)
         val policyEngine = PolicyEngine(
-            permissionStore = SecurePermissionStore(secureStore),
+            permissionStore = permissionStore,
             emergencyStop = emergencyStopController
         )
         val auditLog: AuditLog = SecureAuditLog(secureStore)
