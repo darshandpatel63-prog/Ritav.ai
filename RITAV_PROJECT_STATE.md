@@ -245,3 +245,10 @@ Android security foundation is implemented and substantially source-reviewed, bu
 - Permissions/privacy: no new Android permission was added. App launch uses explicit package resolution and remains unavailable without trusted registry metadata. Broad package visibility is not introduced.
 - Result verification: adapter reports only dispatch observation; final UI state remains explicitly unverified.
 - Unsupported capabilities: remain unavailable because the concrete adapter handles only one bounded action and the application registry is empty.
+
+
+## Verification update — 2026-09-18
+- Current main head is `85e634e802dd03cdd1acd24ffa7542fb157570ca`.
+- GitHub Actions run `163` (`35330728748`) is attached to this exact head and is currently `pending`; no conclusion is claimed.
+- Runs `161` and `162` were cancelled before providing verification for the full current package. The current code/test head therefore remains executable-unverified until run `163` completes.
+- No local Gradle/Android build was executed in this environment.
