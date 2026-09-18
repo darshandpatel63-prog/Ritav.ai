@@ -57,6 +57,11 @@ class AppCapabilityRegistry(
     fun isFinancial(packageName: String): Boolean =
         specsByPackage[packageName].orEmpty().any { it.financialCategory }
 
+    fun riskTierFor(packageName: String, capability: Capability, action: String): RiskTier? =
+        specsByPackage[packageName].orEmpty()
+            .firstOrNull { capability == it.capability && action in it.actions }
+            ?.riskTier
+
     fun trustedCertificateSha256(packageName: String): String? =
         specsByPackage[packageName].orEmpty().firstOrNull()?.trustedCertificateSha256
 
