@@ -91,7 +91,7 @@ The Android instrumentation-test compilation failure from `b5a502346c41321f58f18
 - Platform-specific CI and real-device/real-host verification are not yet complete.
 - Real model/context ingestion boundary remains future work.
 - Screen/OCR/accessibility runtime ingress remains unimplemented.
-- Connected-device Android instrumentation execution remains unverified.
+- Run #176 verified the latest capability-registry package on a managed Android device; storage-specific connected-device evidence remains separate.
 - No claim that Ritav currently runs on every listed OS/device.
 - No release APK or non-Android production package sign-off is claimed.
 
