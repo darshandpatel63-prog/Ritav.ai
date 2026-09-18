@@ -105,7 +105,7 @@ class ActionAuthorizationGateTest {
     fun weakerAuthorizationCannotSatisfyStrongerToken() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
-            plan = plan,
+            plan = plan.copy(riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE),
             requiredLevel = AuthorizationLevel.DEVICE_AUTHENTICATION,
             nowEpochMillis = 1_000L
         )
