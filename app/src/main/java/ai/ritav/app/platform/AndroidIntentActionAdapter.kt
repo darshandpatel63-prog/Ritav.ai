@@ -15,7 +15,7 @@ import ai.ritav.app.core.security.ExecutionResult
  * It deliberately exposes only APP_LAUNCH + "open" and requires a deterministic
  * dispatch-state expectation. The common security boundary remains authoritative.
  */
-class AndroidIntentActionAdapter(
+class AndroidIntentActionAdapter internal constructor(
     dispatcher: AndroidAppLaunchDispatcher,
     private val isTrustedPackage: (String) -> Boolean
 ) : AndroidActionAdapter {
