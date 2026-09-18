@@ -209,3 +209,19 @@ Next action: obtain a post-change Android CI run and verify JVM + instrumentatio
 - Both regressions were corrected together in `9dd36b4b8dd6e32d5e6e5677d6f84b63ed004d12` to avoid another fragmented test-fix sequence.
 - New GitHub Actions run 146 (`35317701968`) is currently in progress for that test-fix commit; at the latest inspection it is still installing the managed-device system image. No success/failure conclusion is claimed yet.
 - Documentation was clarified in `a832c1d5fa68054099337608c48d0269b4ec1827` so future continuations distinguish cross-platform target architecture from currently implemented Android/JVM code.
+
+
+## Latest continuation — 2026-09-18
+- Latest source commit: `1fc8bd2a9be235d0f1059f73f338bd60bdb731ec` hardens Android network-capability probing so permission/security failures fail closed as `networkAccess = false` rather than crashing the adapter.
+- Repository tracing confirms `MainActivity` constructs `SecurityRuntimeState` for Emergency Stop/UI state, but there is still no production `ExecutionBridge` composition and no concrete production `AndroidActionAdapter`.
+- The latest known managed-device workflow before this fix (run `35326936622`) reached actual Android instrumentation and had 2/3 tests pass; the remaining adapter test failed because network capability access raised `SecurityException` when the test intentionally granted no app permissions.
+- Post-fix workflow evidence for `1fc8bd2a9be235d0f1059f73f338bd60bdb731ec` is not exposed by the connected workflow-run API; therefore the fix is source-reviewed but not executable-verified.
+- Documentation scope contradiction was corrected in `0e1088c001af69f7e3feb6d96125f29c59ef26f3` and `f589782a13cc72f4eaba673ee1fa5c5df3a844da`: the common workflow and elite security addendum now recognize the active cross-platform product scope while preserving the current Android implementation reality and deterministic security requirements.
+
+### Current stop point
+Android security foundation is implemented and substantially source-reviewed, but the runtime execution path is intentionally incomplete. The immediate verification gate is post-fix Android CI/device evidence.
+
+### Exact next action
+1. Obtain a post-fix Android workflow result through an available GitHub Actions path.
+2. If executable evidence is green, perform the consolidated system-level review of the Android adapter + security runtime + authorization/execution/result-verification path.
+3. Then design the concrete Android execution adapter/composition incrementally, only for capabilities with authoritative host integration, keeping finance and unsupported capabilities denied.
