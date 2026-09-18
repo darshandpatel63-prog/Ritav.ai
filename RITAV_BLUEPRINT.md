@@ -1212,3 +1212,179 @@ The security layer ensures that neither the model nor external content can silen
 **USER → INTENT → ORCHESTRATOR → POLICY → PERMISSION → CONFIRMATION → EXECUTION → VERIFICATION → AUDIT**
 
 That sequence is the foundation of Ritav.ai.
+
+
+---
+
+# 41. Optional Online Identity + Premium Entitlement Architecture
+
+Ritav remains **local-first and fully useful offline**. A future online identity/premium layer must be additive: it must not turn ordinary local operation into a mandatory cloud dependency.
+
+## 41.1 Product model
+
+Ritav may later have two capability classes:
+
+- **Core/local capabilities:** remain usable without an account, backend, subscription, or payment.
+- **Online/premium capabilities:** explicitly marked and gated by a deterministic entitlement service when the feature genuinely needs account/cloud/premium infrastructure.
+
+Premium must be treated as an **entitlement**, not as a security boundary.
+
+A client-side `isPremium=true` flag is never authoritative.
+
+## 41.2 Identity
+
+Use one canonical account identity rather than creating separate security identities for "Gmail login" and "Google login".
+
+For a Google account, Google Sign-In/OAuth can authenticate the same identity whether the user describes it as a Gmail login or Google login. The backend must verify the provider-issued identity token/server-side authorization result before creating or linking the Ritav account.
+
+Future supported identity providers may include:
+
+- Google account / Google Sign-In.
+- Email/password or passwordless email, only if product requirements justify it.
+- Additional providers only after separate security review.
+
+Rules:
+
+- Authentication tokens/secrets never enter AI reasoning.
+- Client authentication state is untrusted until server verification.
+- Access tokens and refresh tokens are stored only in platform-approved secure storage where needed.
+- Backend authorization is server-side.
+- Account linking requires explicit authenticated user intent.
+- Logout/revocation/session expiry must invalidate applicable server sessions/tokens.
+- Do not store a user's Google password.
+- Ritav does not need Gmail mailbox access merely to authenticate a Google account.
+
+## 41.3 Future backend contract
+
+The backend should be provider-agnostic at the Ritav architecture layer:
+
+```text
+Ritav App
+   |
+   | authenticated request
+   v
+Auth/Session Gateway
+   |
+   +--> Identity verification
+   +--> Authorization
+   +--> Premium entitlement lookup
+   +--> Rate/resource limits
+   +--> Audit/security events
+   |
+   +--> Database / minimal user data
+   +--> Object storage (only when required)
+```
+
+The mobile/desktop client is never the authority for:
+
+- premium entitlement
+- payment success
+- subscription status
+- account ownership
+- administrative roles
+- server-side feature flags
+- security-sensitive quotas
+
+## 41.4 Premium/payment architecture
+
+A future payment provider (for example Razorpay or another provider selected later) must use this flow:
+
+```text
+User
+ -> Ritav premium checkout
+ -> Payment provider
+ -> provider verification/webhook
+ -> Ritav backend
+ -> verified entitlement record
+ -> client receives scoped entitlement
+ -> premium feature gate
+```
+
+Never:
+
+- put payment-provider secret keys in the APK/app binary;
+- trust a client-only "payment successful" callback;
+- unlock premium solely from local storage;
+- send payment secrets, CVV, UPI PIN, OTP or banking credentials to Ritav AI;
+- let AI decide whether a subscription is valid.
+
+The backend must verify provider signatures/webhooks according to the selected provider's official protocol, maintain an entitlement state, and support cancellation, expiry, refund/revocation and replay-safe event handling.
+
+## 41.5 Offline premium behavior
+
+Premium may coexist with offline operation:
+
+- The app can cache a **minimal, signed/validated entitlement snapshot** for a bounded period.
+- Offline access must have a defined expiry/grace policy.
+- Expired or unverifiable entitlement must fail closed for premium-only online features.
+- Core offline functionality remains available.
+- No secret payment data is cached.
+- Entitlement cache must not be treated as permanent proof of payment.
+
+The exact offline grace period is a product/security decision and must be finalized before implementation.
+
+## 41.6 Backend/data-minimization rules
+
+Store the minimum data required for identity, entitlement, synchronization and explicitly requested online features.
+
+Do not use the backend as a hidden mirror of local Ritav data.
+
+By default, keep:
+
+- local AI memory local;
+- local task history local;
+- sensitive execution/audit data local;
+- secrets local and protected;
+- only account/entitlement metadata server-side unless a future feature explicitly requires synchronization.
+
+Every server-bound field needs a data-classification and egress-policy decision.
+
+## 41.7 Free-first backend candidates
+
+A future implementation can start on a free tier rather than requiring paid infrastructure from day one. Current public pricing reviewed on 2026-09-18 shows:
+
+- **Supabase Free:** 50,000 MAU, 500 MB database, 1 GB file storage and social OAuth support, subject to quotas/limits and free-project pausing rules.
+- **Firebase Spark:** no-cost plan with social authentication and documented free quotas/limits, subject to Firebase plan rules.
+- **Cloudflare Workers/D1/R2:** useful low-cost serverless building blocks with free allocations, but identity/authentication would require an additional secure identity design.
+
+These are candidates, not a permanent vendor decision. Free tiers are quota-limited and can change; Ritav must never promise "free forever".
+
+The first backend architecture should prefer the smallest provider set that can securely provide authentication, server-side authorization, entitlement state and minimal data storage. A final provider choice requires dependency/privacy/security review before implementation.
+
+## 41.8 App-binary/decompilation security
+
+Ritav must assume that any distributed client binary can be inspected, decompiled, instrumented or modified.
+
+Therefore:
+
+- Never put backend secrets, payment secrets, signing secrets or authoritative premium rules in the client.
+- Use release minification/obfuscation (for Android, R8 where appropriate) to raise reverse-engineering cost.
+- Remove debug/test endpoints and sensitive diagnostics from release builds.
+- Keep server-side authorization and entitlement decisions authoritative.
+- Consider certificate/public-key pinning only where it is justified and operationally safe; it is not a substitute for backend authorization.
+- Detect compromised/tampered clients only as a defense-in-depth signal; never depend on client anti-tamper alone for authorization.
+- Do not claim that obfuscation makes the code impossible to recover or understand.
+
+The security objective is **not "make decompilation impossible"**. The objective is that extracting the client does not reveal secrets or allow an attacker to obtain premium/backend authority.
+
+## 41.9 Security and privacy requirements before enabling online identity/premium
+
+Before production online login or payment is enabled, the work package must include:
+
+1. Threat model for account takeover, token theft, replay, session fixation, OAuth misbinding, webhook forgery and entitlement tampering.
+2. Server-side authorization tests.
+3. Secure token/session lifecycle.
+4. Provider webhook/signature verification.
+5. Replay/idempotency handling.
+6. Rate limits and abuse controls.
+7. Data-retention/deletion controls.
+8. Egress policy integration.
+9. Audit events without payment/credential secrets.
+10. Release-build secret scanning.
+11. Dependency/security review.
+12. Android/iOS/desktop platform-specific secure-storage review where implemented.
+13. Real integration tests against the selected provider sandbox/test environment.
+14. Independent security review before the payment/entitlement layer is marked complete.
+
+No payment SDK, OAuth SDK, backend credentials, or online account requirement should be added to the current offline runtime merely to reserve the idea. The architecture is recorded now; executable integration should begin only when the product reaches the online identity/premium phase.
+
