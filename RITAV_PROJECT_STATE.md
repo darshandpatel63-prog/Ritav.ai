@@ -297,3 +297,31 @@ Authorization/runtime hardening is implemented and source-reviewed. The remainin
 
 ### Exact next action
 Inspect run #174 for JVM results, Android-test compilation and managed-device instrumentation; fix only concrete failures, then update project state and proceed to the next major security layer only after the consolidated completion review.
+
+
+## 2026-09-18 verified capability-registry security checkpoint
+
+- Latest capability-registry security implementation: `4d0984376ff99baaa475ae3d18488618c6a15525` — defensively freeze capability registry metadata.
+- Latest regression coverage: `9ac432d0e5b69e0449958599be5b384cb988f738` — immutable capability metadata and package-name bound tests.
+- GitHub Actions run #176 (`35347302181`) completed successfully for `9ac432d0e5b69e0449958599be5b384cb988f738`.
+- Verified workflow steps: Android SDK/system image setup, JVM unit tests, Android instrumentation-test compilation/APK assembly, and managed-device instrumentation execution.
+- No local Gradle execution was performed; verification evidence comes from the connected GitHub Actions managed-device workflow.
+- Consolidated security review of the affected path covered authorization/access control, token misuse/replay, identity/session binding, capability registry immutability and bounds, finance/sensitive-data isolation, Emergency Stop, execution ordering, result verification, audit/failure paths, and resource bounds. No new CRITICAL/HIGH bypass was identified in this review.
+
+### Remaining security/runtime limitations
+
+- Trusted external-app registry is intentionally empty in the production composition root; external execution remains deny-by-default.
+- Android launch adapter supports only `APP_LAUNCH` + `open`.
+- `LAUNCH_DISPATCHED` is dispatch evidence, not independent observation of the target application's final UI/state.
+- Real AI/model-context ingestion choke point is not implemented.
+- Real screen/OCR/accessibility producer → sanitizer → model-consumer path is not implemented.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime implementations are not present.
+- Pattern-based sensitive-data detection remains defense-in-depth rather than complete contextual classification.
+
+### Exact stop point
+
+**Capability-registry hardening is implemented, consolidated-reviewed, and CI/managed-device verified. This is the mandatory independent-audit gate before the next major security layer.**
+
+### Exact next action
+
+Perform the independent audit checkpoint. If no blocking finding remains, begin the reviewed trusted-app allowlist / permission-grant security layer. Do not weaken or bypass finance hard-deny, sensitive-data isolation, Emergency Stop, exact plan/authorization binding, package identity verification, result verification, or fail-closed behavior.
