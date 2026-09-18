@@ -82,6 +82,11 @@ class SecurityExecutionPipeline(
         ) {
             return denyAndAudit(request, actionHash, "Protected action requires an active trusted identity session", AuthorizationLevel.USER_CONFIRMATION)
         }
+        if (request.action.riskTier >= RiskTier.TIER_2_CONTENT_MUTATION &&
+            request.identitySession!!.id != request.action.sessionId
+        ) {
+            return denyAndAudit(request, actionHash, "Identity session is not bound to the protected action session", AuthorizationLevel.USER_CONFIRMATION)
+        }
 
         val decision = executionPolicyGate.authorize(request.action)
         if (!decision.allowed) {
