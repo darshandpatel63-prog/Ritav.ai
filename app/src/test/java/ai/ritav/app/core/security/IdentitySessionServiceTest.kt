@@ -43,7 +43,7 @@ class IdentitySessionServiceTest {
         val service = IdentitySessionService(IdentitySessionManager(), gateway)
 
         var session: SecuritySession? =
-            SecuritySession.create("test", IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
+            IdentitySessionManager().createSession(IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
         service.authenticate("Authorize protected Ritav actions") { session = it }
 
         assertNull(session)
@@ -56,7 +56,7 @@ class IdentitySessionServiceTest {
         val service = IdentitySessionService(IdentitySessionManager(), gateway)
 
         var session: SecuritySession? =
-            SecuritySession.create("test", IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
+            IdentitySessionManager().createSession(IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
         service.authenticate("password: secret1234") { session = it }
 
         assertNull(session)
@@ -73,7 +73,7 @@ class IdentitySessionServiceTest {
         )
 
         var session: SecuritySession? =
-            SecuritySession.create("test", IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
+            IdentitySessionManager().createSession(IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
         service.authenticate("Authorize protected Ritav actions") { session = it }
 
         assertNull(session)
@@ -121,7 +121,7 @@ class IdentitySessionServiceTest {
         val service = IdentitySessionService(IdentitySessionManager(), gateway)
 
         var session: SecuritySession? =
-            SecuritySession.create("test", IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
+            IdentitySessionManager().createSession(IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
         service.authenticate("Authorize protected Ritav actions") { session = it }
 
         assertNull(session)
