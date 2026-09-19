@@ -173,7 +173,7 @@ class AuditLogTest {
                 action = ActionRequest("demo", "edit", RiskTier.TIER_2_CONTENT_MUTATION, Capability.UI_AUTOMATION, "s1", userExplicitlyRequested = true, authorizationLevel = AuthorizationLevel.USER_CONFIRMATION),
                 plan = plan,
                 authorizationToken = token,
-                identitySession = SecuritySession.create("s1", IdentityLevel.OWNER_SIGNAL, 1000L, 61_000L),
+                identitySession = IdentitySessionManager().createSession(IdentityLevel.OWNER_SIGNAL, 1000L, 60_000L),
                 nowEpochMillis = 1000L
             )
         )
