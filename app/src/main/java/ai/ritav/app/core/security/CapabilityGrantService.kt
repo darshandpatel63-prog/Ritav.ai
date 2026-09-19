@@ -11,7 +11,7 @@ class CapabilityGrantService(
     private val registry: AppCapabilityRegistry,
     private val permissionStore: MutablePermissionStore,
     private val authorizationGate: ActionAuthorizationGate,
-    private val emergencyStop: EmergencyStopController
+    private val emergencyStop: EmergencyStopController = EmergencyStopController()
 ) {
     fun createGrantPlan(
         packageName: String,
