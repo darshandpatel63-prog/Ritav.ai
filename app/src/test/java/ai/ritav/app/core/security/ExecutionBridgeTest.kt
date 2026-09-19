@@ -22,26 +22,22 @@ class ExecutionBridgeTest {
         }
     }
 
-    private fun registryFor(plan: ActionPlan) = AppCapabilityRegistry(
-        listOf(AppCapabilitySpec(plan.appId, plan.capability, setOf(plan.action), plan.riskTier))
-    )
-
-    private fun pipelineFor(policy: PolicyEngine, gate: ActionAuthorizationGate = ActionAuthorizationGate()) =
-        SecurityExecutionPipeline(policy, ExecutionPolicyGate(policy), gate)
-
     private data class ProtectedFixture(
+        val identityManager: IdentitySessionManager,
         val plan: ActionPlan,
         val session: SecuritySession
     )
 
     private fun protectedFixture(): ProtectedFixture {
         val now = System.currentTimeMillis()
-        val session = IdentitySessionManager().createSession(
-            identity = IdentityLevel.OWNER_SIGNAL,
+        val identityManager = IdentitySessionManager()
+        val session = identityManager.createSession(
+            identity = IdentityLevel.TRUSTED_SIGNAL,
             nowEpochMillis = now - 1_000L,
             ttlMillis = 60_000L
         )
         return ProtectedFixture(
+            identityManager = identityManager,
             plan = ActionPlan(
                 "demo.app",
                 Capability.UI_AUTOMATION,
@@ -54,12 +50,29 @@ class ExecutionBridgeTest {
         )
     }
 
+    private fun registryFor(plan: ActionPlan) = AppCapabilityRegistry(
+        listOf(AppCapabilitySpec(plan.appId, plan.capability, setOf(plan.action), plan.riskTier))
+    )
+
+    private fun pipelineFor(
+        policy: PolicyEngine,
+        identityManager: IdentitySessionManager,
+        gate: ActionAuthorizationGate = ActionAuthorizationGate()
+    ) = SecurityExecutionPipeline(
+        policy,
+        ExecutionPolicyGate(policy),
+        gate,
+        identitySessionManager = identityManager
+    )
 
     @Test fun unregisteredCapabilityNeverReachesAdapter() {
         val adapter = RecordingAdapter()
         val policy = PolicyEngine()
-        val bridge = ExecutionBridge(CapabilityPolicyGate(AppCapabilityRegistry()), pipelineFor(policy), adapter)
-        val result = bridge.execute(ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED"), true)
+        val bridge = ExecutionBridge(CapabilityPolicyGate(AppCapabilityRegistry()), pipelineFor(policy, IdentitySessionManager()), adapter)
+        val result = bridge.execute(
+            ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED"),
+            true
+        )
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
@@ -69,7 +82,11 @@ class ExecutionBridgeTest {
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
         val result = bridge.execute(plan, userExplicitlyRequested = true)
         assertTrue(result.success)
         assertEquals(1, adapter.calls)
@@ -79,9 +96,22 @@ class ExecutionBridgeTest {
         val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "OPENED")
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
-        val registry = AppCapabilityRegistry(listOf(AppCapabilitySpec(plan.appId, plan.capability, setOf(plan.action), RiskTier.TIER_1_REVERSIBLE)))
+        val registry = AppCapabilityRegistry(
+            listOf(
+                AppCapabilitySpec(
+                    plan.appId,
+                    plan.capability,
+                    setOf(plan.action),
+                    RiskTier.TIER_1_REVERSIBLE
+                )
+            )
+        )
         val policy = PolicyEngine(permissions)
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registry), pipelineFor(policy), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registry),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
         val result = bridge.execute(plan, userExplicitlyRequested = true)
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
@@ -92,7 +122,11 @@ class ExecutionBridgeTest {
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
         val result = bridge.execute(plan, true, containsSensitiveData = true)
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
@@ -102,10 +136,16 @@ class ExecutionBridgeTest {
         val fixture = protectedFixture()
         val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
+        val permissions = InMemoryPermissionStore(
+            setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
+        )
         val policy = PolicyEngine(permissions)
         val authGate = ActionAuthorizationGate()
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, authGate), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, fixture.identityManager, authGate),
+            adapter
+        )
         val token = authGate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
 
         val blocked = bridge.execute(
@@ -132,11 +172,31 @@ class ExecutionBridgeTest {
     }
 
     @Test fun financialCapabilityCannotReachAdapterEvenWhenRegistered() {
-        val plan = ActionPlan("bank.app", Capability.FINANCIAL_ACTION, "transfer", RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED, expectedState = "TRANSFERRED")
+        val plan = ActionPlan(
+            "bank.app",
+            Capability.FINANCIAL_ACTION,
+            "transfer",
+            RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED,
+            expectedState = "TRANSFERRED"
+        )
         val adapter = RecordingAdapter()
-        val registry = AppCapabilityRegistry(listOf(AppCapabilitySpec(plan.appId, plan.capability, setOf(plan.action), plan.riskTier, financialCategory = true)))
+        val registry = AppCapabilityRegistry(
+            listOf(
+                AppCapabilitySpec(
+                    plan.appId,
+                    plan.capability,
+                    setOf(plan.action),
+                    plan.riskTier,
+                    financialCategory = true
+                )
+            )
+        )
         val policy = PolicyEngine()
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registry), pipelineFor(policy), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registry),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
         val result = bridge.execute(plan, true)
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
@@ -146,10 +206,16 @@ class ExecutionBridgeTest {
         val fixture = protectedFixture()
         val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
+        val permissions = InMemoryPermissionStore(
+            setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
+        )
         val policy = PolicyEngine(permissions)
         val gate = ActionAuthorizationGate()
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, fixture.identityManager, gate),
+            adapter
+        )
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
         val mismatchedSession = IdentitySessionManager().createSession(
             identity = IdentityLevel.OWNER_SIGNAL,
@@ -173,10 +239,21 @@ class ExecutionBridgeTest {
         val fixture = protectedFixture()
         val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
+        val permissions = InMemoryPermissionStore(
+            setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
+        )
         val policy = PolicyEngine(permissions)
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
-        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, identitySession = fixture.session)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, fixture.identityManager),
+            adapter
+        )
+        val result = bridge.execute(
+            plan,
+            true,
+            AuthorizationLevel.USER_CONFIRMATION,
+            identitySession = fixture.session
+        )
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
@@ -185,12 +262,24 @@ class ExecutionBridgeTest {
         val fixture = protectedFixture()
         val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
+        val permissions = InMemoryPermissionStore(
+            setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
+        )
         val policy = PolicyEngine(permissions)
         val authGate = ActionAuthorizationGate()
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, authGate), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, fixture.identityManager, authGate),
+            adapter
+        )
         val token = authGate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
-        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = fixture.session)
+        val result = bridge.execute(
+            plan,
+            true,
+            AuthorizationLevel.USER_CONFIRMATION,
+            authorizationToken = token,
+            identitySession = fixture.session
+        )
         assertTrue(result.success)
         assertEquals(1, adapter.calls)
     }
@@ -200,12 +289,24 @@ class ExecutionBridgeTest {
         val plan = fixture.plan
         val otherPlan = plan.copy(action = "delete")
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
+        val permissions = InMemoryPermissionStore(
+            setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
+        )
         val policy = PolicyEngine(permissions)
         val gate = ActionAuthorizationGate()
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, fixture.identityManager, gate),
+            adapter
+        )
         val token = gate.issue(otherPlan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
-        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = fixture.session)
+        val result = bridge.execute(
+            plan,
+            true,
+            AuthorizationLevel.USER_CONFIRMATION,
+            authorizationToken = token,
+            identitySession = fixture.session
+        )
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
@@ -214,13 +315,31 @@ class ExecutionBridgeTest {
         val fixture = protectedFixture()
         val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
+        val permissions = InMemoryPermissionStore(
+            setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
+        )
         val policy = PolicyEngine(permissions)
         val gate = ActionAuthorizationGate()
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, fixture.identityManager, gate),
+            adapter
+        )
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
-        val first = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = fixture.session)
-        val second = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = fixture.session)
+        val first = bridge.execute(
+            plan,
+            true,
+            AuthorizationLevel.USER_CONFIRMATION,
+            authorizationToken = token,
+            identitySession = fixture.session
+        )
+        val second = bridge.execute(
+            plan,
+            true,
+            AuthorizationLevel.USER_CONFIRMATION,
+            authorizationToken = token,
+            identitySession = fixture.session
+        )
         assertTrue(first.success)
         assertFalse(second.success)
         assertEquals(1, adapter.calls)
@@ -231,7 +350,11 @@ class ExecutionBridgeTest {
         val adapter = ThrowingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
         val result = bridge.execute(plan, true)
         assertFalse(result.success)
         assertFalse(result.verified)
@@ -245,7 +368,11 @@ class ExecutionBridgeTest {
         stop.activate()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions, stop)
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
         val result = bridge.execute(plan, true)
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
@@ -256,7 +383,7 @@ class ExecutionBridgeTest {
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
-        val pipeline = pipelineFor(policy)
+        val pipeline = pipelineFor(policy, IdentitySessionManager())
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipeline, adapter)
 
         val result = bridge.execute(plan, true)
@@ -272,7 +399,7 @@ class ExecutionBridgeTest {
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
-        val pipeline = pipelineFor(policy)
+        val pipeline = pipelineFor(policy, IdentitySessionManager())
         var now = 1000L
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
@@ -299,7 +426,11 @@ class ExecutionBridgeTest {
         }
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
-        val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
         val result = bridge.execute(plan, userExplicitlyRequested = true)
         assertFalse(result.success)
         assertFalse(result.verified)
