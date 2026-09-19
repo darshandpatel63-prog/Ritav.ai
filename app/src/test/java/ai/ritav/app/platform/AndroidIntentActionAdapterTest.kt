@@ -8,7 +8,7 @@ import ai.ritav.app.core.security.RiskTier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.Test\nimport java.nio.charset.StandardCharsets
 
 class AndroidIntentActionAdapterTest {
     private class RecordingDispatcher(
