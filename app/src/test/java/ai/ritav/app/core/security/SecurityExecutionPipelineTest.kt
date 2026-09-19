@@ -13,7 +13,8 @@ class SecurityExecutionPipelineTest {
     )
 
     private fun protectedFixture(now: Long): ProtectedFixture {
-        val session = IdentitySessionManager().createSession(
+        val identityManager = IdentitySessionManager()
+        val session = identityManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
             nowEpochMillis = now,
             ttlMillis = 60_000L
