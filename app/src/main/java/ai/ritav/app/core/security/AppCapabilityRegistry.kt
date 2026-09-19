@@ -47,10 +47,10 @@ class AppCapabilityRegistry(
 
     fun allows(packageName: String, capability: Capability, action: String, requestedRisk: RiskTier): Boolean {
         if (capability == Capability.FINANCIAL_ACTION) return false
-        return specsByPackage[packageName].orEmpty().any {
-            it.capability == capability &&
-                action in it.actions &&
-                !it.financialCategory &&
+        val matches = matchingSpecs(packageName, capability, action)
+        if (matches.isEmpty() || matches.map { it.riskTier }.distinct().size != 1) return false
+        return matches.any {
+            !it.financialCategory &&
                 it.riskTier == requestedRisk &&
                 it.sensitiveContentBlocked
         }
@@ -61,10 +61,19 @@ class AppCapabilityRegistry(
 
     fun riskTierFor(packageName: String, capability: Capability, action: String): RiskTier? {
         if (capability == Capability.FINANCIAL_ACTION) return null
-        return specsByPackage[packageName].orEmpty()
-            .firstOrNull { capability == it.capability && action in it.actions }
-            ?.riskTier
+        val matches = matchingSpecs(packageName, capability, action)
+        val risks = matches.map { it.riskTier }.distinct()
+        return risks.singleOrNull()
     }
+
+    private fun matchingSpecs(
+        packageName: String,
+        capability: Capability,
+        action: String
+    ): List<AppCapabilitySpec> =
+        specsByPackage[packageName].orEmpty().filter {
+            it.capability == capability && action in it.actions
+        }
 
     fun trustedCertificateSha256(packageName: String): String? =
         specsByPackage[packageName].orEmpty().firstOrNull()?.trustedCertificateSha256
