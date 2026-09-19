@@ -18,6 +18,7 @@ class CapabilityGrantService(
         action: String,
         sessionId: String? = null
     ): ActionPlan? {
+        if (capability == Capability.FINANCIAL_ACTION) return null
         val targetRisk = registry.riskTierFor(packageName, capability, action) ?: return null
         if (targetRisk == RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED) return null
 
