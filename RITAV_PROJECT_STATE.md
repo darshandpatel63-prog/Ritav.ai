@@ -425,3 +425,21 @@ Exact new commits: 390a48c23d165fe14ae4a2422eea2d5798ed2076, faf3eb961e0b86781c0
 **NEXT ACTION:** inspect Run #203 (`35436122945`) to completion; if it passes, perform the consolidated identity → registry → capability grant → permission-store → execution review and then record the verified security-layer checkpoint. If it fails, fix only the demonstrated failure and repeat verification.
 
 Exact implementation/test commits in this correction sequence: `cb9415792f65ad5b57f851a8c741ef742daa3be1`, `3fb3ce8374b21e7e0a304f913f2011feb8725644`, `45f9b1db5cea9cb2c3c49d7a85983b313e64f30b`, `603587dac6694493b4ac5045a546fa27d49d347d`.
+
+
+## 2026-09-19 security hardening checkpoint — current source audit
+- Latest code checkpoint: `c99f2f59c06d7ef5be50b010ceb35f849d498ac8` closes public security bypass surfaces by keeping capability-store mutation behind the internal security composition and restricting direct Emergency Stop reset/controller surfaces to internal APIs.
+- Trusted Android package identity verification is implemented and was fully verified by Run #203 (`35436122945`) on `603587dac6694493b4ac5045a546fa27d49d347d`: JVM tests, instrumentation compilation/APK assembly, and managed-device instrumentation all succeeded.
+- Registry ambiguity hardening was fully source-verified and Run #204 (`35437175194`) succeeded for the security implementation commit `86c7eff93ac16b7715caf7f74256887cf783369d`.
+- Current source audit confirms the affected path: MainActivity → AndroidExecutionRuntime → ExecutionBridge → CapabilityPolicyGate → SecurityExecutionPipeline → policy/finance/sensitive/session/authorization checks → Android package identity verifier → adapter dispatch → deterministic result verification → local audit.
+- Finance capability remains denied at PolicyEngine, CapabilityPolicyGate, AppCapabilityRegistry, CapabilityGrantService, SecurePermissionStore, and FinanceExecutionFirewall.
+- Current production trusted external-app registry remains empty/deny-by-default; package/certificate infrastructure exists but no third-party target has been deliberately authorized.
+- Real model/context ingestion and screen/OCR/accessibility producer-to-model filtering are not implemented; therefore those future surfaces are not being represented as verified runtime protections.
+- Release R8/minification/obfuscation and signed client release packaging are not yet configured or verified; these are final release-hardening tasks, not substitutes for deterministic security controls.
+- Latest consolidated code changes are awaiting Run #211 (`35437460927`) on `c99f2f59c06d7ef5be50b010ceb35f849d498ac8`. Until it completes successfully, this checkpoint remains executable-unverified.
+
+**CURRENT STOP POINT:** security foundation plus trusted package identity and public-surface hardening are implemented and source-audited; final CI/device verification of the latest bundled hardening is pending.
+
+**NEXT ACTION:** inspect Run #211. On success, record the final consolidated security checkpoint and independent-audit result. On failure, fix only the demonstrated defect, rerun, and repeat the affected review.
+
+Exact current security checkpoint commit: `c99f2f59c06d7ef5be50b010ceb35f849d498ac8`.
