@@ -53,48 +53,76 @@ jobs:
           python3 <<'PY'
           from pathlib import Path
           import sys
+          import xml.etree.ElementTree as ET
 
-          manifest = Path("app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
-          release = Path("app/build.gradle.kts").read_text(encoding="utf-8")
-          modern = Path("app/src/main/res/xml/data_extraction_rules.xml").read_text(encoding="utf-8")
-          legacy = Path("app/src/main/res/xml/backup_rules_legacy.xml").read_text(encoding="utf-8")
+          ANDROID_NS = "http://schemas.android.com/apk/res/android"
 
-          required = {
-              "manifest allowBackup": 'android:allowBackup="false"',
-              "manifest cleartext": 'android:usesCleartextTraffic="false"',
-              "manifest legacy backup": 'android:fullBackupContent="@xml/backup_rules_legacy"',
-              "manifest modern backup": 'android:dataExtractionRules="@xml/data_extraction_rules"',
-              "release debuggable": 'isDebuggable = false',
-              "release minification": 'isMinifyEnabled = true',
-              "release resource shrinking": 'isShrinkResources = true',
-              "modern cloud exclusion": '<cloud-backup>',
-              "modern device exclusion": '<device-transfer>',
-              "modern root exclusion": '<exclude domain="root" path="." />',
-              "legacy root exclusion": '<exclude domain="root" path="." />',
-          }
-
-          sources = {
-              "manifest allowBackup": manifest,
-              "manifest cleartext": manifest,
-              "manifest legacy backup": manifest,
-              "manifest modern backup": manifest,
-              "release debuggable": release,
-              "release minification": release,
-              "release resource shrinking": release,
-              "modern cloud exclusion": modern,
-              "modern device exclusion": modern,
-              "modern root exclusion": modern,
-              "legacy root exclusion": legacy,
-          }
-
-          missing = [name for name, needle in required.items() if needle not in sources[name]]
-          if missing:
-              print("Missing release security configuration:")
-              for name in missing:
-                  print(f" - {name}")
+          manifest = ET.parse("app/src/main/AndroidManifest.xml").getroot()
+          application = manifest.find("application")
+          if application is None:
+              print("Missing <application> element.")
               sys.exit(1)
 
-          print("Release security configuration contract is present.")
+          expected_manifest = {
+              "allowBackup": "false",
+              "usesCleartextTraffic": "false",
+              "fullBackupContent": "@xml/backup_rules_legacy",
+              "dataExtractionRules": "@xml/data_extraction_rules",
+          }
+          missing_manifest = []
+          for name, expected in expected_manifest.items():
+              actual = application.get(f"{{{ANDROID_NS}}}{name}")
+              if actual != expected:
+                  missing_manifest.append(f"android:{name}={expected!r} (actual={actual!r})")
+
+          release = Path("app/build.gradle.kts").read_text(encoding="utf-8")
+          required_release_lines = {
+              "release debuggable": "isDebuggable = false",
+              "release minification": "isMinifyEnabled = true",
+              "release resource shrinking": "isShrinkResources = true",
+          }
+          missing_release = [name for name, needle in required_release_lines.items() if needle not in release]
+
+          modern = ET.parse("app/src/main/res/xml/data_extraction_rules.xml").getroot()
+          if modern.tag != "data-extraction-rules":
+              missing_release.append("modern data-extraction-rules root")
+
+          for section_name in ("cloud-backup", "device-transfer"):
+              section = modern.find(section_name)
+              if section is None:
+                  missing_release.append(f"modern {section_name} section")
+                  continue
+              excluded = any(
+                  child.tag == "exclude"
+                  and child.get("domain") == "root"
+                  and child.get("path") in (".", "./")
+                  for child in section
+              )
+              if not excluded:
+                  missing_release.append(f"modern {section_name} root exclusion")
+
+          legacy = ET.parse("app/src/main/res/xml/backup_rules_legacy.xml").getroot()
+          legacy_excluded = any(
+              child.tag == "exclude"
+              and child.get("domain") == "root"
+              and child.get("path") in (".", "./")
+              for child in legacy
+          )
+          if legacy.tag != "full-backup-content" or not legacy_excluded:
+              missing_release.append("legacy root exclusion")
+
+          if missing_manifest or missing_release:
+              if missing_manifest:
+                  print("Manifest security contract failures:")
+                  for item in missing_manifest:
+                      print(f" - {item}")
+              if missing_release:
+                  print("Release security contract failures:")
+                  for item in missing_release:
+                      print(f" - {item}")
+              sys.exit(1)
+
+          print("Release security configuration contract is present and structurally verified.")
           PY
 
       - name: Scan tracked source for embedded release secrets
