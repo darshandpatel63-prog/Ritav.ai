@@ -499,3 +499,7 @@ Capability-grant lifecycle security is implemented and verified on the GitHub An
 
 ## Latest security work — trusted Android package identity
 Android package execution now requires an exact pinned signing certificate for the registered package; missing, wrong, unreadable, or multiple installed signers fail closed. The capability registry also independently denies financial capabilities. These latest changes are source-reviewed; their Android CI/device verification is still pending. The production trusted registry remains empty/deny-by-default.
+
+
+## Latest security work — trusted Android package identity
+The Android launch adapter now uses a deterministic package-identity boundary backed by installed signing-certificate SHA-256 verification. Missing, wrong, unreadable, or multi-signer identities fail closed, and the capability registry independently denies financial capabilities. The corrected implementation is source-reviewed; final JVM/instrumentation/managed-device verification for the latest change is still pending. The production trusted registry remains empty/deny-by-default.
