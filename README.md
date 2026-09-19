@@ -503,3 +503,7 @@ Android package execution now requires an exact pinned signing certificate for t
 
 ## Latest security work — trusted Android package identity
 The Android launch adapter now uses a deterministic package-identity boundary backed by installed signing-certificate SHA-256 verification. Missing, wrong, unreadable, or multi-signer identities fail closed, and the capability registry independently denies financial capabilities. The corrected implementation is source-reviewed; final JVM/instrumentation/managed-device verification for the latest change is still pending. The production trusted registry remains empty/deny-by-default.
+
+
+## Current security checkpoint — 2026-09-19
+Trusted Android package identity verification and the deterministic capability-grant security layer are implemented. The latest hardening also removes direct public mutable permission-store access and restricts direct Emergency Stop reset/controller access. Previous runs #203 and #204 provide executable verification for the identity and registry hardening packages; the latest bundled changes are awaiting Run #211 (`35437460927`). The trusted external-app registry remains empty/deny-by-default, and real model/context ingestion, screen/OCR/accessibility filtering, and signed release packaging remain future/unverified surfaces.
