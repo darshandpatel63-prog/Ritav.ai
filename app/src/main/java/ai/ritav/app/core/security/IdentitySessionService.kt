@@ -12,7 +12,8 @@ internal class IdentitySessionService(
     private val sessionManager: IdentitySessionManager,
     private val authenticationGateway: DeviceAuthorizationGateway,
     private val clockEpochMillis: () -> Long = System::currentTimeMillis,
-    private val sensitiveFirewall: SensitiveInformationFirewall = SensitiveInformationFirewall()
+    private val sensitiveFirewall: SensitiveInformationFirewall = SensitiveInformationFirewall(),
+    private val emergencyStop: EmergencyStopController = EmergencyStopController()
 ) {
     fun authenticate(
         reason: String,
@@ -44,7 +45,7 @@ internal class IdentitySessionService(
 
                 val session = runCatching {
                     val now = clockEpochMillis()
-                    if (now < 0L) null
+                    if (emergencyStop.isActive() || now < 0L) null
                     else sessionManager.createSession(
                         identity = IdentityLevel.TRUSTED_SIGNAL,
                         nowEpochMillis = now
