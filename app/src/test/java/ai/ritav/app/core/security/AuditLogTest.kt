@@ -182,7 +182,13 @@ class AuditLogTest {
             )
         )
         val gate = ActionAuthorizationGate()
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate, auditLog = log)
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = identityManager,
+            auditLog = log
+        )
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1000L)
 
         val result = pipeline.authorize(
