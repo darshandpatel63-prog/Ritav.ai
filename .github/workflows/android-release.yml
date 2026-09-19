@@ -47,6 +47,56 @@ jobs:
           accept-android-sdk-licenses: true
           packages: "platform-tools platforms;android-36 build-tools;36.0.0"
 
+      - name: Verify release security configuration
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import sys
+
+          manifest = Path("app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
+          release = Path("app/build.gradle.kts").read_text(encoding="utf-8")
+          modern = Path("app/src/main/res/xml/data_extraction_rules.xml").read_text(encoding="utf-8")
+          legacy = Path("app/src/main/res/xml/backup_rules_legacy.xml").read_text(encoding="utf-8")
+
+          required = {
+              "manifest allowBackup": 'android:allowBackup="false"',
+              "manifest cleartext": 'android:usesCleartextTraffic="false"',
+              "manifest legacy backup": 'android:fullBackupContent="@xml/backup_rules_legacy"',
+              "manifest modern backup": 'android:dataExtractionRules="@xml/data_extraction_rules"',
+              "release debuggable": 'isDebuggable = false',
+              "release minification": 'isMinifyEnabled = true',
+              "release resource shrinking": 'isShrinkResources = true',
+              "modern cloud exclusion": '<cloud-backup>',
+              "modern device exclusion": '<device-transfer>',
+              "modern root exclusion": '<exclude domain="root" path="." />',
+              "legacy root exclusion": '<exclude domain="root" path="." />',
+          }
+
+          sources = {
+              "manifest allowBackup": manifest,
+              "manifest cleartext": manifest,
+              "manifest legacy backup": manifest,
+              "manifest modern backup": manifest,
+              "release debuggable": release,
+              "release minification": release,
+              "release resource shrinking": release,
+              "modern cloud exclusion": modern,
+              "modern device exclusion": modern,
+              "modern root exclusion": modern,
+              "legacy root exclusion": legacy,
+          }
+
+          missing = [name for name, needle in required.items() if needle not in sources[name]]
+          if missing:
+              print("Missing release security configuration:")
+              for name in missing:
+                  print(f" - {name}")
+              sys.exit(1)
+
+          print("Release security configuration contract is present.")
+          PY
+
       - name: Scan tracked source for embedded release secrets
         shell: bash
         run: |
