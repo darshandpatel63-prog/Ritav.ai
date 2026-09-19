@@ -29,8 +29,9 @@ class IdentitySessionServiceTest {
         val gateway = RecordingGateway(available = true, result = false)
         val service = IdentitySessionService(IdentitySessionManager(), gateway)
 
+        val existingManager = IdentitySessionManager()
         var session: SecuritySession? =
-            SecuritySession.create("test", IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
+            existingManager.createSession(IdentityLevel.OWNER_SIGNAL, 0L, 1_000L)
         service.authenticate("Authorize protected Ritav actions") { session = it }
 
         assertNull(session)
