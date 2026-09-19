@@ -7,7 +7,7 @@ package ai.ritav.app.core.security
  * be bound to the exact target package/capability/action and an authorization
  * token; callers cannot directly mutate the durable permission store.
  */
-class CapabilityGrantService(
+internal class CapabilityGrantService(
     private val registry: AppCapabilityRegistry,
     private val permissionStore: MutablePermissionStore,
     private val authorizationGate: ActionAuthorizationGate,

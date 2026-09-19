@@ -19,7 +19,7 @@ class EmergencyStopController {
      * Resets only after an explicit user-controlled confirmation has occurred.
      * This is not a substitute for Android device authentication.
      */
-    fun resetAfterExplicitUserConfirmation(confirmed: Boolean) {
+    internal fun resetAfterExplicitUserConfirmation(confirmed: Boolean) {
         if (confirmed) stopped = false
     }
 
