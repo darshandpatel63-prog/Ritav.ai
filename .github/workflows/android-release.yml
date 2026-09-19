@@ -208,7 +208,7 @@ jobs:
 
           manifest_dump="$(mktemp)"
           trap 'rm -f "$manifest_dump"' EXIT
-          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump xmltree "$apk" AndroidManifest.xml > "$manifest_dump"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump xmltree --file AndroidManifest.xml "$apk" > "$manifest_dump"
 
           if grep -Eqi 'android:debuggable[^\n]*(true|0xffffffff)' "$manifest_dump"; then
             echo "::error::Release APK is debug-enabled."
