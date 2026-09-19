@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * A protected execution session may only be created after the platform
  * authentication gateway reports success. Callers cannot self-assert identity.
  */
-class IdentitySessionService(
+internal class IdentitySessionService(
     private val sessionManager: IdentitySessionManager,
     private val authenticationGateway: DeviceAuthorizationGateway,
     private val clockEpochMillis: () -> Long = System::currentTimeMillis,
