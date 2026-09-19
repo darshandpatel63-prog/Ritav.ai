@@ -186,6 +186,7 @@ jobs:
       - name: Validate release unit tests and release build
         run: >
           gradle --no-daemon
+          :core:jvmTest
           testDebugUnitTest
           testReleaseUnitTest
           lintRelease
