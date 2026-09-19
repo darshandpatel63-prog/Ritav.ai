@@ -102,6 +102,56 @@ class AppCapabilityRegistrySecurityTest {
         )
     }
 
+    @Test fun overlappingActionsWithDifferentRiskAreRejectedAsAmbiguous() {
+        val registry = AppCapabilityRegistry(
+            listOf(
+                AppCapabilitySpec(
+                    packageName = "com.example.safe",
+                    capability = Capability.APP_LAUNCH,
+                    actions = setOf("open", "share"),
+                    riskTier = RiskTier.TIER_1_REVERSIBLE,
+                    trustedCertificateSha256 = certificate
+                ),
+                AppCapabilitySpec(
+                    packageName = "com.example.safe",
+                    capability = Capability.APP_LAUNCH,
+                    actions = setOf("share"),
+                    riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+                    trustedCertificateSha256 = certificate
+                )
+            )
+        )
+
+        assertNull(registry.riskTierFor("com.example.safe", Capability.APP_LAUNCH, "share"))
+        assertEquals(
+            false,
+            registry.allows(
+                "com.example.safe",
+                Capability.APP_LAUNCH,
+                "share",
+                RiskTier.TIER_1_REVERSIBLE
+            )
+        )
+        assertEquals(
+            false,
+            registry.allows(
+                "com.example.safe",
+                Capability.APP_LAUNCH,
+                "share",
+                RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE
+            )
+        )
+        assertEquals(
+            true,
+            registry.allows(
+                "com.example.safe",
+                Capability.APP_LAUNCH,
+                "open",
+                RiskTier.TIER_1_REVERSIBLE
+            )
+        )
+    }
+
     @Test fun conflictingCertificatePinsForOnePackageAreRejected() {
         assertThrows(IllegalArgumentException::class.java) {
             AppCapabilityRegistry(
