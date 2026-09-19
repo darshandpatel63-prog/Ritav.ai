@@ -14,6 +14,14 @@ class IdentitySessionTest {
         assertFalse(manager.permitsProtectedCapability(session, 61_001L))
     }
 
+    @Test fun sessionIssuedByAnotherManagerIsRejected() {
+        val issuingManager = IdentitySessionManager()
+        val runtimeManager = IdentitySessionManager()
+        val session = issuingManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L, 60_000L)
+
+        assertFalse(runtimeManager.permitsProtectedCapability(session, 1_000L))
+    }
+
     @Test fun sessionIsNotActiveBeforeAuthenticationTimestamp() {
         val manager = IdentitySessionManager()
         val session = manager.createSession(IdentityLevel.OWNER_SIGNAL, 1_000L, 60_000L)
