@@ -495,3 +495,7 @@ No new CRITICAL or HIGH bypass was identified in the reviewed path. The followin
 Capability-grant lifecycle security is implemented and verified on the GitHub Android CI path. The service binds grants to the exact target app/capability/action and authorization plan, denies financial and Tier-4 grants, consumes authorization tokens once, and blocks new grants during Emergency Stop. Run #194 (`35424604601`) for commit `ac403593a848d7722da2f682c2fc8197ba384141` passed JVM tests, Android instrumentation-test compilation/APK assembly, and managed-device instrumentation. A consolidated review found no new blocking bypass. Revocation remains authorization-free because it only removes privilege. The production trusted registry remains empty/deny-by-default, and a concrete user-facing grant flow is not yet wired.
 
 **Current stop:** capability-grant checkpoint complete; next major layer is trusted-app allowlist/permission-grant integration using authoritative package identity and certificate pins.
+
+
+## Latest security work — trusted Android package identity
+Android package execution now requires an exact pinned signing certificate for the registered package; missing, wrong, unreadable, or multiple installed signers fail closed. The capability registry also independently denies financial capabilities. These latest changes are source-reviewed; their Android CI/device verification is still pending. The production trusted registry remains empty/deny-by-default.
