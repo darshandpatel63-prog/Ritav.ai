@@ -45,7 +45,8 @@ class AndroidExecutionRuntime(
     internal val identitySessionService: IdentitySessionService =
         IdentitySessionService(
             sessionManager = identitySessionManager,
-            authenticationGateway = deviceAuthorization
+            authenticationGateway = deviceAuthorization,
+            emergencyStop = securityState.policyEngine.emergencyStopController()
         )
 
     internal val capabilityGrantService: CapabilityGrantService =
