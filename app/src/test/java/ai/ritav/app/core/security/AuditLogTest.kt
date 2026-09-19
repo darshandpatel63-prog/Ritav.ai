@@ -162,18 +162,43 @@ class AuditLogTest {
 
     @Test fun approvedTier2DecisionAuditsAuthorizationAndPolicy() {
         val log = InMemoryAuditLog()
-        val plan = ActionPlan("demo", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "s1"))))
+        val identityManager = IdentitySessionManager()
+        val identitySession = identityManager.createSession(
+            IdentityLevel.OWNER_SIGNAL,
+            1000L,
+            60_000L
+        )
+        val plan = ActionPlan(
+            "demo",
+            Capability.UI_AUTOMATION,
+            "edit",
+            RiskTier.TIER_2_CONTENT_MUTATION,
+            expectedState = "EDITED",
+            sessionId = identitySession.id
+        )
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", identitySession.id))
+            )
+        )
         val gate = ActionAuthorizationGate()
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate, auditLog = log)
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1000L)
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = ActionRequest("demo", "edit", RiskTier.TIER_2_CONTENT_MUTATION, Capability.UI_AUTOMATION, "s1", userExplicitlyRequested = true, authorizationLevel = AuthorizationLevel.USER_CONFIRMATION),
+                action = ActionRequest(
+                    "demo",
+                    "edit",
+                    RiskTier.TIER_2_CONTENT_MUTATION,
+                    Capability.UI_AUTOMATION,
+                    identitySession.id,
+                    userExplicitlyRequested = true,
+                    authorizationLevel = AuthorizationLevel.USER_CONFIRMATION
+                ),
                 plan = plan,
                 authorizationToken = token,
-                identitySession = IdentitySessionManager().createSession(IdentityLevel.OWNER_SIGNAL, 1000L, 60_000L),
+                identitySession = identitySession,
                 nowEpochMillis = 1000L
             )
         )
