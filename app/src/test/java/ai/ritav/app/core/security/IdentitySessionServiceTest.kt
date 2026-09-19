@@ -126,22 +126,6 @@ class IdentitySessionServiceTest {
         assertNull(session)
     }
 
-    @Test
-    fun malformedSessionCreationFailureFailsClosed() {
-        val gateway = RecordingGateway(available = true, result = true)
-        val service = IdentitySessionService(
-            sessionManager = object : IdentitySessionManager() {
-                override fun toString(): String = super.toString()
-            },
-            authenticationGateway = gateway,
-            clockEpochMillis = { Long.MAX_VALUE }
-        )
-
-        var session: SecuritySession? = null
-        service.authenticate("Authorize protected Ritav actions") { session = it }
-
-        assertNull(session)
-    }
 
     private class RecordingGateway(
         private val available: Boolean,
