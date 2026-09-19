@@ -476,3 +476,17 @@ The current implementable security-foundation scope is complete for hand-off bas
 After client hand-off, the next development package is release-hardening and production composition: first establish the reviewed Android trusted-app allowlist/real user authorization UI path only when an authoritative package identity is available, then perform R8/minification/signed-release hardening and physical-device verification. Do not add speculative banking/payment/backend integrations.
 
 Exact verified security code checkpoint: c99f2f59c06d7ef5be50b010ceb35f849d498ac8.
+
+
+## 2026-09-19 Android release-hardening implementation
+- Release build configuration is hardened with isDebuggable=false, R8 minification, resource shrinking, optimized default ProGuard rules, and a dedicated release rules file.
+- .gitignore now excludes local Gradle/build output and common signing-key/certificate file extensions; release CI independently rejects tracked signing-material files.
+- Android manifest explicitly disables backup, cleartext traffic, and points to both modern data-extraction and legacy backup rules. Modern rules exclude the complete app root from cloud backup and device-to-device transfer; legacy rules exclude the complete root as well.
+- Release validation workflow is controlled by workflow_dispatch plus narrow release-critical path filters. It includes structural security-config assertions, tracked-source secret-pattern scanning, release unit tests, lintRelease, assembleRelease, bundleRelease, release APK debug-state verification, non-empty R8 mapping verification, and SHA-256 checksums for validation artifacts.
+- The workflow deliberately produces unsigned validation artifacts only. No signing key or credential is fabricated or committed.
+- Current implementation head: ac3e6c00d3f224099170092c6dd8cd2559c98b89.
+- Exact-head release CI is in progress/pending at the time of this update; the package is not yet marked verified.
+
+**CURRENT STOP POINT:** release hardening is implemented and consolidated source-reviewed; executable release verification remains pending.
+
+**NEXT ACTION:** inspect the exact-head release-validation result; on success, record the verified release-hardening checkpoint and then move to the next major security layer only after the consolidated review.

@@ -518,3 +518,18 @@ Trusted Android package identity verification and the deterministic capability-g
 - The trusted external-app registry remains empty/deny-by-default. No third-party package/certificate has been authorized.
 - This is a security-foundation/client-handoff checkpoint, not a production-release sign-off: release R8/minification/obfuscation, signed release packaging, real target-app UI/result observation, real model-context ingestion, screen/OCR/accessibility filtering, and native non-Android runtimes remain unimplemented or unverified.
 - No real-device evidence beyond the GitHub managed Android emulator run is claimed.
+
+
+## 2026-09-19 Android release-hardening implementation
+- Android release build now disables debugging, enables R8 minification, enables resource shrinking, and uses the optimized default ProGuard configuration plus the repository release rules file.
+- Release validation is manual-triggered and automatically triggered only by release-critical Gradle/configuration, manifest, backup-rule, or release-workflow changes; push runs supersede older push validation runs.
+- Release CI scans tracked non-test sources for common embedded credential/signing-material patterns, verifies the release security configuration contract, builds the release APK/AAB, verifies a non-debug release APK and non-empty R8 mapping, and publishes short-retention unsigned validation artifacts plus SHA-256 checksums.
+- Android backup is explicitly disabled for both cloud backup and device-to-device transfer, with legacy Android 11-and-lower backup rules as well. Android's current documentation notes that allowBackup=false alone may not disable D2D transfer on some manufacturers, so the explicit data-extraction rules are intentional.
+- Cleartext network traffic is explicitly disabled in the Android manifest; no Android INTERNET permission or current network client dependency exists in the implemented app path.
+- Current implementation commit: ac3e6c00d3f224099170092c6dd8cd2559c98b89.
+- Latest release-validation run for this exact code head is still pending; do not mark this release-hardening package CI-verified until that run completes successfully.
+- Signed production packaging remains intentionally unconfigured; the current workflow validates unsigned release artifacts only and does not invent signing keys or credentials.
+
+**CURRENT STOP POINT:** Android release hardening is implemented and source-reviewed; final release CI verification is pending for ac3e6c00d3f224099170092c6dd8cd2559c98b89.
+
+**NEXT ACTION:** inspect the exact-head release-validation run. If it passes, perform the consolidated release/security review and record the verified release-hardening checkpoint. If it fails, fix only the demonstrated failure and rerun the affected verification path.
