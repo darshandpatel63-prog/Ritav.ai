@@ -29,14 +29,31 @@ class ExecutionBridgeTest {
     private fun pipelineFor(policy: PolicyEngine, gate: ActionAuthorizationGate = ActionAuthorizationGate()) =
         SecurityExecutionPipeline(policy, ExecutionPolicyGate(policy), gate)
 
-    private fun identity(): SecuritySession {
+    private data class ProtectedFixture(
+        val plan: ActionPlan,
+        val session: SecuritySession
+    )
+
+    private fun protectedFixture(): ProtectedFixture {
         val now = System.currentTimeMillis()
-        return IdentitySessionManager().createSession(
+        val session = IdentitySessionManager().createSession(
             identity = IdentityLevel.OWNER_SIGNAL,
             nowEpochMillis = now - 1_000L,
             ttlMillis = 60_000L
         )
+        return ProtectedFixture(
+            plan = ActionPlan(
+                "demo.app",
+                Capability.UI_AUTOMATION,
+                "edit",
+                RiskTier.TIER_2_CONTENT_MUTATION,
+                expectedState = "EDITED",
+                sessionId = session.id
+            ),
+            session = session
+        )
     }
+
 
     @Test fun unregisteredCapabilityNeverReachesAdapter() {
         val adapter = RecordingAdapter()
@@ -82,9 +99,10 @@ class ExecutionBridgeTest {
     }
 
     @Test fun sensitiveInputIsBlockedAtBridgeAndAuthorizationTokenRemainsUsable() {
-        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
+        val fixture = protectedFixture()
+        val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
         val policy = PolicyEngine(permissions)
         val authGate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, authGate), adapter)
@@ -95,7 +113,7 @@ class ExecutionBridgeTest {
             userExplicitlyRequested = true,
             authorizationLevel = AuthorizationLevel.USER_CONFIRMATION,
             authorizationToken = token,
-            identitySession = identity(),
+            identitySession = fixture.session,
             inputText = "OTP: 123456"
         )
         assertFalse(blocked.success)
@@ -106,7 +124,7 @@ class ExecutionBridgeTest {
             userExplicitlyRequested = true,
             authorizationLevel = AuthorizationLevel.USER_CONFIRMATION,
             authorizationToken = token,
-            identitySession = identity(),
+            identitySession = fixture.session,
             inputText = "open the editor"
         )
         assertTrue(allowed.success)
@@ -125,9 +143,10 @@ class ExecutionBridgeTest {
     }
 
     @Test fun mismatchedIdentitySessionCannotAuthorizeProtectedAction() {
-        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
+        val fixture = protectedFixture()
+        val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
         val policy = PolicyEngine(permissions)
         val gate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
@@ -151,53 +170,57 @@ class ExecutionBridgeTest {
     }
 
     @Test fun tierTwoCannotBypassPipelineWithAuthorizationEnumAlone() {
-        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
+        val fixture = protectedFixture()
+        val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
         val policy = PolicyEngine(permissions)
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy), adapter)
-        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, identitySession = identity())
+        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, identitySession = fixture.session)
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
 
     @Test fun tierTwoRequiresMatchingOneTimeTokenBeforeAdapter() {
-        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
+        val fixture = protectedFixture()
+        val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
         val policy = PolicyEngine(permissions)
         val authGate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, authGate), adapter)
         val token = authGate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
-        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = identity())
+        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = fixture.session)
         assertTrue(result.success)
         assertEquals(1, adapter.calls)
     }
 
     @Test fun wrongPlanTokenCannotAuthorizeExecution() {
-        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
+        val fixture = protectedFixture()
+        val plan = fixture.plan
         val otherPlan = plan.copy(action = "delete")
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
         val policy = PolicyEngine(permissions)
         val gate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
         val token = gate.issue(otherPlan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
-        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = identity())
+        val result = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = fixture.session)
         assertFalse(result.success)
         assertEquals(0, adapter.calls)
     }
 
     @Test fun authorizationTokenCannotBeReplayed() {
-        val plan = ActionPlan("demo.app", Capability.UI_AUTOMATION, "edit", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "EDITED", sessionId = "s1")
+        val fixture = protectedFixture()
+        val plan = fixture.plan
         val adapter = RecordingAdapter()
-        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, "s1")))
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId)))
         val policy = PolicyEngine(permissions)
         val gate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
-        val first = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = identity())
-        val second = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = identity())
+        val first = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = fixture.session)
+        val second = bridge.execute(plan, true, AuthorizationLevel.USER_CONFIRMATION, authorizationToken = token, identitySession = fixture.session)
         assertTrue(first.success)
         assertFalse(second.success)
         assertEquals(1, adapter.calls)
