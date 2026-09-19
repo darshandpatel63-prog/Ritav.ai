@@ -12,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +35,7 @@ class MainActivity : FragmentActivity() {
         securityState = executionRuntime.securityState
 
         setContent {
-            val stopped by mutableStateOf(securityState.isEmergencyStopActive())
+            var stopped by remember { mutableStateOf(securityState.isEmergencyStopActive()) }
             val identitySession = activeIdentitySession?.takeIf {
                 it.isActive(System.currentTimeMillis())
             }
@@ -84,6 +85,7 @@ class MainActivity : FragmentActivity() {
                             } else {
                                 securityState.activateEmergencyStop()
                             }
+                            stopped = securityState.isEmergencyStopActive()
                             activeIdentitySession = null
                         },
                         modifier = Modifier.padding(top = 12.dp)
