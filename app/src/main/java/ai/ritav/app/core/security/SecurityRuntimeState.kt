@@ -26,6 +26,7 @@ class SecurityRuntimeState private constructor(
     ) : this(
         emergencyStopController = emergencyStopController,
         permissionStore = permissionStore,
+        mutablePermissionStore = permissionStore,
         policyEngine = PolicyEngine(
             permissionStore = permissionStore,
             emergencyStop = emergencyStopController
