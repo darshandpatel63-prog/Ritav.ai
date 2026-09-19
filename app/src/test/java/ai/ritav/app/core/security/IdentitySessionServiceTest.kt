@@ -107,6 +107,24 @@ class IdentitySessionServiceTest {
     }
 
     @Test
+    fun emergencyStopBlocksSessionIssuanceEvenAfterSuccessfulAuthentication() {
+        val gateway = RecordingGateway(available = true, result = true)
+        val emergencyStop = EmergencyStopController().apply { activate() }
+        val service = IdentitySessionService(
+            sessionManager = IdentitySessionManager(),
+            authenticationGateway = gateway,
+            clockEpochMillis = { 1_000L },
+            emergencyStop = emergencyStop
+        )
+
+        var session: SecuritySession? = null
+        service.authenticate("Authorize protected Ritav actions") { session = it }
+
+        assertNull(session)
+        assertEquals(true, gateway.authenticateCalled)
+    }
+
+    @Test
     fun authenticationGatewayFailureFailsClosed() {
         val gateway = object : DeviceAuthorizationGateway {
             override fun isDeviceAuthenticationAvailable(): Boolean = true
