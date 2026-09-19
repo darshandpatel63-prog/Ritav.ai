@@ -56,7 +56,10 @@ class CapabilityGrantService(
         if (targetAction.isBlank() || targetAction.length > MAX_TARGET_ACTION_LENGTH) return false
         if (plan.riskTier == RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED) return false
 
+        if (plan.capability == Capability.FINANCIAL_ACTION) return false
         val targetRisk = registry.riskTierFor(plan.appId, plan.capability, targetAction) ?: return false
+        val authorizationRisk = authorizationRiskFor(targetRisk) ?: return false
+        if (plan.riskTier != authorizationRisk) return false
         if (!registry.allows(plan.appId, plan.capability, targetAction, targetRisk)) return false
         if (!authorizationGate.consume(
                 authorizationToken.orEmpty(),
@@ -87,6 +90,14 @@ class CapabilityGrantService(
             permissionStore.revoke(grant)
             true
         }.getOrDefault(false)
+
+    private fun authorizationRiskFor(targetRisk: RiskTier): RiskTier? = when (targetRisk) {
+        RiskTier.TIER_0_INFORMATIONAL,
+        RiskTier.TIER_1_REVERSIBLE,
+        RiskTier.TIER_2_CONTENT_MUTATION -> RiskTier.TIER_2_CONTENT_MUTATION
+        RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE -> RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE
+        RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED -> null
+    }
 
     private fun requiredAuthorizationFor(plan: ActionPlan): AuthorizationLevel = when (plan.riskTier) {
         RiskTier.TIER_0_INFORMATIONAL, RiskTier.TIER_1_REVERSIBLE ->
