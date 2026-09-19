@@ -25,7 +25,10 @@ class AndroidIntentActionAdapter internal constructor(
         registry: ai.ritav.app.core.security.AppCapabilityRegistry
     ) : this(
         dispatcher = ContextAndroidAppLaunchDispatcher(context.applicationContext),
-        isTrustedPackage = AndroidPackageIdentityVerifier(\n            registry = registry,\n            certificateReader = AndroidPackageSigningCertificateReader(context.applicationContext)\n        )::isTrusted
+        isTrustedPackage = AndroidPackageIdentityVerifier(
+            registry = registry,
+            certificateReader = AndroidPackageSigningCertificateReader(context.applicationContext)
+        )::isTrusted
     )
 
     override fun execute(plan: ActionPlan): ExecutionResult {
