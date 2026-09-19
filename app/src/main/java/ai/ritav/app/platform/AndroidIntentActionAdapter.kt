@@ -123,7 +123,7 @@ internal class AndroidPackageIdentityVerifier(
         val expected = registry.trustedCertificateSha256(packageName)?.lowercase() ?: return false
         if (!registry.isRegistered(packageName)) return false
 
-        val certificates = certificateReader.read(packageName) ?: return false
+        val certificates = runCatching { certificateReader.read(packageName) }.getOrNull() ?: return false
         if (certificates.size != 1) return false
 
         return sha256(certificates.single()) == expected
