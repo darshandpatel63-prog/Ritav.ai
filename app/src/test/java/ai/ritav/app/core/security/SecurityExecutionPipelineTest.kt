@@ -5,94 +5,242 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SecurityExecutionPipelineTest {
-    private fun plan() = ActionPlan(
-        appId = "demo",
-        capability = Capability.UI_AUTOMATION,
-        action = "edit",
-        riskTier = RiskTier.TIER_2_CONTENT_MUTATION,
-        expectedState = "EDITED",
-        sessionId = "session-1"
+    private data class ProtectedFixture(
+        val plan: ActionPlan,
+        val action: ActionRequest,
+        val session: SecuritySession
     )
 
-    private fun action() = ActionRequest(
-        appId = "demo",
-        action = "edit",
-        riskTier = RiskTier.TIER_2_CONTENT_MUTATION,
-        capability = Capability.UI_AUTOMATION,
-        sessionId = "session-1",
-        userExplicitlyRequested = true,
-        authorizationLevel = AuthorizationLevel.USER_CONFIRMATION
-    )
+    private fun protectedFixture(now: Long): ProtectedFixture {
+        val session = IdentitySessionManager().createSession(
+            identity = IdentityLevel.TRUSTED_SIGNAL,
+            nowEpochMillis = now,
+            ttlMillis = 60_000L
+        )
+        val plan = ActionPlan(
+            appId = "demo",
+            capability = Capability.UI_AUTOMATION,
+            action = "edit",
+            riskTier = RiskTier.TIER_2_CONTENT_MUTATION,
+            expectedState = "EDITED",
+            sessionId = session.id
+        )
+        val action = ActionRequest(
+            appId = "demo",
+            action = "edit",
+            riskTier = RiskTier.TIER_2_CONTENT_MUTATION,
+            capability = Capability.UI_AUTOMATION,
+            sessionId = session.id,
+            userExplicitlyRequested = true,
+            authorizationLevel = AuthorizationLevel.USER_CONFIRMATION
+        )
+        return ProtectedFixture(plan, action, session)
+    }
 
     @Test fun malformedPlanIsDeniedBeforeSecurityProcessing() {
-        val p = plan().copy(expectedState = "")
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val malformedPlan = fixture.plan.copy(expectedState = "")
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
-        val result = pipeline.authorize(SecurityExecutionRequest(action(), p, null, trustedSession(1_000), 1_000))
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                fixture.action,
+                malformedPlan,
+                null,
+                fixture.session,
+                1_000L
+            )
+        )
         assertFalse(result.allowed)
     }
 
     @Test fun malformedExecutionRequestIsDeniedBeforeAuthorization() {
-        val p = plan()
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val gate = ActionAuthorizationGate()
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
-        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
-        val malformed = action().copy(action = "x".repeat(4_097))
-        val result = pipeline.authorize(SecurityExecutionRequest(malformed, p, token, trustedSession(1_000), 1_000))
+        val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+        val malformed = fixture.action.copy(action = "x".repeat(4_097))
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                malformed,
+                fixture.plan,
+                token,
+                fixture.session,
+                1_000L
+            )
+        )
         assertFalse(result.allowed)
-        assertTrue(gate.consume(token, p, AuthorizationLevel.USER_CONFIRMATION, 1_001))
+        assertTrue(gate.consume(token, fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
     }
 
     @Test fun protectedActionWithoutSessionBindingIsDenied() {
-        val p = plan().copy(sessionId = null)
-        val action = action().copy(sessionId = null)
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", null))))
+        val plan = ActionPlan(
+            appId = "demo",
+            capability = Capability.UI_AUTOMATION,
+            action = "edit",
+            riskTier = RiskTier.TIER_2_CONTENT_MUTATION,
+            expectedState = "EDITED",
+            sessionId = null
+        )
+        val action = ActionRequest(
+            appId = "demo",
+            action = "edit",
+            riskTier = RiskTier.TIER_2_CONTENT_MUTATION,
+            capability = Capability.UI_AUTOMATION,
+            sessionId = null
+        )
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", null))
+            )
+        )
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
-        val result = pipeline.authorize(SecurityExecutionRequest(action, p, null, null, 1_000))
+        val result = pipeline.authorize(SecurityExecutionRequest(action, plan, null, null, 1_000L))
         assertFalse(result.allowed)
     }
 
     @Test fun mismatchedPlanIsDenied() {
-        val p = plan()
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
-        val result = pipeline.authorize(SecurityExecutionRequest(action(), p.copy(action = "other"), null, trustedSession(1_000), 1_000))
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                fixture.action,
+                fixture.plan.copy(action = "other"),
+                null,
+                fixture.session,
+                1_000L
+            )
+        )
         assertFalse(result.allowed)
     }
 
     @Test fun protectedActionNeedsTrustedActiveSession() {
-        val p = plan()
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
-        val result = pipeline.authorize(SecurityExecutionRequest(action(), p, null, null, 1_000))
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                fixture.action,
+                fixture.plan,
+                null,
+                null,
+                1_000L
+            )
+        )
         assertFalse(result.allowed)
     }
 
     @Test fun validOneTimeAuthorizationAllowsTier2Action() {
-        val p = plan()
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val gate = ActionAuthorizationGate()
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
-        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
-        val result = pipeline.authorize(SecurityExecutionRequest(action(), p, token, trustedSession(1_000), 1_000))
+        val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                fixture.action,
+                fixture.plan,
+                token,
+                fixture.session,
+                1_000L
+            )
+        )
         assertTrue(result.allowed)
 
-        val replay = pipeline.authorize(SecurityExecutionRequest(action(), p, token, trustedSession(1_000), 1_000))
+        val replay = pipeline.authorize(
+            SecurityExecutionRequest(
+                fixture.action,
+                fixture.plan,
+                token,
+                fixture.session,
+                1_000L
+            )
+        )
         assertFalse(replay.allowed)
     }
 
     @Test fun sensitiveInputIsBlockedBeforeAuthorizationAndExecution() {
-        val p = plan()
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val gate = ActionAuthorizationGate()
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
 
-        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+        val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(), plan = p, authorizationToken = token,
-                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
+                action = fixture.action,
+                plan = fixture.plan,
+                authorizationToken = token,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L,
                 inputText = "Please use OTP 123456"
             )
         )
@@ -103,16 +251,30 @@ class SecurityExecutionPipelineTest {
     }
 
     @Test fun oversizedInputIsBlockedBeforeAuthorizationAndExecution() {
-        val p = plan()
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val gate = ActionAuthorizationGate()
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
-        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+        val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(), plan = p, authorizationToken = token,
-                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
+                action = fixture.action,
+                plan = fixture.plan,
+                authorizationToken = token,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L,
                 inputText = "x".repeat(16_385)
             )
         )
@@ -122,8 +284,11 @@ class SecurityExecutionPipelineTest {
 
         val allowedAfterBlockedAttempt = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(), plan = p, authorizationToken = token,
-                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
+                action = fixture.action,
+                plan = fixture.plan,
+                authorizationToken = token,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L,
                 inputText = "benign input"
             )
         )
@@ -131,17 +296,31 @@ class SecurityExecutionPipelineTest {
     }
 
     @Test fun normalizedSensitiveInputIsBlockedBeforeAuthorization() {
-        val p = plan()
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val gate = ActionAuthorizationGate()
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
-        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+        val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(), plan = p, authorizationToken = token,
-                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
-                inputText = "OTP\u00a0123456"
+                action = fixture.action,
+                plan = fixture.plan,
+                authorizationToken = token,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L,
+                inputText = "OTP 123456"
             )
         )
 
@@ -150,25 +329,42 @@ class SecurityExecutionPipelineTest {
     }
 
     @Test fun obfuscatedSensitiveInputDoesNotConsumeAuthorizationToken() {
-        val p = plan()
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val gate = ActionAuthorizationGate()
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
-        val token = gate.issue(p, AuthorizationLevel.USER_CONFIRMATION, 1_000)
+        val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         val blocked = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(), plan = p, authorizationToken = token,
-                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
-                inputText = "O\u200b T P 12\u200b 34 56"
+                action = fixture.action,
+                plan = fixture.plan,
+                authorizationToken = token,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L,
+                inputText = "O​ T P 12​ 34 56"
             )
         )
         assertFalse(blocked.allowed)
 
         val allowed = pipeline.authorize(
             SecurityExecutionRequest(
-                action = action(), plan = p, authorizationToken = token,
-                identitySession = trustedSession(1_000), nowEpochMillis = 1_000,
+                action = fixture.action,
+                plan = fixture.plan,
+                authorizationToken = token,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L,
                 inputText = "safe input"
             )
         )
@@ -176,15 +372,28 @@ class SecurityExecutionPipelineTest {
     }
 
     @Test fun explicitSensitiveFlagIsStillBlockedWithoutRawInput() {
-        val p = plan()
-        val sensitiveAction = action().copy(containsSensitiveData = true)
-        val engine = PolicyEngine(InMemoryPermissionStore(setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", "session-1"))))
+        val fixture = protectedFixture(1_000L)
+        val sensitiveAction = fixture.action.copy(containsSensitiveData = true)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
-                action = sensitiveAction, plan = p,
-                identitySession = trustedSession(1_000), nowEpochMillis = 1_000
+                action = sensitiveAction,
+                plan = fixture.plan,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L
             )
         )
 
@@ -192,7 +401,7 @@ class SecurityExecutionPipelineTest {
     }
 
     @Test fun financeFirewallDeniesBeforeAuthorizationAndReturnsNoAuthorizationPath() {
-        val p = ActionPlan(
+        val plan = ActionPlan(
             appId = "bank.app",
             capability = Capability.FINANCIAL_ACTION,
             action = "transfer",
@@ -201,26 +410,26 @@ class SecurityExecutionPipelineTest {
             sessionId = "finance-session"
         )
         val action = ActionRequest(
-            appId = p.appId,
-            action = p.action,
-            riskTier = p.riskTier,
-            capability = p.capability,
-            sessionId = p.sessionId,
+            appId = plan.appId,
+            action = plan.action,
+            riskTier = plan.riskTier,
+            capability = plan.capability,
+            sessionId = plan.sessionId,
             userExplicitlyRequested = true,
             authorizationLevel = AuthorizationLevel.DEVICE_AUTHENTICATION
         )
         val engine = PolicyEngine()
         val gate = ActionAuthorizationGate()
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
-        val token = gate.issue(p, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_000)
+        val token = gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_000L)
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
                 action = action,
-                plan = p,
+                plan = plan,
                 authorizationToken = token,
-                identitySession = trustedSession(1_000),
-                nowEpochMillis = 1_000
+                identitySession = null,
+                nowEpochMillis = 1_000L
             )
         )
 
@@ -228,24 +437,16 @@ class SecurityExecutionPipelineTest {
         assertTrue(result.authorizationRequired == AuthorizationLevel.NONE)
         assertTrue(result.reason.contains("finance firewall"))
 
-        // The finance denial must not consume a token that is never a valid bypass.
         val secondAttempt = pipeline.authorize(
             SecurityExecutionRequest(
                 action = action,
-                plan = p,
+                plan = plan,
                 authorizationToken = token,
-                identitySession = trustedSession(1_000),
-                nowEpochMillis = 1_000
+                identitySession = null,
+                nowEpochMillis = 1_000L
             )
         )
         assertFalse(secondAttempt.allowed)
         assertTrue(secondAttempt.reason.contains("finance firewall"))
     }
-
-    private fun trustedSession(now: Long) =
-        IdentitySessionManager().createSession(
-            identity = IdentityLevel.OWNER_SIGNAL,
-            nowEpochMillis = now,
-            ttlMillis = 60_000L
-        )
 }
