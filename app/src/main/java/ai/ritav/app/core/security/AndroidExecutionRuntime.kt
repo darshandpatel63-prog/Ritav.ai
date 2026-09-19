@@ -42,7 +42,7 @@ class AndroidExecutionRuntime(
      * Trusted identity-session issuance for protected actions.
      * Session creation is possible only after platform authentication succeeds.
      */
-    val identitySessionService: IdentitySessionService =
+    internal val identitySessionService: IdentitySessionService =
         IdentitySessionService(
             sessionManager = identitySessionManager,
             authenticationGateway = deviceAuthorization
