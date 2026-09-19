@@ -10,7 +10,8 @@ package ai.ritav.app.core.security
 class CapabilityGrantService(
     private val registry: AppCapabilityRegistry,
     private val permissionStore: MutablePermissionStore,
-    private val authorizationGate: ActionAuthorizationGate
+    private val authorizationGate: ActionAuthorizationGate,
+    private val emergencyStop: EmergencyStopController
 ) {
     fun createGrantPlan(
         packageName: String,
@@ -48,6 +49,7 @@ class CapabilityGrantService(
         authorizationToken: String?,
         nowEpochMillis: Long
     ): Boolean {
+        if (emergencyStop.isActive()) return false
         if (!plan.isValid() || plan.expectedState != GRANT_EXPECTED_STATE) return false
         if (plan.action.length <= GRANT_ACTION_PREFIX.length ||
             !plan.action.startsWith(GRANT_ACTION_PREFIX)
