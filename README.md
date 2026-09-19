@@ -533,3 +533,19 @@ Trusted Android package identity verification and the deterministic capability-g
 **CURRENT STOP POINT:** Android release hardening is implemented and source-reviewed; final release CI verification is pending for ac3e6c00d3f224099170092c6dd8cd2559c98b89.
 
 **NEXT ACTION:** inspect the exact-head release-validation run. If it passes, perform the consolidated release/security review and record the verified release-hardening checkpoint. If it fails, fix only the demonstrated failure and rerun the affected verification path.
+
+## 2026-09-19 verified Android release-hardening checkpoint
+
+- Verified code head: `81dba435e3cd0b55d398db965dc63a92cf20bae2`.
+- GitHub Actions Android release validation run #12 (`35439804241`) completed successfully on that exact `main` head.
+- Release verification passed the structural manifest/build security contract, tracked non-test source secret/signing-material scan, `:core:jvmTest`, debug and release unit tests, `lintRelease`, `assembleRelease`, and `bundleRelease`.
+- The final artifact gate passed: the release APK is non-debug, the R8 mapping is non-empty, SHA-256 checksums were generated, and the unsigned APK/AAB/mapping artifact bundle was uploaded successfully.
+- The uploaded validation bundle is artifact `10583043149` with GitHub-reported ZIP SHA-256 `fe707d946f9a947840c0e0fd7a5be627665321a518343c5cf4336cf04392d4dd`; it expires after 7 days under the workflow retention policy.
+- Android manifest hardening is verified with backup disabled, modern cloud/device-transfer exclusions plus legacy backup exclusions, cleartext disabled, and only `ACCESS_NETWORK_STATE` added for local connectivity-state inspection; no `INTERNET` permission or active network client is present in the current app path.
+- Release signing remains intentionally unconfigured. These are unsigned validation artifacts, not a production signed release.
+- Consolidated release/security review re-checked the release configuration, CI triggers/permissions/concurrency, artifact gates, and integration with the deterministic authorization, finance firewall, sensitive-data firewall, Emergency Stop, trusted package identity, execution boundary, result verification, and audit chain. No demonstrated CRITICAL/HIGH bypass was identified in this release-hardening review.
+- Independent review checkpoint: release-hardening is complete for this verification scope. Physical-device testing, real target-app UI/result observation, real model-context ingestion, screen/OCR/accessibility producer-to-model filtering, and native non-Android runtimes remain unverified/unimplemented as previously documented.
+
+**CURRENT STOP POINT:** Android release hardening is implemented, integrated, source-reviewed, and exact-head CI-verified at `81dba435e3cd0b55d398db965dc63a92cf20bae2`. The production trusted external-app registry remains empty/deny-by-default.
+
+**NEXT ACTION:** begin the next major layer only after preserving this checkpoint: integrate the concrete user-facing authorization flow and reviewed trusted-app allowlist activation using authoritative package identity/certificate pins. Do not add speculative banking/UPI targets.
