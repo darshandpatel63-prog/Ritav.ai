@@ -41,7 +41,7 @@ class AndroidExecutionRuntime(
     val capabilityGrantService: CapabilityGrantService =
         CapabilityGrantService(
             registry = capabilityRegistry,
-            permissionStore = securityState.permissionStore,
+            permissionStore = securityState.mutablePermissionStore(),
             authorizationGate = authorizationGate,
             emergencyStop = securityState.policyEngine.emergencyStopController()
         )
