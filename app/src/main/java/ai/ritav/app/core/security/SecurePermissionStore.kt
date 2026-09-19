@@ -8,7 +8,7 @@ import ai.ritav.app.core.storage.SecureLocalStore
  * The serialized permission entries contain only policy metadata. No secrets,
  * message bodies, contact content, or screen data are stored here.
  */
-class SecurePermissionStore(
+internal class SecurePermissionStore(
     private val store: SecureLocalStore
 ) : MutablePermissionStore {
 
