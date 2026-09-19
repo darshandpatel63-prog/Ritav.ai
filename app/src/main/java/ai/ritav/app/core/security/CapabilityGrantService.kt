@@ -58,7 +58,13 @@ class CapabilityGrantService(
 
         val targetRisk = registry.riskTierFor(plan.appId, plan.capability, targetAction) ?: return false
         if (!registry.allows(plan.appId, plan.capability, targetAction, targetRisk)) return false
-        if (!authorizationGate.consume(plan, authorizationToken, nowEpochMillis)) return false
+        if (!authorizationGate.consume(
+                authorizationToken.orEmpty(),
+                plan,
+                requiredAuthorizationFor(plan),
+                nowEpochMillis
+            )
+        ) return false
 
         return runCatching {
             permissionStore.grant(
@@ -81,6 +87,17 @@ class CapabilityGrantService(
             permissionStore.revoke(grant)
             true
         }.getOrDefault(false)
+
+    private fun requiredAuthorizationFor(plan: ActionPlan): AuthorizationLevel = when (plan.riskTier) {
+        RiskTier.TIER_0_INFORMATIONAL, RiskTier.TIER_1_REVERSIBLE ->
+            AuthorizationLevel.NONE
+        RiskTier.TIER_2_CONTENT_MUTATION ->
+            AuthorizationLevel.USER_CONFIRMATION
+        RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE ->
+            AuthorizationLevel.DEVICE_AUTHENTICATION
+        RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED ->
+            AuthorizationLevel.NONE
+    }
 
     private companion object {
         const val GRANT_EXPECTED_STATE = "CAPABILITY_GRANT"
