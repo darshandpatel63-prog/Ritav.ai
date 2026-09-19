@@ -76,6 +76,32 @@ class AppCapabilityRegistrySecurityTest {
         }
     }
 
+    @Test fun financialCapabilityIsNeverAuthorizedByRegistry() {
+        val registry = AppCapabilityRegistry(
+            listOf(
+                AppCapabilitySpec(
+                    packageName = "com.example.finance",
+                    capability = Capability.FINANCIAL_ACTION,
+                    actions = setOf("pay"),
+                    riskTier = RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED,
+                    financialCategory = true,
+                    trustedCertificateSha256 = certificate
+                )
+            )
+        )
+
+        assertNull(registry.riskTierFor("com.example.finance", Capability.FINANCIAL_ACTION, "pay"))
+        assertEquals(
+            false,
+            registry.allows(
+                "com.example.finance",
+                Capability.FINANCIAL_ACTION,
+                "pay",
+                RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED
+            )
+        )
+    }
+
     @Test fun conflictingCertificatePinsForOnePackageAreRejected() {
         assertThrows(IllegalArgumentException::class.java) {
             AppCapabilityRegistry(
