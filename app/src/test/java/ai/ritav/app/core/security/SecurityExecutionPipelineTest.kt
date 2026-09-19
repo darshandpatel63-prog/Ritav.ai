@@ -6,6 +6,7 @@ import org.junit.Test
 
 class SecurityExecutionPipelineTest {
     private data class ProtectedFixture(
+        val identityManager: IdentitySessionManager,
         val plan: ActionPlan,
         val action: ActionRequest,
         val session: SecuritySession
@@ -34,7 +35,7 @@ class SecurityExecutionPipelineTest {
             userExplicitlyRequested = true,
             authorizationLevel = AuthorizationLevel.USER_CONFIRMATION
         )
-        return ProtectedFixture(plan, action, session)
+        return ProtectedFixture(identityManager, plan, action, session)
     }
 
     @Test fun malformedPlanIsDeniedBeforeSecurityProcessing() {
