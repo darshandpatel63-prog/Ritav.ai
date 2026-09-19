@@ -95,6 +95,21 @@ class CapabilityGrantServiceTest {
     }
 
     @Test
+    fun emergencyStopBlocksCapabilityGrantWithoutAffectingRevocationPath() {
+        val store = InMemoryPermissionStore()
+        val gate = ActionAuthorizationGate()
+        val stop = EmergencyStopController()
+        val service = CapabilityGrantService(registry, store, gate, stop)
+        val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+
+        stop.activate()
+        assertFalse(service.grant(plan, token, 1_001L))
+        assertFalse(store.isGranted("com.example.safe", Capability.APP_LAUNCH, "open", null))
+        assertTrue(service.revoke(CapabilityGrant("com.example.safe", Capability.APP_LAUNCH, "open")))
+    }
+
+    @Test
     fun financialCapabilityCannotBeGrantedEvenIfRegistryMetadataIsMisconfigured() {
         val financialRegistry = AppCapabilityRegistry(
             listOf(
