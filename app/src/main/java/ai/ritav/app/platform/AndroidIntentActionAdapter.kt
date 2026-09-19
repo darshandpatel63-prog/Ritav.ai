@@ -3,9 +3,9 @@ package ai.ritav.app.platform
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import java.security.MessageDigest
 import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.AndroidActionAdapter
+import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.ExecutionResult
 
@@ -22,12 +22,12 @@ class AndroidIntentActionAdapter internal constructor(
 
     constructor(
         context: Context,
-        registry: ai.ritav.app.core.security.AppCapabilityRegistry
+        registry: AppCapabilityRegistry
     ) : this(
         dispatcher = ContextAndroidAppLaunchDispatcher(context.applicationContext),
         isTrustedPackage = AndroidPackageIdentityVerifier(
             registry = registry,
-            certificateReader = AndroidPackageSigningCertificateReader(context.applicationContext)
+            certificateReader = ContextAndroidPackageSigningCertificateReader(context.applicationContext)
         )::isTrusted
     )
 
@@ -71,46 +71,71 @@ class AndroidIntentActionAdapter internal constructor(
     }
 }
 
+/**
+ * Testable boundary between Android package metadata access and trust evaluation.
+ * A missing/unreadable signer result is represented by null and fails closed.
+ */
+internal fun interface AndroidPackageSigningCertificateReader {
+    fun read(packageName: String): List<ByteArray>?
+}
 
 /**
- * Verifies the installed package identity against trusted registry metadata.
- * Package-name equality alone is insufficient because a package can be replaced
- * after an uninstall/reinstall event.
+ * Android framework-backed certificate reader.
  */
-private class AndroidPackageIdentityVerifier(
-    private val context: Context,
-    private val registry: ai.ritav.app.core.security.AppCapabilityRegistry
+private class ContextAndroidPackageSigningCertificateReader(
+    private val context: Context
+) : AndroidPackageSigningCertificateReader {
+    override fun read(packageName: String): List<ByteArray>? = runCatching {
+        val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            context.packageManager.getPackageInfo(
+                packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(
+                packageName,
+                PackageManager.GET_SIGNATURES
+            )
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val signingInfo = packageInfo.signingInfo ?: return@runCatching null
+            signingInfo.apkContentsSigners?.map { it.toByteArray() }
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo.signatures?.map { it.toByteArray() }
+        }
+    }.getOrNull()
+}
+
+/**
+ * Verifies an installed package identity against trusted registry metadata.
+ * Package-name equality alone is insufficient because the installed package may
+ * be replaced after uninstall/reinstall. Missing, unreadable, or multi-signer
+ * identities fail closed.
+ */
+internal class AndroidPackageIdentityVerifier(
+    private val registry: AppCapabilityRegistry,
+    private val certificateReader: AndroidPackageSigningCertificateReader
 ) {
     fun isTrusted(packageName: String): Boolean {
         val expected = registry.trustedCertificateSha256(packageName)?.lowercase() ?: return false
-        return runCatching {
-            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageInfo(
-                    packageName,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                context.packageManager.getPackageInfo(
-                    packageName,
-                    PackageManager.GET_SIGNATURES
-                )
-            }
-            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val signingInfo = packageInfo.signingInfo ?: return@runCatching false
-                signingInfo.apkContentsSigners ?: return@runCatching false
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo.signatures ?: return@runCatching false
-            }
-            signatures.any { signature ->
-                sha256(signature.toByteArray()) == expected
-            }
-        }.getOrDefault(false)
+        if (!registry.isRegistered(packageName)) return false
+
+        val certificates = certificateReader.read(packageName) ?: return false
+        if (certificates.size != 1) return false
+
+        return sha256(certificates.single()) == expected
     }
 
     private fun sha256(bytes: ByteArray): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest(bytes)
-            .joinToString("") { "%02x".format(it) }
+        bytes.toHexSha256()
+
+    private fun ByteArray.toHexSha256(): String =
+        java.security.MessageDigest.getInstance("SHA-256")
+            .digest(this)
+            .joinToString("") { byte ->
+                (byte.toInt() and 0xff).toString(16).padStart(2, '0')
+            }
 }
