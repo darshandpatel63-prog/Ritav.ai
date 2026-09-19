@@ -443,3 +443,36 @@ Exact implementation/test commits in this correction sequence: `cb9415792f65ad5b
 **NEXT ACTION:** inspect Run #211. On success, record the final consolidated security checkpoint and independent-audit result. On failure, fix only the demonstrated defect, rerun, and repeat the affected review.
 
 Exact current security checkpoint commit: `c99f2f59c06d7ef5be50b010ceb35f849d498ac8`.
+
+
+## 2026-09-19 final security hand-off checkpoint
+
+### Verification
+- Current code/security checkpoint before documentation-only updates: c99f2f59c06d7ef5be50b010ceb35f849d498ac8.
+- Run #203 (35436122945) succeeded for 603587dac6694493b4ac5045a546fa27d49d347d, including JVM tests, Android instrumentation compilation/APK assembly, and managed-device instrumentation; this verified the corrected certificate-reader failure path and trusted package identity regression set.
+- Run #204 (35437175194) succeeded for 86c7eff93ac16b7715caf7f74256887cf783369d, covering the registry ambiguity/financial metadata hardening checkpoint.
+- Run #211 (35437460927) succeeded for c99f2f59c06d7ef5be50b010ceb35f849d498ac8. Its job completed the JVM unit-test task, Android instrumentation-test compilation/APK assembly, and 4 managed-device instrumentation tests on pixel2api30.
+- No local Gradle execution was performed in this chat; executable evidence is from GitHub Actions.
+
+### Consolidated security review
+Reviewed end-to-end: trusted package identity -> AppCapabilityRegistry -> CapabilityPolicyGate -> CapabilityGrantService -> shared MutablePermissionStore/SecurePermissionStore -> ActionAuthorizationGate/Service -> identity/session binding -> SecurityExecutionPipeline -> ExecutionBridge -> AndroidIntentActionAdapter -> ResultVerifier/audit.
+
+Adversarial lenses covered authorization replay/wrong-plan substitution, risk escalation, package/certificate substitution, multiple/missing/exceptional certificate reads, malformed/oversized plans and identifiers, Emergency Stop grant/execution blocking, financial hard-deny at multiple layers, permission-store mutation boundaries, session binding/expiry/clock failures, and fail-closed adapter behavior. No demonstrated CRITICAL/HIGH bypass was identified in the current implementation during this review.
+
+### Actual remaining risks / limitations
+- Production trusted package registry is intentionally empty; external-app execution therefore remains deny-by-default.
+- Capability-grant UX is not wired to a production user/device-authorization UI path; the deterministic service boundary exists.
+- ResultVerifier receives adapter-provided observed state; target-app final UI state is not independently observed.
+- Sensitive-data detection remains pattern-based defense-in-depth; the real model/context ingestion choke point and screen/OCR/accessibility producer-to-model path are not implemented.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes are not implemented.
+- Release R8/minification/obfuscation and signed release packaging have not been configured/verified.
+- GitHub Actions run #211 used a managed Android emulator (pixel2api30); this is not equivalent to independent physical-device testing.
+- The workflow emitted non-blocking deprecation warnings for the Android biometric API and GitHub Actions Node 20 compatibility; they did not fail the run.
+
+### Handoff decision
+The current implementable security-foundation scope is complete for hand-off based on repository evidence and the successful CI/device-emulator checkpoint. This is not a claim that the product is production-release-ready or fully secure on every device/runtime.
+
+### Exact next development action
+After client hand-off, the next development package is release-hardening and production composition: first establish the reviewed Android trusted-app allowlist/real user authorization UI path only when an authoritative package identity is available, then perform R8/minification/signed-release hardening and physical-device verification. Do not add speculative banking/payment/backend integrations.
+
+Exact verified security code checkpoint: c99f2f59c06d7ef5be50b010ceb35f849d498ac8.

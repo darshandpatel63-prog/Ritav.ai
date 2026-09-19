@@ -507,3 +507,14 @@ The Android launch adapter now uses a deterministic package-identity boundary ba
 
 ## Current security checkpoint — 2026-09-19
 Trusted Android package identity verification and the deterministic capability-grant security layer are implemented. The latest hardening also removes direct public mutable permission-store access and restricts direct Emergency Stop reset/controller access. Previous runs #203 and #204 provide executable verification for the identity and registry hardening packages; the latest bundled changes are awaiting Run #211 (`35437460927`). The trusted external-app registry remains empty/deny-by-default, and real model/context ingestion, screen/OCR/accessibility filtering, and signed release packaging remain future/unverified surfaces.
+
+
+## 2026-09-19 final security hand-off checkpoint
+
+- Current verified code security checkpoint: c99f2f59c06d7ef5be50b010ceb35f849d498ac8.
+- GitHub Actions run #211 (35437460927) for that checkpoint completed successfully.
+- The run executed JVM unit tests and assembleDebugAndroidTest successfully, then executed 4 Android instrumentation tests on the pixel2api30 managed device successfully.
+- Trusted Android package identity tests, registry financial-deny hardening, capability-grant lifecycle, permission-store wiring, authorization/session/replay controls, Emergency Stop, and execution-boundary regressions are covered by the successful repository CI checkpoints where included by the current test suite.
+- The trusted external-app registry remains empty/deny-by-default. No third-party package/certificate has been authorized.
+- This is a security-foundation/client-handoff checkpoint, not a production-release sign-off: release R8/minification/obfuscation, signed release packaging, real target-app UI/result observation, real model-context ingestion, screen/OCR/accessibility filtering, and native non-Android runtimes remain unimplemented or unverified.
+- No real-device evidence beyond the GitHub managed Android emulator run is claimed.
