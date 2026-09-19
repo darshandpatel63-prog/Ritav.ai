@@ -45,22 +45,26 @@ class AppCapabilityRegistry(
     fun isRegistered(packageName: String): Boolean =
         specsByPackage.containsKey(packageName)
 
-    fun allows(packageName: String, capability: Capability, action: String, requestedRisk: RiskTier): Boolean =
-        specsByPackage[packageName].orEmpty().any {
+    fun allows(packageName: String, capability: Capability, action: String, requestedRisk: RiskTier): Boolean {
+        if (capability == Capability.FINANCIAL_ACTION) return false
+        return specsByPackage[packageName].orEmpty().any {
             it.capability == capability &&
                 action in it.actions &&
                 !it.financialCategory &&
                 it.riskTier == requestedRisk &&
                 it.sensitiveContentBlocked
         }
+    }
 
     fun isFinancial(packageName: String): Boolean =
         specsByPackage[packageName].orEmpty().any { it.financialCategory }
 
-    fun riskTierFor(packageName: String, capability: Capability, action: String): RiskTier? =
-        specsByPackage[packageName].orEmpty()
+    fun riskTierFor(packageName: String, capability: Capability, action: String): RiskTier? {
+        if (capability == Capability.FINANCIAL_ACTION) return null
+        return specsByPackage[packageName].orEmpty()
             .firstOrNull { capability == it.capability && action in it.actions }
             ?.riskTier
+    }
 
     fun trustedCertificateSha256(packageName: String): String? =
         specsByPackage[packageName].orEmpty().firstOrNull()?.trustedCertificateSha256
