@@ -242,10 +242,10 @@ class SecurityExecutionPipelineTest {
         assertTrue(secondAttempt.reason.contains("finance firewall"))
     }
 
-    private fun trustedSession(now: Long) = SecuritySession.create(
-        id = "session-1",
-        identity = IdentityLevel.OWNER_SIGNAL,
-        authenticatedAtEpochMillis = now,
-        expiresAtEpochMillis = now + 60_000
-    )
+    private fun trustedSession(now: Long) =
+        IdentitySessionManager().createSession(
+            identity = IdentityLevel.OWNER_SIGNAL,
+            nowEpochMillis = now,
+            ttlMillis = 60_000L
+        )
 }
