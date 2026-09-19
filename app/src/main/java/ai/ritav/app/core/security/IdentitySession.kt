@@ -13,22 +13,30 @@ class SecuritySession private constructor(
     val id: String,
     val identity: IdentityLevel,
     val authenticatedAtEpochMillis: Long,
-    val expiresAtEpochMillis: Long
+    val expiresAtEpochMillis: Long,
+    private val issuanceBinding: Any
 ) {
     fun isActive(nowEpochMillis: Long): Boolean =
         nowEpochMillis >= authenticatedAtEpochMillis && nowEpochMillis <= expiresAtEpochMillis
 
+    internal fun isIssuedBy(binding: Any): Boolean = issuanceBinding === binding
+
     companion object {
-        internal fun create(
-            id: String = UUID.randomUUID().toString(),
+        internal fun createForManager(
+            issuanceBinding: Any,
             identity: IdentityLevel,
             authenticatedAtEpochMillis: Long,
             expiresAtEpochMillis: Long
         ): SecuritySession {
-            require(id.isNotBlank() && id.length <= MAX_ID_LENGTH)
             require(authenticatedAtEpochMillis >= 0)
             require(expiresAtEpochMillis >= authenticatedAtEpochMillis)
-            return SecuritySession(id, identity, authenticatedAtEpochMillis, expiresAtEpochMillis)
+            return SecuritySession(
+                id = UUID.randomUUID().toString(),
+                identity = identity,
+                authenticatedAtEpochMillis = authenticatedAtEpochMillis,
+                expiresAtEpochMillis = expiresAtEpochMillis,
+                issuanceBinding = issuanceBinding
+            )
         }
 
         private const val MAX_ID_LENGTH = 256
@@ -36,6 +44,8 @@ class SecuritySession private constructor(
 }
 
 class IdentitySessionManager {
+    private val issuanceBinding = Any()
+
     /**
      * Internal issuance boundary. Production callers must obtain the identity
      * level from a trusted authentication gateway before calling this method.
@@ -50,7 +60,8 @@ class IdentitySessionManager {
         require(ttlMillis in 1..MAX_TTL_MILLIS)
         require(nowEpochMillis <= Long.MAX_VALUE - ttlMillis)
 
-        return SecuritySession.create(
+        return SecuritySession.createForManager(
+            issuanceBinding = issuanceBinding,
             identity = identity,
             authenticatedAtEpochMillis = nowEpochMillis,
             expiresAtEpochMillis = nowEpochMillis + ttlMillis
@@ -60,6 +71,7 @@ class IdentitySessionManager {
     fun permitsProtectedCapability(session: SecuritySession?, nowEpochMillis: Long): Boolean =
         session != null &&
             nowEpochMillis >= 0 &&
+            session.isIssuedBy(issuanceBinding) &&
             session.isActive(nowEpochMillis) &&
             session.identity != IdentityLevel.UNKNOWN
 
