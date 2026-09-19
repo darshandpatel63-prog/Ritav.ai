@@ -87,7 +87,18 @@ jobs:
                   print(f"Embedded secret pattern detected: {path}:{line} ({label})")
               sys.exit(1)
 
-          print("No embedded release-secret patterns found in tracked non-test sources.")
+          risky_files = [
+              path for path in (
+                  raw.decode("utf-8") for raw in tracked if raw
+              )
+              if pathlib.PurePosixPath(path).suffix.lower() in {".jks", ".keystore", ".p12", ".pem", ".key"}
+          ]
+          if risky_files:
+              for path in risky_files:
+                  print(f"Tracked signing/secret material is forbidden: {path}")
+              sys.exit(1)
+
+          print("No embedded release-secret patterns or tracked signing material found in non-test sources.")
           PY
 
       - name: Validate release unit tests and release build
@@ -99,6 +110,33 @@ jobs:
           assembleRelease
           bundleRelease
 
+      - name: Verify release artifacts and APK debug state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          apk="app/build/outputs/apk/release/app-release-unsigned.apk"
+          aab="app/build/outputs/bundle/release/app-release.aab"
+          mapping="app/build/outputs/mapping/release/mapping.txt"
+
+          test -s "$apk"
+          test -s "$aab"
+          test -s "$mapping"
+
+          manifest_dump="$(mktemp)"
+          trap 'rm -f "$manifest_dump"' EXIT
+          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump xmltree "$apk" AndroidManifest.xml > "$manifest_dump"
+
+          if grep -Eqi 'android:debuggable[^\n]*(true|0xffffffff)' "$manifest_dump"; then
+            echo "::error::Release APK is debug-enabled."
+            exit 1
+          fi
+
+          sha256sum "$apk" "$aab" "$mapping" > release-SHA256SUMS.txt
+          echo "Release artifacts:"
+          ls -lh "$apk" "$aab" "$mapping" release-SHA256SUMS.txt
+          echo "R8 mapping is present and release APK does not declare debuggable=true."
+
       - name: Upload unsigned release artifacts and mapping
         uses: actions/upload-artifact@v4
         with:
@@ -109,3 +147,4 @@ jobs:
             app/build/outputs/apk/release/app-release-unsigned.apk
             app/build/outputs/bundle/release/app-release.aab
             app/build/outputs/mapping/release/mapping.txt
+            release-SHA256SUMS.txt
