@@ -80,7 +80,12 @@ class SecurityExecutionPipelineTest {
             )
         )
         val gate = ActionAuthorizationGate()
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = fixture.identityManager
+        )
         val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
         val malformed = fixture.action.copy(action = "x".repeat(4_097))
         val result = pipeline.authorize(
@@ -191,7 +196,12 @@ class SecurityExecutionPipelineTest {
             )
         )
         val gate = ActionAuthorizationGate()
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = fixture.identityManager
+        )
         val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
         val result = pipeline.authorize(
             SecurityExecutionRequest(
@@ -231,7 +241,12 @@ class SecurityExecutionPipelineTest {
             )
         )
         val gate = ActionAuthorizationGate()
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = fixture.identityManager
+        )
 
         val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
         val result = pipeline.authorize(
@@ -265,7 +280,12 @@ class SecurityExecutionPipelineTest {
             )
         )
         val gate = ActionAuthorizationGate()
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = fixture.identityManager
+        )
         val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         val result = pipeline.authorize(
@@ -310,7 +330,12 @@ class SecurityExecutionPipelineTest {
             )
         )
         val gate = ActionAuthorizationGate()
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = fixture.identityManager
+        )
         val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         val result = pipeline.authorize(
@@ -343,7 +368,12 @@ class SecurityExecutionPipelineTest {
             )
         )
         val gate = ActionAuthorizationGate()
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = fixture.identityManager
+        )
         val token = gate.issue(fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         val blocked = pipeline.authorize(
