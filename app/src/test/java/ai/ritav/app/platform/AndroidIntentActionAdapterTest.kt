@@ -159,6 +159,22 @@ class AndroidIntentActionAdapterTest {
         assertFalse(result)
     }
 
+    @Test fun packageIdentityRejectsCertificateReaderFailure() {
+        val registry = trustedRegistry()
+        val failingReader = object : AndroidPackageSigningCertificateReader {
+            override fun read(packageName: String): List<ByteArray>? {
+                throw SecurityException("certificate access failed")
+            }
+        }
+
+        val result = AndroidPackageIdentityVerifier(
+            registry = registry,
+            certificateReader = failingReader
+        ).isTrusted("com.example.safe")
+
+        assertFalse(result)
+    }
+
     @Test fun packageIdentityRejectsUnregisteredPackageEvenWithMatchingCertificate() {
         val registry = trustedRegistry()
         val result = verifier(registry, listOf(certificateBytes)).isTrusted("com.example.unknown")
