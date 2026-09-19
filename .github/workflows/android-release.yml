@@ -7,6 +7,10 @@ on:
     paths:
       - "app/build.gradle.kts"
       - "app/proguard-rules.pro"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
       - "app/src/main/AndroidManifest.xml"
       - "app/src/main/res/xml/**"
       - ".github/workflows/android-release.yml"
