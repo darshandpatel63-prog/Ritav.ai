@@ -42,6 +42,7 @@ class AndroidExecutionRuntime(
         CapabilityGrantService(
             registry = capabilityRegistry,
             permissionStore = securityState.permissionStore,
-            authorizationGate = authorizationGate
+            authorizationGate = authorizationGate,
+            emergencyStop = securityState.policyEngine.emergencyStopController()
         )
 }
