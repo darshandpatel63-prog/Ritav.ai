@@ -1,6 +1,5 @@
 package ai.ritav.app.core.security
 
-import android.content.Context
 import androidx.fragment.app.FragmentActivity
 import ai.ritav.app.platform.AndroidIntentActionAdapter
 
@@ -18,6 +17,7 @@ class AndroidExecutionRuntime(
 
     private val authorizationGate = ActionAuthorizationGate()
     private val identitySessionManager = IdentitySessionManager()
+    private val deviceAuthorization = AndroidDeviceAuthorizationGateway(activity)
     private val securityPipeline = SecurityExecutionPipeline(
         policyEngine = securityState.policyEngine,
         executionPolicyGate = ExecutionPolicyGate(securityState.policyEngine),
@@ -35,7 +35,17 @@ class AndroidExecutionRuntime(
     val authorizationService: ActionAuthorizationService =
         ActionAuthorizationService(
             gate = authorizationGate,
-            deviceAuthorization = AndroidDeviceAuthorizationGateway(activity)
+            deviceAuthorization = deviceAuthorization
+        )
+
+    /**
+     * Trusted identity-session issuance for protected actions.
+     * Session creation is possible only after platform authentication succeeds.
+     */
+    val identitySessionService: IdentitySessionService =
+        IdentitySessionService(
+            sessionManager = identitySessionManager,
+            authenticationGateway = deviceAuthorization
         )
 
     internal val capabilityGrantService: CapabilityGrantService =
