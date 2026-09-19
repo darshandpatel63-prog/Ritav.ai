@@ -29,9 +29,13 @@ class ExecutionBridgeTest {
     private fun pipelineFor(policy: PolicyEngine, gate: ActionAuthorizationGate = ActionAuthorizationGate()) =
         SecurityExecutionPipeline(policy, ExecutionPolicyGate(policy), gate)
 
-    private fun identity(sessionId: String = "s1"): SecuritySession {
+    private fun identity(): SecuritySession {
         val now = System.currentTimeMillis()
-        return SecuritySession.create(sessionId, IdentityLevel.OWNER_SIGNAL, now - 1_000L, now + 60_000L)
+        return IdentitySessionManager().createSession(
+            identity = IdentityLevel.OWNER_SIGNAL,
+            nowEpochMillis = now - 1_000L,
+            ttlMillis = 60_000L
+        )
     }
 
     @Test fun unregisteredCapabilityNeverReachesAdapter() {
@@ -128,7 +132,11 @@ class ExecutionBridgeTest {
         val gate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(CapabilityPolicyGate(registryFor(plan)), pipelineFor(policy, gate), adapter)
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
-        val mismatchedSession = SecuritySession.create("other-session", IdentityLevel.OWNER_SIGNAL, System.currentTimeMillis() - 1_000L, System.currentTimeMillis() + 60_000L)
+        val mismatchedSession = IdentitySessionManager().createSession(
+            identity = IdentityLevel.OWNER_SIGNAL,
+            nowEpochMillis = System.currentTimeMillis() - 1_000L,
+            ttlMillis = 60_000L
+        )
 
         val result = bridge.execute(
             plan,
