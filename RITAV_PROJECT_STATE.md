@@ -411,3 +411,17 @@ CURRENT STOP POINT: trusted Android package identity + registry financial deny h
 NEXT ACTION: inspect the final result of the current Android workflow, fix only demonstrated failures, then complete the consolidated trusted-app identity -> registry -> grant -> permission-store -> execution-path security review before marking this layer verified.
 
 Exact new commits: 390a48c23d165fe14ae4a2422eea2d5798ed2076, faf3eb961e0b86781c01ba08888d3229cbe4547a, ad3b29bcbc505fc75e098dc54a4be98dd8255e8d, 394b14f23fe6c8c0a24ac51c84b0569dfe6d1500.
+
+
+## 2026-09-19 trusted Android package identity — implementation corrected
+- Reconstructed the Android package identity boundary from the actual repository state after CI exposed that earlier identity commits contained only malformed/incomplete fragments.
+- `AndroidPackageIdentityVerifier` now depends on a dedicated `AndroidPackageSigningCertificateReader`, requires an explicitly registered package and a valid registry SHA-256 pin, requires exactly one installed signer, and compares the canonical SHA-256 digest of the installed certificate bytes to the registered pin.
+- Android framework certificate access is isolated behind `ContextAndroidPackageSigningCertificateReader`, with API-P+ and legacy API paths; unreadable package metadata, missing signing information, reader exceptions, multiple signers, wrong certificates, and missing pins fail closed.
+- Added regression tests for exact certificate matching, wrong certificate, multiple signers, missing certificate, reader failure, unregistered package, missing pin, and adapter dispatch blocking.
+- Run #195 (`35435898046`) failed on a malformed constructor fragment in the earlier identity change; the defect was traced directly to the CI compiler log and corrected. Run #199 (`35436020212`) was on an intermediate source and is not evidence for the final implementation. Runs #200/#201/#202 were superseded/cancelled as newer commits arrived. Run #203 (`35436122945`) is the current verification run for the latest test commit and is still pending at this checkpoint.
+
+**CURRENT STOP POINT:** trusted Android package identity verification and registry financial deny hardening are implemented and source-reviewed; final JVM/Android/managed-device execution verification is still pending.
+
+**NEXT ACTION:** inspect Run #203 (`35436122945`) to completion; if it passes, perform the consolidated identity → registry → capability grant → permission-store → execution review and then record the verified security-layer checkpoint. If it fails, fix only the demonstrated failure and repeat verification.
+
+Exact implementation/test commits in this correction sequence: `cb9415792f65ad5b57f851a8c741ef742daa3be1`, `3fb3ce8374b21e7e0a304f913f2011feb8725644`, `45f9b1db5cea9cb2c3c49d7a85983b313e64f30b`, `603587dac6694493b4ac5045a546fa27d49d347d`.
