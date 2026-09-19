@@ -72,7 +72,7 @@ jobs:
           ls -l /dev/kvm
 
       - name: Run JVM unit tests and compile instrumentation tests
-        run: gradle --no-daemon testDebugUnitTest assembleDebugAndroidTest
+        run: gradle --no-daemon :core:jvmTest testDebugUnitTest assembleDebugAndroidTest
 
       - name: Run Android instrumentation tests on managed device
         run: gradle --no-daemon -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect pixel2api30DebugAndroidTest
