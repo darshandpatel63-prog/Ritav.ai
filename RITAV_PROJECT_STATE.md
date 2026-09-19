@@ -378,3 +378,21 @@ Decisions recorded:
 **Current status:** architecture recorded; no executable premium/backend integration claimed.
 
 **Exact next action:** finish and verify the current trusted capability grant lifecycle first. Later, when online identity is scheduled, perform provider selection, threat modeling, backend authorization design, secure session/token implementation, sandbox payment integration, and independent security review before production enablement.
+
+
+## 2026-09-19 capability-grant lifecycle checkpoint
+- Current main head: `ac403593a848d7722da2f682c2fc8197ba384141`.
+- Capability grant lifecycle is implemented and integrated through `CapabilityGrantService`, `MutablePermissionStore`, `SecurityRuntimeState`, and the Android execution composition root.
+- Grants require an exact `ActionPlan` binding, registry-backed target/risk lookup, non-financial capability, non-Tier-4 risk, one-time authorization consumption, and fail closed on invalid clocks or authorization mismatch.
+- Emergency Stop is injected from the authoritative Android security runtime and blocks new grants. Revocation remains available while stopped because it is privilege-reducing.
+- Financial capability grants are hard-denied even if registry metadata is accidentally permissive.
+- GitHub Actions run #194 (`35424604601`) for `ac403593a848d7722da2f682c2fc8197ba384141` completed successfully: JVM unit tests passed, Android instrumentation tests compiled/APK assembled, and managed-device instrumentation completed successfully.
+- Consolidated grant-layer review covered exact plan/target binding, authorization replay and wrong-plan substitution, risk escalation, financial/Tier-4 denial, permission-store data flow, shared runtime store wiring, Emergency Stop, identity/session semantics, revoke semantics, clock/failure paths, and bounded inputs. No new blocking bypass was identified.
+- Revocation is intentionally authorization-free because it only removes an existing capability; this is a privilege-reducing operation. Granting remains authorization-gated.
+- Known limitation: grant UX is not yet wired to a concrete production UI/user-confirmation flow; the security service boundary is implemented, while the trusted caller path must use `ActionAuthorizationService` for real user/device authorization.
+
+**CURRENT STOP POINT:** capability-grant lifecycle implementation, integration, tests, managed-device verification, and consolidated review are complete. This is the security checkpoint before the next major layer.
+
+**NEXT ACTION:** begin the reviewed trusted-app allowlist/permission-grant integration incrementally, preserving empty/deny-by-default registry behavior until authoritative package identity and signing-certificate pins are deliberately populated. Do not add speculative banking/UPI targets.
+
+Exact checkpoint commits: `76ca79ab69caf32c4318bbd3e3b1677b48450398`, `96c481397bbfa9e1d927c2b7ed5dc9e0aaa50536`, `42c118017ca50f777ea75d66cf1c7de0004e7f7b`, `df23d57cc4595b1fd80fc61ff7b1aeb3aabe069a`, `74e327354733a3009b4b4994cb59aca579c48f0d`, `bf51d6783cbb1e91718d7f49abcdde31b11f6370`, `65e7c8504ae55bc374af9ed0078d518f34461859`, `ac403593a848d7722da2f682c2fc8197ba384141`.
