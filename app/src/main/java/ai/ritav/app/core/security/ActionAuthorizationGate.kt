@@ -14,7 +14,8 @@ class ActionAuthorizationGate(
     private data class Grant(
         val planHash: String,
         val requiredLevel: AuthorizationLevel,
-        val expiresAtEpochMillis: Long
+        val expiresAtEpochMillis: Long,
+        val emergencyStopGeneration: Long
     )
 
     private val grants = ConcurrentHashMap<String, Grant>()
@@ -36,7 +37,8 @@ class ActionAuthorizationGate(
             grants[token] = Grant(
                 planHash = plan.stableHash(),
                 requiredLevel = requiredLevel,
-                expiresAtEpochMillis = nowEpochMillis + ttlMillis
+                expiresAtEpochMillis = nowEpochMillis + ttlMillis,
+                emergencyStopGeneration = emergencyStop.generation()
             )
             token
         } ?: throw IllegalStateException("Emergency Stop is active")
@@ -52,15 +54,18 @@ class ActionAuthorizationGate(
         providedLevel: AuthorizationLevel,
         nowEpochMillis: Long
     ): Boolean {
-        if (token.isBlank() || token.length > MAX_TOKEN_LENGTH) return false
-        if (nowEpochMillis < 0) return false
-        if (!plan.isValid()) return false
-        if (providedLevel != requiredAuthorizationFor(plan)) return false
+        return emergencyStop.runIfInactive {
+            if (token.isBlank() || token.length > MAX_TOKEN_LENGTH) return@runIfInactive false
+            if (nowEpochMillis < 0) return@runIfInactive false
+            if (!plan.isValid()) return@runIfInactive false
+            if (providedLevel != requiredAuthorizationFor(plan)) return@runIfInactive false
 
-        val grant = grants.remove(token) ?: return false
-        if (nowEpochMillis > grant.expiresAtEpochMillis) return false
-        if (grant.planHash != plan.stableHash()) return false
-        return authorizationRank(providedLevel) >= authorizationRank(grant.requiredLevel)
+            val grant = grants.remove(token) ?: return@runIfInactive false
+            if (nowEpochMillis > grant.expiresAtEpochMillis) return@runIfInactive false
+            if (grant.emergencyStopGeneration != emergencyStop.generation()) return@runIfInactive false
+            if (grant.planHash != plan.stableHash()) return@runIfInactive false
+            authorizationRank(providedLevel) >= authorizationRank(grant.requiredLevel)
+        } ?: false
     }
 
     fun purgeExpired(nowEpochMillis: Long) {
