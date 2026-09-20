@@ -12,6 +12,7 @@ internal class SecurePermissionStore(
     private val store: SecureLocalStore
 ) : MutablePermissionStore {
 
+    @Synchronized
     override fun isGranted(
         appId: String,
         capability: Capability,
