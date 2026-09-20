@@ -337,3 +337,20 @@ Source and adversarial review found no demonstrated CRITICAL/HIGH bypass in this
 **CURRENT STOP POINT:** capability-grant / Emergency-Stop race hardening is implemented, integrated, source-reviewed, and regression-covered; exact-head CI is pending.
 
 **NEXT ACTION:** obtain exact-head Android CI evidence. After successful CI, perform the required independent audit checkpoint before beginning the next major security layer.
+
+
+## 2026-09-20 independent audit checkpoint — permission / grant / Emergency Stop path
+
+The completed capability-grant and Emergency Stop hardening was independently re-reviewed end-to-end. The review covered the authorization gate/service, capability registry, capability-grant mutation boundary, shared permission store, Emergency Stop generation/locking, session binding, downstream execution gates, and related adversarial tests.
+
+One additional concurrency weakness was identified during that review: `SecurePermissionStore.isGranted()` and the test `InMemoryPermissionStore.isGranted()` were not synchronized with grant/revoke mutations. Both authorization reads are now serialized with mutations to prevent stale/concurrent permission-state decisions within the same store instance.
+
+Audit result: no demonstrated CRITICAL/HIGH bypass remains in the reviewed path after the fix. Existing MEDIUM/architectural limitations remain: the production trusted-app registry is intentionally empty, final target-app state is not independently observed, and real model/context plus screen/OCR/accessibility ingestion paths are not implemented.
+
+Latest implementation/test head: `a0c1fc5c15fedb8b006ff6c4db4544b06556b890`.
+
+Direct local tests were not executed, and the connected GitHub workflow API exposes no push-triggered run or combined status for this exact head. CI/device verification therefore remains **not verified**.
+
+**CURRENT STOP POINT:** independent audit checkpoint completed for this security layer; exact-head CI is still pending.
+
+**NEXT ACTION:** obtain exact-head Android CI evidence. Do not begin the next major security layer until the CI verification state is established and this audited package is formally closed.
