@@ -313,3 +313,12 @@ The package also hardens authorization-token consumption so a rejected wrong-pla
 Current implementation SHA: `47cb40c0d2200343226a6a76354f1772c50c3604`.
 
 Source and adversarial review found no demonstrated CRITICAL/HIGH bypass in this affected path. Exact-head Android CI verification is still pending because the connected workflow API is not exposing the push-triggered run for this SHA. The older run #245 (`35489700331`) is not evidence for this head.
+
+
+## 2026-09-20 latest security boundary checkpoint
+
+A further failure-path review found that malformed execution clocks and oversized execution session metadata could make denial auditing throw. The execution pipeline now uses an audit-safe timestamp fallback, rejects execution session IDs above 128 characters to match the audit bound, and safely records/handles rejected malformed requests. The final execution bridge also rejects negative clocks before any adapter call.
+
+Current implementation SHA: `9bffe276bfb44cd689366eec552512f8d4b0ac70`.
+
+Emergency Stop generation invalidation, authorization token binding, protected-session invalidation, wrong-plan token preservation, and these audit/clock failure paths are source-reviewed with regression coverage. Exact-head Android CI is still pending through the available connector, so this checkpoint is not yet CI-verified.
