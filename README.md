@@ -285,3 +285,9 @@ The release package was reviewed end-to-end against the existing security chain:
 
 ## 20. Continuation rule
 For every subsequent `Start/Continue`, inspect the current `main` head and relevant source/CI state first. Preserve the existing deterministic security boundary; do not add speculative banking/UPI/backend integrations or claim physical-device verification without evidence.
+
+
+## 2026-09-20 authorization emergency-stop hardening checkpoint
+- `ActionAuthorizationService` now shares the authoritative runtime Emergency Stop controller and fails closed both before and after asynchronous device authentication when the stop is active.
+- Android runtime composition injects the same controller into the authorization service; regression coverage verifies stopped user-confirmation and device-authentication token issuance is blocked, including an in-flight authentication race.
+- Exact-head Android verification is pending at run #245 (`35489700331`) for commit `1495470de42438af5288784ad47ec0818d8ab714`. This change is not yet marked verified.
