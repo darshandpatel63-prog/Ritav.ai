@@ -101,6 +101,29 @@ class ActionAuthorizationGateTest {
     }
 
     @Test
+    fun tokenIssuedBeforeEmergencyStopCannotBeConsumedAfterResume() {
+        val emergencyStop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(emergencyStop)
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+
+        emergencyStop.activate()
+        assertFalse(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
+
+        emergencyStop.resetAfterExplicitUserConfirmation(true)
+        assertFalse(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_002L))
+    }
+
+    @Test
+    fun emergencyStopBlocksTokenConsumption() {
+        val emergencyStop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(emergencyStop)
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+        emergencyStop.activate()
+
+        assertFalse(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
+    }
+
+    @Test
     fun tokenCanBeConsumedOnlyOnce() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
