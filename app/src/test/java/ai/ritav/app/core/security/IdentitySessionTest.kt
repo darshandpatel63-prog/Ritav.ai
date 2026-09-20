@@ -14,6 +14,32 @@ class IdentitySessionTest {
         assertFalse(manager.permitsProtectedCapability(session, 61_001L))
     }
 
+    @Test fun sessionIssuedBeforeEmergencyStopCannotAuthorizeAfterResume() {
+        val emergencyStop = EmergencyStopController()
+        val manager = IdentitySessionManager(emergencyStop)
+        val session = manager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L, 60_000L)
+
+        emergencyStop.activate()
+        assertFalse(manager.permitsProtectedCapability(session, 1_001L))
+
+        emergencyStop.resetAfterExplicitUserConfirmation(true)
+        assertFalse(manager.permitsProtectedCapability(session, 1_002L))
+    }
+
+    @Test fun emergencyStopBlocksDirectSessionIssuance() {
+        val emergencyStop = EmergencyStopController().apply { activate() }
+        val manager = IdentitySessionManager(emergencyStop)
+
+        var rejected = false
+        try {
+            manager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L, 60_000L)
+        } catch (_: IllegalStateException) {
+            rejected = true
+        }
+
+        assertTrue(rejected)
+    }
+
     @Test fun sessionIssuedByAnotherManagerIsRejected() {
         val issuingManager = IdentitySessionManager()
         val runtimeManager = IdentitySessionManager()
