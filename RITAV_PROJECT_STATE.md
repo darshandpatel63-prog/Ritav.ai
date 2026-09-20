@@ -529,3 +529,24 @@ Reviewed the release build and its integration with the existing deterministic c
 **CURRENT STOP POINT:** authorization-token issuance now respects the authoritative Emergency Stop at the service boundary and is regression-tested in source; exact-head executable verification is pending.
 
 **NEXT ACTION:** inspect run #245 to completion. If successful, perform the consolidated authorization-service -> execution-pipeline -> Emergency Stop -> plan-binding -> one-time-token review, then record the verified checkpoint. If it fails, fix only the demonstrated failure and rerun.
+
+
+## 2026-09-20 Emergency Stop state-invalidation hardening — verification pending
+
+- Current implementation head: `6c1b58e17d97ec5a69fc736a7d0ebb1e4e57a0ef`.
+- Emergency Stop transitions are synchronized and expose an internal atomic inactive-operation boundary for security-sensitive issuance/consumption.
+- Authorization tokens are bound to the Emergency Stop generation at mint time; tokens issued before a stop are rejected after activation and remain invalid after a later reset.
+- Authorization-token minting and consumption are both guarded by the same authoritative stop controller; runtime composition shares that controller across policy, authorization service, authorization gate and capability-grant service.
+- Protected identity sessions are bound to the Emergency Stop generation at issuance; sessions issued before a stop are rejected after activation and remain invalid after reset. Direct internal session issuance also fails closed while stopped.
+- Regression tests cover gate-level stop blocking, service stop inheritance, stale-token invalidation, stop-time token consumption denial, direct stopped-session issuance denial, and stale-session invalidation after stop/reset.
+
+### Verification status
+- Source integration and adversarial review completed for Emergency Stop → authorization issuance/consumption → identity-session issuance → policy/execution path.
+- The earlier exact-head workflow #245 (`35489700331`) was still pending when this package was extended; it is not evidence for the newer SHA above.
+- The new exact-head CI result is not yet exposed by the available connected workflow-run API, so this package is **not marked CI-verified**.
+
+**CURRENT STOP POINT:** Emergency Stop state-invalidation hardening is implemented and source-reviewed; executable verification is pending at `6c1b58e17d97ec5a69fc736a7d0ebb1e4e57a0ef`.
+
+**NEXT ACTION:** obtain exact-head Android CI evidence; on success perform the consolidated review again, then pass the completed security package through the required independent-audit gate before starting the next major layer.
+
+**EXACT COMMIT SHA:** `6c1b58e17d97ec5a69fc736a7d0ebb1e4e57a0ef`.
