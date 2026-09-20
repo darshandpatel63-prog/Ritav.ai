@@ -99,7 +99,7 @@ class CapabilityGrantServiceTest {
         val store = InMemoryPermissionStore()
         val gate = ActionAuthorizationGate()
         val stop = EmergencyStopController()
-        val service = CapabilityGrantService(registry, store, gate, stop)
+        val service = CapabilityGrantService(registry, store, gate)
         val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
@@ -107,6 +107,71 @@ class CapabilityGrantServiceTest {
         assertFalse(service.grant(plan, token, 1_001L))
         assertFalse(store.isGranted("com.example.safe", Capability.APP_LAUNCH, "open", null))
         assertTrue(service.revoke(CapabilityGrant("com.example.safe", Capability.APP_LAUNCH, "open")))
+    }
+
+    @Test
+    fun emergencyStopActivationCannotRacePastCapabilityGrantMutation() {
+        val store = BlockingPermissionStore()
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val service = CapabilityGrantService(registry, store, gate, stop)
+        val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+
+        var grantResult = false
+        val grantThread = Thread {
+            grantResult = service.grant(plan, token, 1_001L)
+        }
+        grantThread.start()
+
+        assertTrue(store.grantStarted.await(2, java.util.concurrent.TimeUnit.SECONDS))
+
+        val stopFinished = java.util.concurrent.CountDownLatch(1)
+        val stopThread = Thread {
+            stop.activate()
+            stopFinished.countDown()
+        }
+        stopThread.start()
+
+        assertFalse(stopFinished.await(250, java.util.concurrent.TimeUnit.MILLISECONDS))
+
+        store.release.countDown()
+        grantThread.join(2_000L)
+        assertFalse(grantThread.isAlive)
+        assertTrue(stopFinished.await(2, java.util.concurrent.TimeUnit.SECONDS))
+
+        assertTrue(grantResult)
+        assertTrue(stop.isActive())
+        assertTrue(store.isGranted("com.example.safe", Capability.APP_LAUNCH, "open", null))
+    }
+
+    private class BlockingPermissionStore : MutablePermissionStore {
+        val grantStarted = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        private var storedGrant: CapabilityGrant? = null
+
+        @Synchronized
+        override fun isGranted(appId: String, capability: Capability, action: String, sessionId: String?): Boolean =
+            storedGrant?.let {
+                it.enabled &&
+                    it.appId == appId &&
+                    it.capability == capability &&
+                    it.action == action &&
+                    it.sessionId == sessionId
+            } == true
+
+        override fun grant(grant: CapabilityGrant) {
+            grantStarted.countDown()
+            check(release.await(2, java.util.concurrent.TimeUnit.SECONDS))
+            synchronized(this) {
+                storedGrant = grant
+            }
+        }
+
+        @Synchronized
+        override fun revoke(grant: CapabilityGrant) {
+            if (storedGrant == grant) storedGrant = null
+        }
     }
 
     @Test
