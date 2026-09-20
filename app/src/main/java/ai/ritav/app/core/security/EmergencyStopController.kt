@@ -11,6 +11,7 @@ class EmergencyStopController {
     @Volatile
     private var stopped: Boolean = false
 
+    @Synchronized
     fun activate() {
         stopped = true
     }
@@ -19,8 +20,18 @@ class EmergencyStopController {
      * Resets only after an explicit user-controlled confirmation has occurred.
      * This is not a substitute for Android device authentication.
      */
+    @Synchronized
     internal fun resetAfterExplicitUserConfirmation(confirmed: Boolean) {
         if (confirmed) stopped = false
+    }
+
+    /**
+     * Atomically checks the stop state and runs a security-sensitive operation.
+     * Activation/reset use the same monitor, so the operation cannot start
+     * concurrently with an Emergency Stop transition.
+     */
+    internal fun <T> runIfInactive(operation: () -> T): T? = synchronized(this) {
+        if (stopped) null else operation()
     }
 
     fun isActive(): Boolean = stopped
