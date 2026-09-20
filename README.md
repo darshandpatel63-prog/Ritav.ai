@@ -247,305 +247,41 @@ Known limitation: this is still pattern-based defense-in-depth, not complete con
 - Android instrumentation tests for storage encryption/tamper behavior exist.
 - Connected-device execution of those instrumentation tests remains unverified.
 
-## 18. Known CI failure — must be fixed before claiming green
-
-Latest relevant workflow:
-- Workflow: `Android unit tests`
-- Run: `35202272737`
-- Head commit: `b5a502346c41321f58f1859bd09ebfd3d58b103b`
-- Result: **failure**
-- The JVM/Android app Kotlin compilation reached `app:compileDebugKotlin` successfully.
-- The failing task was `app:compileDebugAndroidTestKotlin`.
-- Failure is in `app/src/androidTest/java/ai/ritav/app/platform/AndroidRitavPlatformAdapterTest.kt`.
-- Exact cause: `kotlin.test` imports are unavailable in the Android instrumentation-test classpath:
-  - `Unresolved reference 'test'`
-  - `Unresolved reference 'assertEquals'`
-  - `Unresolved reference 'assertNotNull'`
-- The instrumentation execution step was skipped because instrumentation-test compilation failed.
-- The workflow setup, JDK, Gradle, Android SDK, and managed-device system-image installation succeeded.
-- This is a concrete build/test integration error, not evidence that the adapter implementation itself is broken.
-
-### Direct next fix for the CI failure
-
-Before doing broader platform expansion:
-1. Reuse the existing Android test dependency setup rather than adding an unnecessary dependency.
-2. Change the Android instrumentation test assertions to the already-supported JUnit assertion API (for example `org.junit.Assert`) or otherwise use a dependency already present in `androidTestImplementation`.
-3. Run the Android unit-test/instrumentation-compile path again.
-4. If compilation passes, run the managed-device instrumentation test.
-5. Only record CI as green if the workflow actually succeeds.
-
-### Non-blocking warnings observed in the failed CI run
-
-- `AgentContracts.kt` exposes a non-public primary constructor through generated `copy()`; Kotlin reports that this will become an error in language version 2.3.
-- `AndroidDeviceAuthorizationGateway.kt` uses deprecated `BiometricPrompt.PromptInfo.Builder.setDeviceCredentialAllowed`.
-- GitHub Actions reports Node 20 deprecation warnings for several actions being forced onto Node 24. These are workflow-maintenance warnings, not the cause of the current build failure.
-
-These warnings should be addressed in their own changes after the immediate instrumentation-test compilation failure is fixed, with repository-wide search first to avoid duplicate or conflicting fixes.
-
-## 19. Remaining implementation work
-
-### Immediate
-- Fix the Android instrumentation-test assertion imports/classpath issue.
-- Re-run CI and inspect the actual result.
-- Perform a consolidated system-level review of the completed cross-platform foundation + Android adapter path after the CI fix.
-
-### Cross-platform platform work
-Not yet implemented as production-supported targets:
-- iOS/iPadOS native adapter/runtime/UI/package.
-- Windows native adapter/runtime/UI/package.
-- macOS native adapter/runtime/UI/package.
-- Linux native adapter/runtime/UI/package.
-- ChromeOS-specific runtime/packaging validation.
-- Per-platform CI matrices/runners.
-- Real-device/real-host validation for each supported target.
-
-### Core product/runtime work still remaining
-- Real production execution composition around `ExecutionBridge`.
-- Concrete approved `AndroidActionAdapter` implementation and result-verification integration.
-- Real model/context ingestion choke point before AI reasoning.
-- Screen/OCR/accessibility producer/consumer path with sensitive-content filtering.
-- Local AI runtime abstraction implementation and bounded resource/cancellation controls.
-- Voice/STT/TTS/wake-word/confirmation implementation.
-- Vision/camera implementation.
-- Memory/training implementation.
-- UI/UX completion.
-- App integrations/adapters and resilient result verification.
-- Networked tool integrations with egress enforcement.
-- Identity/voice/optional face verification implementation.
-- Background/multitasking implementation within each OS's restrictions.
-- Full security/adversarial/device test matrix.
-- Static analysis, formatting, dependency/security scanning and release CI.
-- Release packaging/signing/versioning for each supported platform.
-
-### Explicitly unverified
-- No claim that Ritav currently runs on every listed OS/device.
-- No claim that iOS/iPadOS/Windows/macOS/Linux/ChromeOS are production-supported yet.
-- No real-device Android execution of the latest adapter instrumentation test has been verified.
-- No production action adapter/execution composition is verified.
-- No complete model-context secret-isolation path is verified.
-- No real screen/OCR/accessibility ingestion path is verified.
-- No release artifact is signed/release-approved.
-- No "100% secure", bug-free, or universal-device-support claim is allowed.
-
-## 20. Documentation/state inconsistency to resolve carefully
-
-The active cross-platform decision is documented in:
-- `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md`
-- this README
-- `RITAV_PROJECT_STATE.md`
-- `docs/MASTER_REQUIREMENTS_MATRIX.md`
-
-However, `RITAV_BLUEPRINT.md` still contains older Android-only wording, including `Primary platform: Android` and an Android-specific product definition. The common workflow/security addendum also contain historical Android-only scope language. Do NOT blindly replace those documents. In the next development chat, first inspect the exact affected sections and make a minimal, reviewed scope-reconciliation edit if required.
-
-The active cross-platform architecture decision does NOT weaken the Android security model. Platform-specific limitations may reduce capability but may never bypass deterministic policy, permissions, authorization, sensitive-data controls, finance hard-deny, Emergency Stop, egress controls or result verification.
-
-## 21. Exact next stop point for the next chat
-
-**Start by verifying the Android instrumentation-test compilation fix committed as `7d7c4a2df8495ab6c83e1702ee421e704a093174`. Do not start another major platform implementation before this checkpoint is clean.**
-
-Then:
-1. Inspect current `main` and latest commit again.
-2. Read the required project/workflow/security docs.
-3. Fix the `kotlin.test` Android instrumentation-test classpath error using existing dependencies where possible.
-4. Run/verify JVM tests, Android test compilation and managed-device instrumentation.
-5. Perform the consolidated system-level review of the cross-platform foundation + Android adapter.
-6. Reconcile the stale Android-only blueprint/workflow wording with the active cross-platform decision through minimal targeted edits.
-7. Continue with the next concrete platform implementation only after the above checkpoint is actually verified.
-
-### Exact latest commits relevant to this handoff
-
-- `b5a502346c41321f58f1859bd09ebfd3d58b103b` — Android adapter instrumentation test added.
-- `3394ee0d8ae6e7871c05e8a470e1efa76865fbf2` — Android platform capability adapter.
-- `4d32a908dd5f4c74729a7d6d3de0e716a4da6393` — KMP core integrated into Android app.
-- `7a5c80ef01a1180cd4d29b17cd2c957a9cec7149` — cross-platform adapter contract regression test.
-- `2f99367a0d09309ee15de290ccabfac2f75aca62` — cross-platform runtime adapter contract.
-- `bed4869092a0597db7ed05632cbc9dc99900f61a` — cross-platform architecture decision.
-- `d6cc599f5ca21f1773ca2a43c9e76130a3797aad` — README cross-platform scope update.
-- `fbee545a881aadc4f9f325d202cc4802c84ec932` — master requirements cross-platform update.
-- `d5d4d3394f87918d23d8f16e54f2b02fcf3340ae` — project state synchronization.
-
-
-## 22. Latest security hardening — 2026-09-18
-- Agent ingress now rejects blank/oversized task IDs before agent exposure.
-- Agent capability scope is defensively copied at ingress to prevent caller-side mutation after validation.
-- `AgentRequest` remains factory-only constructed, preserving deterministic sensitive/financial ingress checks.
-- Regression tests cover task-ID bounds and scope isolation.
-- These changes are source-reviewed but not executed through Gradle/CI in the available environment.
-
-Exact commits: `b957fe6064b25f86311f713ca64e6400f4b962f9` and `bf33673ed43fc67aed304694f244699a49b29850f` (implementation), `8b1f96e01bc31e66ccc8b7ad60cf7726684c289a` (regression tests).
-
-Current stop: continue security/runtime hardening after verification evidence becomes available; do not claim CI green or real-device execution without evidence.
-
-
-## 23. Latest agent-boundary hardening — 2026-09-18
-- Agent proposals are now bounded and validated before leaving the agent boundary: task identity, agent ID, action text and rationale are checked; financial proposals are hard-denied.
-- Regression coverage added for malformed and financial proposals.
-- Source-reviewed; Gradle/CI execution remains unverified.
-
-
-## 24. Latest security hardening — 2026-09-18
-- ActionPlan.isValid() now enforces deterministic bounds/non-blank requirements for app ID, action, expected state and optional session ID.
-- ActionAuthorizationGate now rejects malformed plans, bounds token length, and rejects authorization TTL clock overflow.
-- SecurityExecutionPipeline now rejects malformed plans/requests and requires session binding for protected actions before authorization.
-- Regression coverage added for malformed plans, oversized requests/tokens, protected-session binding and authorization-clock overflow.
-- Source/integration review completed for the affected authorization → pipeline path.
-- Gradle/CI execution remains unverified.
-
-Exact new commits:
-- e9d0d5c153c5affdfc2d3be868d59bb7cc9c475a — security: validate action plan structure
-- c9ed4fee861e4e6f2262651a67b5bcf7ce10be51 — security: bound authorization token and plan validation
-- 4d71177bca448ca57064a5b4461742754ebd2270 — security: reject malformed execution requests early
-- 9adabc18ae77f7ed80254e218fb7daf9d2d302ab — fix: correct security pipeline class closure
-- 0681f6eae43f0448a65206bf92780a0e098a90f1 — test: cover authorization bounds and clock overflow
-- caf3ae845af41d92f2285eaf38770496dd3a9225 — test: cover execution request validation boundaries
-
-Current stop: authorization/pipeline input-validation hardening implemented and source-reviewed; executable verification pending.
-
-
-## Latest execution-boundary hardening — 2026-09-18
-- ExecutionBridge now validates ActionPlan structure before capability evaluation or adapter execution.
-- Regression coverage confirms malformed plans cannot reach the adapter.
-- Source/integration/adversarial review completed across plan → capability → pipeline → authorization → adapter → result verification; no new bypass was identified in this change.
-- Tests/build/CI remain unexecuted/unverified in the current environment.
-- Exact commits: `00631d10274b54e907e67dbc079abdb370c50a96` (security), `a3eeef39ed6b83f0c82364884b1f637d8e65be04` (test).
-- Current stop: authorization/execution-boundary validation package is implemented and reviewed; executable verification is pending.
-
-
-## Authorization risk-binding hardening — 2026-09-18
-- AuthorizationGate now binds minted/consumed token level to the ActionPlan risk tier, preventing a USER_CONFIRMATION token from being used as a DEVICE_AUTHENTICATION authorization for a higher-risk plan.
-- Service/test coverage separates Tier-2 user confirmation from Tier-3 device authentication.
-- Consolidated review lenses completed: auth/access-control, adversarial token misuse, execution integration, privacy/finance boundary interaction, and failure paths. The affected path remains fail-closed.
-- Executable Gradle/CI/device verification remains unverified.
-- Exact commits: `6aad41edf7e4e0f78c6b53088057a2ee743ce648`, `04a6fe995d3b84f98d5af690d87a2c7981fb2c61`, `a41f1fd7571d44f138dc308c12e31bf63950b616`, `7da4243103e77450570aaa118b9d2883ff013def`, `b9c2e69376d4b289be4c4a7c3af4e466bec07212`.
-
-Current stop: major authorization hardening checkpoint reached; executable verification is the remaining gate before the next major security layer.
-
-
-## 25. GitHub Actions efficiency audit — 2026-09-18
-- Audited the complete `.github/workflows` tree: exactly one workflow is present, `.github/workflows/android-test.yml`; no `.yaml` workflow and no second workflow/action directory was found.
-- The Android CI workflow remains one job with all existing JVM, Android instrumentation compilation, and managed-device verification steps intact.
-- Added precise path filters so Android CI runs only for `app/**`, `core/**`, Gradle/build configuration, wrapper-related paths, or the workflow itself; documentation-only and unrelated repository changes no longer start this CI job.
-- Added PR-only concurrency cancellation so a newer commit supersedes an older in-progress PR verification; pushes to `main` are intentionally not cancelled.
-- No release/APK workflow currently exists in the repository, so no release functionality was removed or altered. Existing documentation still requires release APK generation to be explicitly controlled/manual.
-- No workflow-to-workflow trigger (`workflow_run`, `workflow_call`, `repository_dispatch`, etc.) exists in the audited workflow, so there is no indirect workflow chain to optimize.
-- `gradle/actions/setup-gradle@v4` already provides Gradle caching; no additional cache layer was added because the current repository has no Gradle wrapper/version-catalog structure to safely optimize further without changing build behavior.
-- Exact workflow optimization commit: `36e8afc7d94e704787f23708f76a747e827e0a5b`.
-- Common workflow policy update: `6271963c933b40e1c1486c38314575001dbaf2b4`.
-
-
-## 2026-09-18 identity-session hardening checkpoint
-- SecuritySession is now opaque with a private constructor; protected-session issuance is restricted to the internal session boundary.
-- Session validity now requires the current time to be at/after authentication and at/before expiry; negative time and expiry overflow are rejected.
-- Protected execution now requires the supplied identity-session ID to exactly match the action/plan session binding.
-- Regression coverage was added for pre-authentication use, unknown identity, clock/TTL overflow, and mismatched protected-session identity.
-- This closes a source-level bypass in which a caller could construct a trusted session object directly or present a different active session for a protected action.
-- Gradle/CI execution remains unverified; these changes are source-reviewed only until executable evidence is available.
-- Exact implementation/test commits: 1b990b39137931c044365ee7cae386044b030e93, be7263894fcdb17ce471aab3ac635367ae70fa0a, 5ceaf46d1d20834d9761f3aab3bec4a5393139bf, 2782416c2bb063603da9935ac6d4af4f189e3062, 8314a00d6b867e3193ba39c45ef611fc9b56ca5f, 06d0fc17d0b0f46e2759c633413c3fa382e2355a.
-
-
-
-## 2026-09-18 latest continuation checkpoint
-- Current main head: `03576a484266c2b8629fbeb19de36ab5a320b230`.
-- CI run #164 (`35331294938`) reached successful Android/app compilation and Android-test APK assembly, but one JVM regression failed: `ActionAuthorizationServiceTest.deviceAuthorizationRejectsInvalidPostAuthenticationClock`. The source cause was that `ActionAuthorizationGate.issue()` rejected overflow but accepted negative authorization timestamps.
-- Fixed centrally by rejecting `nowEpochMillis < 0` in `ActionAuthorizationGate.issue()`, and added a direct regression test for negative authorization clocks.
-- Restored real `MainActivity` startup wiring: the security runtime construction had been accidentally placed inside a literal `\\n` sequence in the source comment, leaving the runtime initialization commented out even though compilation succeeded.
-- Added `MainActivityTest` using AndroidX `ActivityScenario` to exercise Activity startup on the managed Android test target.
-- Current run #166 for `07844a039729bfe345250afd8d1026475e9b525d` was cancelled by a newer push; run #168 for the current head `03576a484266c2b8629fbeb19de36ab5a320b230` is queued at the latest inspection. Therefore current CI/device verification is still unverified.
-- No local Gradle execution is available in this environment.
-
-### Current stop point
-The immediate package is Android authorization-clock hardening plus restoration of the real Activity → AndroidExecutionRuntime startup call path, with an Activity startup regression test. Do not mark the package complete until the current queued workflow reaches JVM tests and managed-device instrumentation successfully.
-
-
-## Latest continuation checkpoint — 2026-09-18
-- Current executable main head: `dd07f44cdc3b346259dcaea1260cca778b660706`.
-- Actions run #165 (`35331595059`) completed successfully for the negative authorization-issuance clock hardening: JVM test/build stage passed and managed-device instrumentation completed successfully with 3 tests.
-- Additional authorization hardening then closed three source-level failure paths: negative clocks are rejected during token consumption; user-confirmation issuance fails closed on gate exceptions; device-auth callbacks are one-shot and platform/auth-clock failures resolve to a single null callback rather than escaping.
-- ExecutionBridge and SecurityExecutionPipeline now validate `ActionPlan` structure before computing its stable hash, avoiding unnecessary hashing work on oversized/malformed input.
-- Regression coverage was added for these authorization and async failure paths.
-- The latest current-head workflow is #174 (`35332166648`) for `dd07f44cdc3b346259dcaea1260cca778b660706`; it is currently pending because an earlier run is still consuming the runner. No current-head green result is claimed yet.
-
-
-## 2026-09-18 verified security checkpoint — AppCapabilityRegistry
-
-- Current capability-registry hardening is implemented in commits `4d0984376ff99baaa475ae3d18488618c6a15525` and `9ac432d0e5b69e0449958599be5b384cb988f738`.
-- `AppCapabilityRegistry` now defensively freezes each capability's action set at construction and rejects oversized package identifiers, preventing caller-side mutation and unbounded registry metadata.
-- Regression tests cover post-construction action-set mutation and oversized package identifiers.
-- GitHub Actions run #176 (`35347302181`) for `9ac432d0e5b69e0449958599be5b384cb988f738` completed successfully.
-- The successful job completed JVM unit tests, Android instrumentation-test compilation/APK assembly, managed-device instrumentation execution, and the full workflow without failure.
-- This is executable CI/device evidence for the latest capability-registry hardening package. It does not establish universal real-device compatibility or production readiness.
-
-### Independent security checkpoint
-
-A consolidated review of the affected execution path was performed across authorization/access control, adversarial token misuse, identity/session binding, capability registry integrity, finance/sensitive-data boundaries, Emergency Stop, adapter ordering, result verification, audit/failure paths, and resource bounds.
-
-No new CRITICAL or HIGH bypass was identified in the reviewed path. The following limitations remain explicit:
-- The production trusted-app registry is still empty/deny-by-default.
-- `AndroidIntentActionAdapter` currently supports only `APP_LAUNCH` + `open`.
-- Final target-app UI state is not independently observed; `LAUNCH_DISPATCHED` is only dispatch evidence.
-- Real AI/model-context ingestion and screen/OCR/accessibility producer-consumer filtering are not implemented.
-- Native non-Android runtimes remain unimplemented.
-
-**Current stop point:** the capability-registry hardening package is implemented, consolidated-reviewed, and CI/device verified. Per the mandatory security workflow, this is now an audit gate before starting the next major security layer.
-
-**Next action:** perform the independent audit checkpoint, then—only if clean—begin the reviewed trusted-app allowlist/permission-grant layer while preserving finance hard-deny, sensitive-data isolation, Emergency Stop, exact authorization binding, and fail-closed behavior.
-
-
-## Latest verified security checkpoint — 2026-09-19
-Capability-grant lifecycle security is implemented and verified on the GitHub Android CI path. The service binds grants to the exact target app/capability/action and authorization plan, denies financial and Tier-4 grants, consumes authorization tokens once, and blocks new grants during Emergency Stop. Run #194 (`35424604601`) for commit `ac403593a848d7722da2f682c2fc8197ba384141` passed JVM tests, Android instrumentation-test compilation/APK assembly, and managed-device instrumentation. A consolidated review found no new blocking bypass. Revocation remains authorization-free because it only removes privilege. The production trusted registry remains empty/deny-by-default, and a concrete user-facing grant flow is not yet wired.
-
-**Current stop:** capability-grant checkpoint complete; next major layer is trusted-app allowlist/permission-grant integration using authoritative package identity and certificate pins.
-
-
-## Latest security work — trusted Android package identity
-Android package execution now requires an exact pinned signing certificate for the registered package; missing, wrong, unreadable, or multiple installed signers fail closed. The capability registry also independently denies financial capabilities. These latest changes are source-reviewed; their Android CI/device verification is still pending. The production trusted registry remains empty/deny-by-default.
-
-
-## Latest security work — trusted Android package identity
-The Android launch adapter now uses a deterministic package-identity boundary backed by installed signing-certificate SHA-256 verification. Missing, wrong, unreadable, or multi-signer identities fail closed, and the capability registry independently denies financial capabilities. The corrected implementation is source-reviewed; final JVM/instrumentation/managed-device verification for the latest change is still pending. The production trusted registry remains empty/deny-by-default.
-
-
-## Current security checkpoint — 2026-09-19
-Trusted Android package identity verification and the deterministic capability-grant security layer are implemented. The latest hardening also removes direct public mutable permission-store access and restricts direct Emergency Stop reset/controller access. Previous runs #203 and #204 provide executable verification for the identity and registry hardening packages; the latest bundled changes are awaiting Run #211 (`35437460927`). The trusted external-app registry remains empty/deny-by-default, and real model/context ingestion, screen/OCR/accessibility filtering, and signed release packaging remain future/unverified surfaces.
-
-
-## 2026-09-19 final security hand-off checkpoint
-
-- Current verified code security checkpoint: c99f2f59c06d7ef5be50b010ceb35f849d498ac8.
-- GitHub Actions run #211 (35437460927) for that checkpoint completed successfully.
-- The run executed JVM unit tests and assembleDebugAndroidTest successfully, then executed 4 Android instrumentation tests on the pixel2api30 managed device successfully.
-- Trusted Android package identity tests, registry financial-deny hardening, capability-grant lifecycle, permission-store wiring, authorization/session/replay controls, Emergency Stop, and execution-boundary regressions are covered by the successful repository CI checkpoints where included by the current test suite.
-- The trusted external-app registry remains empty/deny-by-default. No third-party package/certificate has been authorized.
-- This is a security-foundation/client-handoff checkpoint, not a production-release sign-off: release R8/minification/obfuscation, signed release packaging, real target-app UI/result observation, real model-context ingestion, screen/OCR/accessibility filtering, and native non-Android runtimes remain unimplemented or unverified.
-- No real-device evidence beyond the GitHub managed Android emulator run is claimed.
-
-
-## 2026-09-19 Android release-hardening implementation
-- Android release build now disables debugging, enables R8 minification, enables resource shrinking, and uses the optimized default ProGuard configuration plus the repository release rules file.
-- Release validation is manual-triggered and automatically triggered only by release-critical Gradle/configuration, manifest, backup-rule, or release-workflow changes; push runs supersede older push validation runs.
-- Release CI scans tracked non-test sources for common embedded credential/signing-material patterns, verifies the release security configuration contract, builds the release APK/AAB, verifies a non-debug release APK and non-empty R8 mapping, and publishes short-retention unsigned validation artifacts plus SHA-256 checksums.
-- Android backup is explicitly disabled for both cloud backup and device-to-device transfer, with legacy Android 11-and-lower backup rules as well. Android's current documentation notes that allowBackup=false alone may not disable D2D transfer on some manufacturers, so the explicit data-extraction rules are intentional.
-- Cleartext network traffic is explicitly disabled in the Android manifest; no Android INTERNET permission or current network client dependency exists in the implemented app path.
-- Current implementation commit: ac3e6c00d3f224099170092c6dd8cd2559c98b89.
-- Latest release-validation run for this exact code head is still pending; do not mark this release-hardening package CI-verified until that run completes successfully.
-- Signed production packaging remains intentionally unconfigured; the current workflow validates unsigned release artifacts only and does not invent signing keys or credentials.
-
-**CURRENT STOP POINT:** Android release hardening is implemented and source-reviewed; final release CI verification is pending for ac3e6c00d3f224099170092c6dd8cd2559c98b89.
-
-**NEXT ACTION:** inspect the exact-head release-validation run. If it passes, perform the consolidated release/security review and record the verified release-hardening checkpoint. If it fails, fix only the demonstrated failure and rerun the affected verification path.
-
-## 2026-09-19 verified Android release-hardening checkpoint
-
-- Verified code head: `81dba435e3cd0b55d398db965dc63a92cf20bae2`.
-- GitHub Actions Android release validation run #12 (`35439804241`) completed successfully on that exact `main` head.
-- Release verification passed the structural manifest/build security contract, tracked non-test source secret/signing-material scan, `:core:jvmTest`, debug and release unit tests, `lintRelease`, `assembleRelease`, and `bundleRelease`.
-- The final artifact gate passed: the release APK is non-debug, the R8 mapping is non-empty, SHA-256 checksums were generated, and the unsigned APK/AAB/mapping artifact bundle was uploaded successfully.
-- The uploaded validation bundle is artifact `10583043149` with GitHub-reported ZIP SHA-256 `fe707d946f9a947840c0e0fd7a5be627665321a518343c5cf4336cf04392d4dd`; it expires after 7 days under the workflow retention policy.
-- Android manifest hardening is verified with backup disabled, modern cloud/device-transfer exclusions plus legacy backup exclusions, cleartext disabled, and only `ACCESS_NETWORK_STATE` added for local connectivity-state inspection; no `INTERNET` permission or active network client is present in the current app path.
-- Release signing remains intentionally unconfigured. These are unsigned validation artifacts, not a production signed release.
-- Consolidated release/security review re-checked the release configuration, CI triggers/permissions/concurrency, artifact gates, and integration with the deterministic authorization, finance firewall, sensitive-data firewall, Emergency Stop, trusted package identity, execution boundary, result verification, and audit chain. No demonstrated CRITICAL/HIGH bypass was identified in this release-hardening review.
-- Independent review checkpoint: release-hardening is complete for this verification scope. Physical-device testing, real target-app UI/result observation, real model-context ingestion, screen/OCR/accessibility producer-to-model filtering, and native non-Android runtimes remain unverified/unimplemented as previously documented.
-
-**CURRENT STOP POINT:** Android release hardening is implemented, integrated, source-reviewed, and exact-head CI-verified at `81dba435e3cd0b55d398db965dc63a92cf20bae2`. The production trusted external-app registry remains empty/deny-by-default.
-
-**NEXT ACTION:** begin the next major layer only after preserving this checkpoint: integrate the concrete user-facing authorization flow and reviewed trusted-app allowlist activation using authoritative package identity/certificate pins. Do not add speculative banking/UPI targets.
+## 18. Latest verified handoff — 2026-09-20
+
+The current Android release-hardening package is implemented and verified on the exact main head `81dba435e3cd0b55d398db965dc63a92cf20bae2`.
+
+### Verified release gates
+- GitHub Actions release-validation run #12 (`35439804241`) completed successfully.
+- Release security configuration assertions passed.
+- Tracked-source scan for embedded release credentials/signing material passed.
+- `:core:jvmTest`, Android debug/release unit tests, `lintRelease`, `assembleRelease`, and `bundleRelease` passed.
+- Release APK verification confirmed the APK is not debug-enabled.
+- R8 mapping verification passed with a non-empty mapping file.
+- SHA-256 checksums and unsigned release validation artifacts were produced successfully.
+- A previous CI failure in the APK verification command was fixed in commit `81dba435e3cd0b55d398db965dc63a92cf20bae2`; run #12 verifies the corrected command.
+
+### Release security posture
+- Release builds are non-debuggable, minified with R8, and resource-shrunk.
+- Backup/cloud/device-transfer data extraction is explicitly restricted by modern and legacy backup rules.
+- Cleartext traffic is disabled.
+- No `INTERNET` permission is granted by the current app path; `ACCESS_NETWORK_STATE` is used only to inspect local connectivity state.
+- CI uses least-privilege repository contents read permission and controlled release-critical path triggers plus manual dispatch.
+- Release artifacts are intentionally unsigned; no signing keys or credentials are fabricated or committed.
+
+### Consolidated system review
+The release package was reviewed end-to-end against the existing security chain: plan validation/hashing → policy/capability gates → sensitive/finance firewalls → authorization/session binding → execution pipeline/bridge → trusted package identity → adapter dispatch → result verification/audit. Release configuration, permissions, backup rules, secret scanning, core test coverage, APK debug state, R8 mapping, checksums, CI permissions/triggers/concurrency, and fail-closed paths were also reviewed. No new CRITICAL/HIGH bypass was identified.
+
+### Current limitations
+- Trusted external-app registry is intentionally empty/deny-by-default.
+- Production capability-grant/user-authorization UI is not yet wired.
+- Target-app UI/result observation is not independently implemented.
+- Real model/context and screen/OCR/accessibility ingestion boundaries are not implemented.
+- Native non-Android runtimes are not implemented.
+- Signed production packaging and physical-device testing are not verified.
+
+## 19. Exact next stop point
+**Independent audit of the completed Android release-hardening package.** After a clean audit checkpoint, continue the next major security layer: production trusted-app composition and real user authorization UI, while keeping the trusted registry empty until authoritative package/certificate identity is available and preserving deterministic finance hard-deny and fail-closed behavior.
+
+## 20. Continuation rule
+For every subsequent `Start/Continue`, inspect the current `main` head and relevant source/CI state first. Preserve the existing deterministic security boundary; do not add speculative banking/UPI/backend integrations or claim physical-device verification without evidence.
