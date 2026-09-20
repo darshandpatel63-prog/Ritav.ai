@@ -589,3 +589,20 @@ Reviewed the affected path end-to-end: MainActivity → AndroidExecutionRuntime 
 **NEXT ACTION:** verify the exact `9bffe276bfb44cd689366eec552512f8d4b0ac70` Android CI result. After successful CI, perform the required independent audit checkpoint before starting the next major security layer.
 
 **EXACT IMPLEMENTATION SHA:** `9bffe276bfb44cd689366eec552512f8d4b0ac70`.
+
+
+## 2026-09-20 latest security boundary correction — capability grant / Emergency Stop race
+
+- Fixed a TOCTOU gap in `CapabilityGrantService.grant`: authorization-token consumption and the durable permission-store mutation now occur inside one shared `EmergencyStopController` critical section.
+- `CapabilityGrantService` now defaults to the `ActionAuthorizationGate`'s Emergency Stop controller, reducing controller-divergence risk. The Android composition root continues to inject the runtime's single shared controller explicitly.
+- Added a blocking `MutablePermissionStore` regression test proving concurrent Stop activation cannot complete while a capability grant mutation is in progress.
+- Existing grant protections remain intact: exact plan/token binding, one-time consumption, risk matching, invalid-clock rejection, deny-by-default registry behavior, financial hard-deny, and authorization-free revocation.
+- Latest implementation/test head: `22675b28646e5b35d3bce6232d5aaaf0519ec748`.
+- Direct local test execution was not available in this environment. The connected GitHub workflow API returns no push-triggered workflow runs or combined statuses for this exact head, so exact-head CI is **not verified**.
+- Source-level adversarial review of the affected grant/Stop path found no demonstrated CRITICAL/HIGH bypass.
+
+**CURRENT STOP POINT:** capability-grant / Emergency Stop race hardening is implemented, integrated, source-reviewed, and regression-covered; exact-head CI is pending.
+
+**NEXT ACTION:** obtain exact-head Android CI evidence; after successful CI, perform the required independent audit checkpoint before the next major security layer.
+
+**EXACT IMPLEMENTATION/TEST SHA:** `22675b28646e5b35d3bce6232d5aaaf0519ec748`.
