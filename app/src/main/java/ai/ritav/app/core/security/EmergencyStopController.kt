@@ -16,11 +16,9 @@ class EmergencyStopController {
 
     @Synchronized
     fun activate() {
-        synchronized(this) {
-            if (generation == Long.MAX_VALUE) throw IllegalStateException("Emergency Stop generation exhausted")
-            generation += 1L
-            stopped = true
-        }
+        if (generation == Long.MAX_VALUE) throw IllegalStateException("Emergency Stop generation exhausted")
+        generation += 1L
+        stopped = true
     }
 
     /**
@@ -29,9 +27,7 @@ class EmergencyStopController {
      */
     @Synchronized
     internal fun resetAfterExplicitUserConfirmation(confirmed: Boolean) {
-        synchronized(this) {
-            if (confirmed) stopped = false
-        }
+        if (confirmed) stopped = false
     }
 
     /**
