@@ -30,9 +30,11 @@ class ExecutionBridge(
         identitySession: SecuritySession? = null,
         inputText: String? = null
     ): ExecutionResult {
-        val now = clock()
+        val now = runCatching { clock() }.getOrElse {
+            return ExecutionResult(false, false, "Security clock unavailable")
+        }
         if (!plan.isValid()) {
-            auditLog.append(AuditEvent(clock(), plan.sessionId, null, AuditEventType.POLICY_DECISION,
+            auditLog.append(AuditEvent(safeClock(now), plan.sessionId, null, AuditEventType.POLICY_DECISION,
                 false, false, "Action plan is malformed or exceeds security bounds"))
             return ExecutionResult(false, false, "Action plan is malformed or exceeds security bounds")
         }
@@ -50,7 +52,7 @@ class ExecutionBridge(
 
         val capabilityDecision = capabilityPolicyGate.evaluate(action)
         if (!capabilityDecision.allowed) {
-            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+            auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
                 false, false, capabilityDecision.reason))
             return ExecutionResult(false, false, capabilityDecision.reason)
         }
@@ -66,23 +68,23 @@ class ExecutionBridge(
             )
         )
         if (!securityDecision.allowed) {
-            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+            auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
                 false, false, securityDecision.reason))
             return ExecutionResult(false, false, securityDecision.reason)
         }
 
-        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
+        auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
             true, false, "Capability and security pipeline checks passed"))
 
         val adapterResult = runCatching { adapter.execute(plan) }.getOrElse {
-            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.EXECUTION,
+            auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.EXECUTION,
                 false, false, "Adapter execution failed"))
-            auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
+            auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
                 false, false, "Result verification failed"))
             return ExecutionResult(false, false, "Action execution failed")
         }
 
-        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.EXECUTION,
+        auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.EXECUTION,
             adapterResult.success, false,
             if (adapterResult.success) "Adapter execution succeeded" else "Adapter execution failed"))
 
@@ -95,7 +97,7 @@ class ExecutionBridge(
             ),
             expectedState = plan.expectedState
         )
-        auditLog.append(AuditEvent(clock(), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
+        auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
             adapterResult.success, verification.verified,
             if (verification.verified) "Result verification passed" else "Result verification failed"))
 
@@ -106,4 +108,6 @@ class ExecutionBridge(
             observedState = adapterResult.observedState
         )
     }
+
+    private fun safeClock(fallback: Long): Long = runCatching { clock() }.getOrDefault(fallback)
 }
