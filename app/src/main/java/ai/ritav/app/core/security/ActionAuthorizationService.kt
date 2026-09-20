@@ -10,7 +10,7 @@ class ActionAuthorizationService(
     private val gate: ActionAuthorizationGate,
     private val deviceAuthorization: DeviceAuthorizationGateway,
     private val clockEpochMillis: () -> Long = System::currentTimeMillis,
-    private val emergencyStop: EmergencyStopController = EmergencyStopController()
+    private val emergencyStop: EmergencyStopController = gate.emergencyStopController()
 ) {
     fun issueUserConfirmationToken(
         plan: ActionPlan,
