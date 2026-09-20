@@ -85,6 +85,26 @@ class ExecutionBridgeTest {
         assertEquals(0, adapter.calls)
     }
 
+    @Test fun negativeClockFailsClosedBeforeAdapterExecution() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val adapter = RecordingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter,
+            clock = { -1L }
+        )
+
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+
+        assertFalse(result.success)
+        assertFalse(result.verified)
+        assertEquals("Security clock unavailable", result.message)
+        assertEquals(0, adapter.calls)
+    }
+
     @Test fun unregisteredCapabilityNeverReachesAdapter() {
         val adapter = RecordingAdapter()
         val policy = PolicyEngine()
