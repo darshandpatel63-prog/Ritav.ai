@@ -45,12 +45,14 @@ internal class IdentitySessionService(
 
                 val session = runCatching {
                     val now = clockEpochMillis()
-                    if (emergencyStop.isActive() || now < 0L) null
-                    else sessionManager.createSession(
-                        identity = IdentityLevel.TRUSTED_SIGNAL,
-                        nowEpochMillis = now
-                    )
-                }.getOrNull()
+                    if (now < 0L) null
+                    else emergencyStop.runIfInactive {
+                        sessionManager.createSession(
+                            identity = IdentityLevel.TRUSTED_SIGNAL,
+                            nowEpochMillis = now
+                        )
+                    }
+                }.getOrNull()?.let { it }
                 deliver(session)
             }
         }.onFailure {
