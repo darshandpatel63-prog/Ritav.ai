@@ -52,7 +52,7 @@ internal class IdentitySessionService(
                             nowEpochMillis = now
                         )
                     }
-                }.getOrNull()?.let { it }
+                }.getOrNull()
                 deliver(session)
             }
         }.onFailure {
