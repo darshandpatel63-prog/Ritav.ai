@@ -635,3 +635,19 @@ The existing capability-grant Emergency Stop TOCTOU gap remains closed: grant va
 **NEXT ACTION:** establish exact-head Android CI evidence before any next major security-layer implementation.
 
 **EXACT IMPLEMENTATION/TEST SHA:** `a0c1fc5c15fedb8b006ff6c4db4544b06556b890`.
+
+
+## 2026-09-20 CI verification checkpoint — manual Android test trigger enabled
+
+- `.github/workflows/android-test.yml` now supports controlled `workflow_dispatch` in addition to existing push/PR path filters.
+- Latest implementation/test commit: `e3475543e43da44f3daa7986800054bf25d89ae6`.
+- Exact-head Android test workflow run: `#280` (`35514982136`), head SHA `e3475543e43da44f3daa7986800054bf25d89ae6`, currently pending.
+- Preceding workflow-only run: `#279` (`35514948615`), head SHA `14afa47078d23b49152489ac862dc94562266540`, currently in progress.
+- No run is currently being claimed as successful; local tests remain unexecuted.
+- Release workflow trigger policy remains unchanged.
+
+**CURRENT STOP POINT:** audited permission/grant/Emergency-Stop layer is implemented and source-reviewed; exact-head Android CI is pending/in progress.
+
+**NEXT ACTION:** inspect exact-head run `#280` and its jobs/conclusion. Do not start the next major security layer until successful CI evidence is established.
+
+**EXACT IMPLEMENTATION/TEST SHA:** `e3475543e43da44f3daa7986800054bf25d89ae6`.
