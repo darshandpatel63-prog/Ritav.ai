@@ -31,6 +31,9 @@ class InMemoryPermissionStore(grants: Set<CapabilityGrant> = emptySet()) : Mutab
                 grant.sessionId == sessionId
         }
 
+    @Synchronized
     override fun grant(grant: CapabilityGrant) { grants.add(grant) }
+
+    @Synchronized
     override fun revoke(grant: CapabilityGrant) { grants.remove(grant) }
 }
