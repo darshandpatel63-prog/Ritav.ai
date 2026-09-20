@@ -498,30 +498,21 @@ Exact verified security code checkpoint: c99f2f59c06d7ef5be50b010ceb35f849d498ac
 - GitHub Actions Android release validation run #12 (`35439804241`) completed successfully on the exact head.
 - The release workflow passed the structural security-config assertions, tracked non-test source secret/signing-material scan, `:core:jvmTest`, `testDebugUnitTest`, `testReleaseUnitTest`, `lintRelease`, `assembleRelease`, and `bundleRelease`.
 - Final artifact verification passed: release APK is non-debug, R8 mapping is non-empty, SHA-256 checksums were generated, and the unsigned validation bundle uploaded successfully.
-- Artifact: `ritav-android-release-validation`, artifact ID `10583043149`, GitHub-reported ZIP SHA-256 `fe707d946f9a947840c0e0fd7a5be627665321a518343c5cf4336cf04392d4dd`, retention 7 days.
-- No local Gradle execution was performed; executable evidence for this checkpoint is from GitHub Actions.
 
-### Release/security review
-The completed work package was reviewed end-to-end across:
-- release build flags, R8/minification, resource shrinking and ProGuard configuration;
-- Android manifest permissions, cleartext policy and backup/cloud/device-transfer exclusions;
-- tracked-source secret/signing-material controls;
-- Android/JVM CI coverage, narrow release triggers, read-only workflow permissions and push concurrency;
-- release APK debug-state verification, non-empty R8 mapping and checksum/artifact handling;
-- integration with the existing deterministic authorization chain, shared permission store, finance/sensitive-data firewalls, Emergency Stop, trusted Android package identity, adapter execution boundary, result verification and audit.
+### Consolidated release/security review
+Reviewed the release build and its integration with the existing deterministic chain: ActionPlan validation/hashing → policy → capability registry/policy gate → finance/sensitive-data firewalls → authorization/session binding → SecurityExecutionPipeline → ExecutionBridge → trusted package identity → adapter → ResultVerifier/audit. Also reviewed release flags, manifest permissions, backup/data-extraction rules, secret/signing-material scanning, shared-core test coverage, release APK debug state, R8 mapping, artifact checksums, workflow permissions/triggers/concurrency, and fail-closed behavior. No new CRITICAL/HIGH bypass was identified in this review.
 
-The review included malformed/failure-path reasoning, authorization/plan-binding interaction, finance hard-deny preservation, fail-closed adapter behavior, and CI configuration regression checks. No demonstrated CRITICAL/HIGH bypass was identified in the completed release-hardening package.
+### Current limitations / not verified
+- Production trusted external-app registry remains intentionally empty/deny-by-default; no speculative banking/UPI package or certificate has been authorized.
+- Capability-grant UX is not yet wired to a production user/device authorization UI.
+- Result verification still consumes adapter-provided observed state; independent target-app UI observation is not implemented.
+- Sensitive-data detection remains pattern-based defense-in-depth; real model/context and screen/OCR/accessibility ingestion choke points are not implemented.
+- Native non-Android runtimes are not implemented.
+- The release workflow validates unsigned artifacts; signed production packaging has not been configured because no authoritative signing credentials were provided.
+- GitHub managed-device execution is emulator evidence, not physical-device testing.
 
-### Explicit boundaries
-- The workflow validates unsigned release artifacts only; no signing keys or credentials are committed or invented.
-- The production trusted external-app registry remains empty/deny-by-default.
-- Capability-grant UX is still not wired to a production user-facing authorization flow.
-- Final target-app UI state is not independently observed by the current result verifier.
-- Real AI/model-context ingestion and screen/OCR/accessibility producer-to-model filtering are not implemented.
-- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes and physical-device verification remain unimplemented/unverified.
+**CURRENT STOP POINT:** Android release-hardening is implemented, CI-verified, and consolidated-reviewed at `81dba435e3cd0b55d398db965dc63a92cf20bae2`.
 
-**CURRENT STOP POINT:** release-hardening is implemented, integrated, consolidated-reviewed, and exact-head CI-verified at `81dba435e3cd0b55d398db965dc63a92cf20bae2`.
+**NEXT ACTION:** before the next major security layer, perform the required independent audit checkpoint for this completed release-hardening package. After a clean audit, continue with the production trusted-app/user-authorization composition incrementally, preserving the empty deny-by-default registry until authoritative package identity/certificate data exists.
 
-**NEXT ACTION:** at the next development checkpoint, implement the concrete user authorization flow and reviewed trusted-app allowlist activation incrementally, preserving the empty/deny-by-default registry until authoritative package identity and certificate pins are deliberately supplied. Do not add speculative banking/UPI targets.
-
-**EXACT COMMIT:** `81dba435e3cd0b55d398db965dc63a92cf20bae2` (verified code checkpoint before this documentation-only update).
+**EXACT COMMIT SHA:** `81dba435e3cd0b55d398db965dc63a92cf20bae2`.
