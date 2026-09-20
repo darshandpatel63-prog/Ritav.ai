@@ -354,3 +354,16 @@ Direct local tests were not executed, and the connected GitHub workflow API expo
 **CURRENT STOP POINT:** independent audit checkpoint completed for this security layer; exact-head CI is still pending.
 
 **NEXT ACTION:** obtain exact-head Android CI evidence. Do not begin the next major security layer until the CI verification state is established and this audited package is formally closed.
+
+
+## 2026-09-20 CI verification checkpoint — manual Android test trigger enabled
+
+The Android test workflow now supports `workflow_dispatch` in addition to its existing main push and pull-request path filters. This change was made so an exact repository head can be deliberately verified through GitHub Actions when the connected workflow-run integration cannot otherwise expose push-triggered history.
+
+The latest security implementation/test commit is `e3475543e43da44f3daa7986800054bf25d89ae6`. GitHub Actions run `#280` (`35514982136`) was triggered by that exact head and is currently pending; run `#279` (`35514948615`) is the preceding workflow-config head and is still in progress. Neither is treated as a completed verification result yet.
+
+The release workflow remains separately controlled with manual dispatch plus release-critical push path filters; no release trigger was added for ordinary code changes.
+
+**CURRENT STOP POINT:** audited permission/grant/Emergency-Stop layer is implemented; exact-head Android CI is executing/queued and remains unverified.
+
+**NEXT ACTION:** inspect run `#280` for conclusion and job results. Only after a successful exact-head CI checkpoint should this security layer be formally closed and the next major security layer begin.
