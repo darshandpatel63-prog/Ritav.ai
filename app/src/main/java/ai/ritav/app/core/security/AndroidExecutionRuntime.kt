@@ -14,8 +14,9 @@ class AndroidExecutionRuntime(
     capabilityRegistry: AppCapabilityRegistry
 ) {
     val securityState = SecurityRuntimeState(activity.applicationContext)
+    private val emergencyStop = securityState.policyEngine.emergencyStopController()
 
-    private val authorizationGate = ActionAuthorizationGate()
+    private val authorizationGate = ActionAuthorizationGate(emergencyStop)
     private val identitySessionManager = IdentitySessionManager()
     private val deviceAuthorization = AndroidDeviceAuthorizationGateway(activity)
     private val securityPipeline = SecurityExecutionPipeline(
@@ -36,7 +37,7 @@ class AndroidExecutionRuntime(
         ActionAuthorizationService(
             gate = authorizationGate,
             deviceAuthorization = deviceAuthorization,
-            emergencyStop = securityState.policyEngine.emergencyStopController()
+            emergencyStop = emergencyStop
         )
 
     /**
@@ -47,7 +48,7 @@ class AndroidExecutionRuntime(
         IdentitySessionService(
             sessionManager = identitySessionManager,
             authenticationGateway = deviceAuthorization,
-            emergencyStop = securityState.policyEngine.emergencyStopController()
+            emergencyStop = emergencyStop
         )
 
     internal val capabilityGrantService: CapabilityGrantService =
@@ -55,6 +56,6 @@ class AndroidExecutionRuntime(
             registry = capabilityRegistry,
             permissionStore = securityState.mutablePermissionStore(),
             authorizationGate = authorizationGate,
-            emergencyStop = securityState.policyEngine.emergencyStopController()
+            emergencyStop = emergencyStop
         )
 }
