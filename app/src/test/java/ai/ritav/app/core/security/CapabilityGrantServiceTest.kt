@@ -126,13 +126,16 @@ class CapabilityGrantServiceTest {
 
         assertTrue(store.grantStarted.await(2, java.util.concurrent.TimeUnit.SECONDS))
 
+        val stopAttempted = java.util.concurrent.CountDownLatch(1)
         val stopFinished = java.util.concurrent.CountDownLatch(1)
         val stopThread = Thread {
+            stopAttempted.countDown()
             stop.activate()
             stopFinished.countDown()
         }
         stopThread.start()
 
+        assertTrue(stopAttempted.await(2, java.util.concurrent.TimeUnit.SECONDS))
         assertFalse(stopFinished.await(250, java.util.concurrent.TimeUnit.MILLISECONDS))
 
         store.release.countDown()
