@@ -17,7 +17,7 @@ class AndroidExecutionRuntime(
     private val emergencyStop = securityState.policyEngine.emergencyStopController()
 
     private val authorizationGate = ActionAuthorizationGate(emergencyStop)
-    private val identitySessionManager = IdentitySessionManager()
+    private val identitySessionManager = IdentitySessionManager(emergencyStop)
     private val deviceAuthorization = AndroidDeviceAuthorizationGateway(activity)
     private val securityPipeline = SecurityExecutionPipeline(
         policyEngine = securityState.policyEngine,
