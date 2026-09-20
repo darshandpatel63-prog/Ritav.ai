@@ -103,6 +103,76 @@ class SecurityExecutionPipelineTest {
         assertTrue(gate.consume(token, fixture.plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
     }
 
+    @Test fun negativeExecutionClockIsDeniedWithoutAuditFailure() {
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
+        val log = InMemoryAuditLog()
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            ActionAuthorizationGate(),
+            identitySessionManager = fixture.identityManager,
+            auditLog = log
+        )
+
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = fixture.action,
+                plan = fixture.plan,
+                identitySession = fixture.session,
+                nowEpochMillis = -1L
+            )
+        )
+
+        assertFalse(result.allowed)
+        assertTrue(log.readAll().isNotEmpty())
+        assertTrue(log.readAll().all { it.timestampEpochMillis >= 0L })
+    }
+
+    @Test fun oversizedAuditSessionMetadataCannotCrashPipelineDenial() {
+        val fixture = protectedFixture(1_000L)
+        val oversizedSessionId = "s".repeat(129)
+        val action = fixture.action.copy(sessionId = oversizedSessionId)
+        val plan = fixture.plan.copy(sessionId = oversizedSessionId)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, oversizedSessionId))
+            )
+        )
+        val log = InMemoryAuditLog()
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            ActionAuthorizationGate(),
+            identitySessionManager = fixture.identityManager,
+            auditLog = log
+        )
+
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = action,
+                plan = plan,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L
+            )
+        )
+
+        assertFalse(result.allowed)
+        assertTrue(log.readAll().isNotEmpty())
+        assertTrue(log.readAll().all { it.sessionId == null })
+    }
+
     @Test fun protectedActionWithoutSessionBindingIsDenied() {
         val plan = ActionPlan(
             appId = "demo",
