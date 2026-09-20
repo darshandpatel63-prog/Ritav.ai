@@ -21,6 +21,7 @@ interface MutablePermissionStore : PermissionStore {
 class InMemoryPermissionStore(grants: Set<CapabilityGrant> = emptySet()) : MutablePermissionStore {
     private val grants = grants.toMutableSet()
 
+    @Synchronized
     override fun isGranted(appId: String, capability: Capability, action: String, sessionId: String?): Boolean =
         grants.any { grant ->
             grant.enabled &&
