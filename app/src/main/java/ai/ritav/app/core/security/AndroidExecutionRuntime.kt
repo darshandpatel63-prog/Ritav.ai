@@ -35,7 +35,8 @@ class AndroidExecutionRuntime(
     val authorizationService: ActionAuthorizationService =
         ActionAuthorizationService(
             gate = authorizationGate,
-            deviceAuthorization = deviceAuthorization
+            deviceAuthorization = deviceAuthorization,
+            emergencyStop = securityState.policyEngine.emergencyStopController()
         )
 
     /**
