@@ -606,3 +606,32 @@ Reviewed the affected path end-to-end: MainActivity → AndroidExecutionRuntime 
 **NEXT ACTION:** obtain exact-head Android CI evidence; after successful CI, perform the required independent audit checkpoint before the next major security layer.
 
 **EXACT IMPLEMENTATION/TEST SHA:** `22675b28646e5b35d3bce6232d5aaaf0519ec748`.
+
+
+## 2026-09-20 independent audit checkpoint — permission / grant / Emergency Stop path
+
+### Audit scope
+Re-reviewed end-to-end: `ActionAuthorizationGate` / `ActionAuthorizationService`, `AppCapabilityRegistry`, `CapabilityGrantService`, `MutablePermissionStore` / `SecurePermissionStore`, Emergency Stop state/generation, identity-session binding, `SecurityExecutionPipeline`, `ExecutionBridge`, and the relevant regression tests.
+
+### Audit finding and remediation
+One additional concurrency weakness was identified: `SecurePermissionStore.isGranted()` and `InMemoryPermissionStore.isGranted()` were unsynchronized while grant/revoke mutations were synchronized. Both reads are now synchronized so permission authorization state cannot be read concurrently with a mutation on the same store instance.
+
+The existing capability-grant Emergency Stop TOCTOU gap remains closed: grant validation/token consumption and permission mutation execute inside the shared Emergency Stop critical section, with the default controller derived from the authorization gate.
+
+### Independent audit result
+- CRITICAL: none identified.
+- HIGH: none identified.
+- MEDIUM: existing architectural limitations remain — trusted external-app registry is intentionally empty; final target-app state is not independently observed; real model/context ingestion and screen/OCR/accessibility filtering are not implemented.
+- LOW/INFO: pattern-based sensitive-data detection and lightweight prompt-injection wrapper remain defense-in-depth rather than complete contextual protection.
+
+### Verification status
+- Source-level consolidated/adversarial audit: completed.
+- Regression coverage: present for the affected grant/Stop path and existing authorization protections.
+- Direct local test execution: not performed in this environment.
+- Exact-head GitHub Actions status: not exposed by the connected workflow-run/status API for push-triggered commit `a0c1fc5c15fedb8b006ff6c4db4544b06556b890`; therefore CI remains unverified.
+
+**CURRENT STOP POINT:** independent audit completed for the current security layer; exact-head CI remains pending.
+
+**NEXT ACTION:** establish exact-head Android CI evidence before any next major security-layer implementation.
+
+**EXACT IMPLEMENTATION/TEST SHA:** `a0c1fc5c15fedb8b006ff6c4db4544b06556b890`.
