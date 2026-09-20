@@ -45,7 +45,6 @@ class ActionAuthorizationGate(
     }
 
     internal fun emergencyStopController(): EmergencyStopController = emergencyStop
-    }
 
     /** Atomically validates and consumes a token. */
     fun consume(
