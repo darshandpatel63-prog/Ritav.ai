@@ -33,6 +33,9 @@ class ExecutionBridge(
         val now = runCatching { clock() }.getOrElse {
             return ExecutionResult(false, false, "Security clock unavailable")
         }
+        if (now < 0L) {
+            return ExecutionResult(false, false, "Security clock unavailable")
+        }
         if (!plan.isValid()) {
             auditLog.append(AuditEvent(safeClock(now), plan.sessionId, null, AuditEventType.POLICY_DECISION,
                 false, false, "Action plan is malformed or exceeds security bounds"))
@@ -109,5 +112,8 @@ class ExecutionBridge(
         )
     }
 
-    private fun safeClock(fallback: Long): Long = runCatching { clock() }.getOrDefault(fallback)
+    private fun safeClock(fallback: Long): Long = runCatching { clock() }
+        .getOrDefault(fallback)
+        .takeIf { it >= 0L }
+        ?: fallback
 }
