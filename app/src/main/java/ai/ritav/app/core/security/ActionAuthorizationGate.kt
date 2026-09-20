@@ -59,11 +59,22 @@ class ActionAuthorizationGate(
             if (!plan.isValid()) return@runIfInactive false
             if (providedLevel != requiredAuthorizationFor(plan)) return@runIfInactive false
 
-            val grant = grants.remove(token) ?: return@runIfInactive false
-            if (nowEpochMillis > grant.expiresAtEpochMillis) return@runIfInactive false
-            if (grant.emergencyStopGeneration != emergencyStop.generation()) return@runIfInactive false
-            if (grant.planHash != plan.stableHash()) return@runIfInactive false
-            authorizationRank(providedLevel) >= authorizationRank(grant.requiredLevel)
+            val expectedPlanHash = plan.stableHash()
+            var consumed = false
+            grants.computeIfPresent(token) { _, grant ->
+                val valid =
+                    nowEpochMillis <= grant.expiresAtEpochMillis &&
+                        grant.emergencyStopGeneration == emergencyStop.generation() &&
+                        grant.planHash == expectedPlanHash &&
+                        authorizationRank(providedLevel) >= authorizationRank(grant.requiredLevel)
+                if (valid) {
+                    consumed = true
+                    null
+                } else {
+                    grant
+                }
+            }
+            consumed
         } ?: false
     }
 
