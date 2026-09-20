@@ -574,3 +574,18 @@ Reviewed the affected path end-to-end: MainActivity → AndroidExecutionRuntime 
 **NEXT ACTION:** obtain/inspect exact-head Android CI. If successful, record the verified security checkpoint and pass the completed package through the required independent-audit gate before the next major layer.
 
 **EXACT IMPLEMENTATION SHA:** `47cb40c0d2200343226a6a76354f1772c50c3604`.
+
+
+## 2026-09-20 security boundary correction — CI pending
+
+- Latest implementation head: `9bffe276bfb44cd689366eec552512f8d4b0ac70`.
+- Hardened denial/audit failure paths: invalid negative execution clocks now fail closed before adapter execution, and invalid/oversized session metadata cannot cause denial auditing to throw.
+- Execution-session identifiers are now bounded to 128 characters at the execution security pipeline, matching the audit storage bound.
+- Regression coverage now exercises negative pipeline/bridge clocks, oversized session metadata denial, stale authorization/session invalidation across Emergency Stop, stop-time token denial, and rejected token preservation.
+- Exact-head CI verification is still unavailable through the connected workflow-run API for push-triggered runs; no CI-green claim is made.
+
+**CURRENT STOP POINT:** authorization/session/Emergency-Stop hardening plus audit failure-path correction is source-reviewed and regression-covered; exact-head Android CI remains pending.
+
+**NEXT ACTION:** verify the exact `9bffe276bfb44cd689366eec552512f8d4b0ac70` Android CI result. After successful CI, perform the required independent audit checkpoint before starting the next major security layer.
+
+**EXACT IMPLEMENTATION SHA:** `9bffe276bfb44cd689366eec552512f8d4b0ac70`.
