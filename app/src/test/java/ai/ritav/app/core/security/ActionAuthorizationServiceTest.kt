@@ -19,6 +19,66 @@ class ActionAuthorizationServiceTest {
         assertNotNull(service.issueUserConfirmationToken(userConfirmationPlan, userConfirmationPlan.stableHash(), 1000L))
     }
 
+    @Test fun emergencyStopBlocksUserConfirmationTokenIssuance() {
+        val gate = ActionAuthorizationGate()
+        val emergencyStop = EmergencyStopController().apply { activate() }
+        val service = ActionAuthorizationService(
+            gate,
+            StubDeviceAuthorizationGateway(),
+            emergencyStop = emergencyStop
+        )
+
+        assertNull(
+            service.issueUserConfirmationToken(
+                userConfirmationPlan,
+                userConfirmationPlan.stableHash(),
+                1000L
+            )
+        )
+    }
+
+    @Test fun emergencyStopBlocksDeviceAuthenticationTokenIssuanceBeforeAuthentication() {
+        val gate = ActionAuthorizationGate()
+        val emergencyStop = EmergencyStopController().apply { activate() }
+        val gateway = StubDeviceAuthorizationGateway(available = true, result = true)
+        val service = ActionAuthorizationService(
+            gate,
+            gateway,
+            emergencyStop = emergencyStop
+        )
+
+        var token: String? = "unexpected"
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
+
+        assertNull(token)
+    }
+
+    @Test fun emergencyStopRecheckAfterAuthenticationPreventsDeviceTokenMinting() {
+        val gate = ActionAuthorizationGate()
+        val emergencyStop = EmergencyStopController()
+        var authenticationCallback: ((Boolean) -> Unit)? = null
+        val gateway = object : DeviceAuthorizationGateway {
+            override fun isDeviceAuthenticationAvailable(): Boolean = true
+
+            override fun authenticate(reason: String, callback: (success: Boolean) -> Unit) {
+                authenticationCallback = callback
+            }
+        }
+        val service = ActionAuthorizationService(
+            gate,
+            gateway,
+            clockEpochMillis = { 1000L },
+            emergencyStop = emergencyStop
+        )
+
+        var token: String? = null
+        service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
+        emergencyStop.activate()
+        authenticationCallback!!.invoke(true)
+
+        assertNull(token)
+    }
+
     @Test fun userConfirmationCannotAuthorizeHigherRiskPlan() {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
