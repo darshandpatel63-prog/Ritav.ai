@@ -550,3 +550,27 @@ Reviewed the release build and its integration with the existing deterministic c
 **NEXT ACTION:** obtain exact-head Android CI evidence; on success perform the consolidated review again, then pass the completed security package through the required independent-audit gate before starting the next major layer.
 
 **EXACT COMMIT SHA:** `6c1b58e17d97ec5a69fc736a7d0ebb1e4e57a0ef`.
+
+
+## 2026-09-20 final Emergency Stop hardening package — CI pending
+
+- Current implementation/security head: `47cb40c0d2200343226a6a76354f1772c50c3604`.
+- Authorization token issuance/consumption is bound to the same authoritative Emergency Stop controller and Emergency Stop generation; pre-stop tokens cannot become valid again after reset.
+- Protected identity sessions are bound to the same Emergency Stop generation; pre-stop sessions cannot become valid again after reset.
+- Emergency Stop transitions and security-sensitive inactive-state operations are synchronized to close activation races.
+- Rejected wrong-plan authorization attempts no longer burn the valid token.
+- ExecutionBridge now fails closed when its security clock is unavailable before any adapter execution; later audit timestamp sampling falls back to the already-validated execution timestamp if the injected audit clock fails.
+- Regression tests cover stale-token invalidation, stop-time token denial, stale-session invalidation, direct stopped-session denial, gate/service stop binding, rejected-token preservation, and execution clock failure.
+
+### Consolidated source/system review
+Reviewed the affected path end-to-end: MainActivity → AndroidExecutionRuntime → shared Emergency Stop → authorization/session issuance → ActionAuthorizationGate → SecurityExecutionPipeline → PolicyEngine/ExecutionPolicyGate → capability/finance/sensitive controls → ExecutionBridge → adapter/result verification/audit. Adversarial checks covered activation during asynchronous authentication, stop/reset state reuse, token replay/wrong-plan substitution, session substitution/expiry, authorization risk binding, malformed inputs, and final adapter reachability. No demonstrated CRITICAL/HIGH bypass was identified in this source review.
+
+### Verification status
+- The previous workflow run #245 (`35489700331`) does not cover this final head and is not used as evidence.
+- The available connected workflow API does not expose the push-triggered run for this final head, and combined commit status is empty; therefore the package remains **CI-unverified**.
+
+**CURRENT STOP POINT:** Emergency Stop + authorization/session state-invalidation hardening is implemented, integrated, regression-tested in source, and consolidated-reviewed; exact-head Android CI verification is pending.
+
+**NEXT ACTION:** obtain/inspect exact-head Android CI. If successful, record the verified security checkpoint and pass the completed package through the required independent-audit gate before the next major layer.
+
+**EXACT IMPLEMENTATION SHA:** `47cb40c0d2200343226a6a76354f1772c50c3604`.
