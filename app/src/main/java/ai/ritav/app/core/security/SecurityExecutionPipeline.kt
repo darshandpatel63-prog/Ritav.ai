@@ -121,7 +121,7 @@ class SecurityExecutionPipeline(
         required: AuthorizationLevel
     ): SecurityExecutionDecision {
         val auditTimestamp = request.nowEpochMillis.takeIf { it >= 0L } ?: 0L
-        val auditSessionId = request.action.sessionId
+        val auditSessionId = request.action.sessionId?.takeIf { it.length <= MAX_AUDIT_SESSION_ID_LENGTH }
         runCatching {
             auditLog.append(AuditEvent(
                 auditTimestamp, auditSessionId, actionHash,
@@ -135,3 +135,4 @@ class SecurityExecutionPipeline(
 private const val MAX_APP_ID_LENGTH = 256
 private const val MAX_ACTION_LENGTH = 4096
 private const val MAX_SESSION_ID_LENGTH = 128
+private const val MAX_AUDIT_SESSION_ID_LENGTH = 128
