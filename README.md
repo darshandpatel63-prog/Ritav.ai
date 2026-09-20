@@ -302,3 +302,14 @@ Current implementation head: `6c1b58e17d97ec5a69fc736a7d0ebb1e4e57a0ef`.
 The package is source-reviewed but **not yet CI-verified** on this exact head. Do not treat the older run #245 (`35489700331`) as verification evidence for this newer SHA.
 
 Signed release packaging remains intentionally unconfigured; the production external-app registry remains empty/deny-by-default; physical-device testing and independent target-app result observation remain unverified.
+
+
+## 2026-09-20 Emergency Stop security checkpoint
+
+The latest security package extends Emergency Stop from a point-in-time execution check into explicit security-state invalidation. Authorization tokens and protected identity sessions carry the current Emergency Stop generation; activating the stop invalidates pre-stop state and resetting the stop does not revive that old state. Token issuance/consumption and session issuance are race-guarded by the same authoritative controller.
+
+The package also hardens authorization-token consumption so a rejected wrong-plan attempt does not consume the valid token, and hardens the final execution boundary to fail closed when its security clock is unavailable before adapter execution.
+
+Current implementation SHA: `47cb40c0d2200343226a6a76354f1772c50c3604`.
+
+Source and adversarial review found no demonstrated CRITICAL/HIGH bypass in this affected path. Exact-head Android CI verification is still pending because the connected workflow API is not exposing the push-triggered run for this SHA. The older run #245 (`35489700331`) is not evidence for this head.
