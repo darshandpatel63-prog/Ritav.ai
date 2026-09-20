@@ -11,7 +11,7 @@ internal class CapabilityGrantService(
     private val registry: AppCapabilityRegistry,
     private val permissionStore: MutablePermissionStore,
     private val authorizationGate: ActionAuthorizationGate,
-    private val emergencyStop: EmergencyStopController = EmergencyStopController()
+    private val emergencyStop: EmergencyStopController = authorizationGate.emergencyStopController()
 ) {
     fun createGrantPlan(
         packageName: String,
@@ -49,41 +49,42 @@ internal class CapabilityGrantService(
         authorizationToken: String?,
         nowEpochMillis: Long
     ): Boolean {
-        if (emergencyStop.isActive()) return false
-        if (!plan.isValid() || plan.expectedState != GRANT_EXPECTED_STATE) return false
-        if (plan.action.length <= GRANT_ACTION_PREFIX.length ||
-            !plan.action.startsWith(GRANT_ACTION_PREFIX)
-        ) return false
+        return emergencyStop.runIfInactive {
+            if (!plan.isValid() || plan.expectedState != GRANT_EXPECTED_STATE) return@runIfInactive false
+            if (plan.action.length <= GRANT_ACTION_PREFIX.length ||
+                !plan.action.startsWith(GRANT_ACTION_PREFIX)
+            ) return@runIfInactive false
 
-        val targetAction = plan.action.removePrefix(GRANT_ACTION_PREFIX)
-        if (targetAction.isBlank() || targetAction.length > MAX_TARGET_ACTION_LENGTH) return false
-        if (plan.riskTier == RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED) return false
+            val targetAction = plan.action.removePrefix(GRANT_ACTION_PREFIX)
+            if (targetAction.isBlank() || targetAction.length > MAX_TARGET_ACTION_LENGTH) return@runIfInactive false
+            if (plan.riskTier == RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED) return@runIfInactive false
 
-        if (plan.capability == Capability.FINANCIAL_ACTION) return false
-        val targetRisk = registry.riskTierFor(plan.appId, plan.capability, targetAction) ?: return false
-        val authorizationRisk = authorizationRiskFor(targetRisk) ?: return false
-        if (plan.riskTier != authorizationRisk) return false
-        if (!registry.allows(plan.appId, plan.capability, targetAction, targetRisk)) return false
-        if (!authorizationGate.consume(
-                authorizationToken.orEmpty(),
-                plan,
-                requiredAuthorizationFor(plan),
-                nowEpochMillis
-            )
-        ) return false
-
-        return runCatching {
-            permissionStore.grant(
-                CapabilityGrant(
-                    appId = plan.appId,
-                    capability = plan.capability,
-                    action = targetAction,
-                    sessionId = plan.sessionId,
-                    enabled = true
+            if (plan.capability == Capability.FINANCIAL_ACTION) return@runIfInactive false
+            val targetRisk = registry.riskTierFor(plan.appId, plan.capability, targetAction) ?: return@runIfInactive false
+            val authorizationRisk = authorizationRiskFor(targetRisk) ?: return@runIfInactive false
+            if (plan.riskTier != authorizationRisk) return@runIfInactive false
+            if (!registry.allows(plan.appId, plan.capability, targetAction, targetRisk)) return@runIfInactive false
+            if (!authorizationGate.consume(
+                    authorizationToken.orEmpty(),
+                    plan,
+                    requiredAuthorizationFor(plan),
+                    nowEpochMillis
                 )
-            )
-            true
-        }.getOrDefault(false)
+            ) return@runIfInactive false
+
+            runCatching {
+                permissionStore.grant(
+                    CapabilityGrant(
+                        appId = plan.appId,
+                        capability = plan.capability,
+                        action = targetAction,
+                        sessionId = plan.sessionId,
+                        enabled = true
+                    )
+                )
+                true
+            }.getOrDefault(false)
+        } ?: false
     }
 
     fun revoke(grant: CapabilityGrant): Boolean =
