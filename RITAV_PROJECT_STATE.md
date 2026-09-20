@@ -516,3 +516,16 @@ Reviewed the release build and its integration with the existing deterministic c
 **NEXT ACTION:** before the next major security layer, perform the required independent audit checkpoint for this completed release-hardening package. After a clean audit, continue with the production trusted-app/user-authorization composition incrementally, preserving the empty deny-by-default registry until authoritative package identity/certificate data exists.
 
 **EXACT COMMIT SHA:** `81dba435e3cd0b55d398db965dc63a92cf20bae2`.
+
+
+## 2026-09-20 authorization-token emergency-stop hardening — verification pending
+- Current implementation head: `1495470de42438af5288784ad47ec0818d8ab714`.
+- `ActionAuthorizationService` now shares the authoritative runtime Emergency Stop controller and fails closed when the stop is active before user-confirmation token issuance, before device-authentication, and again after asynchronous device authentication completes.
+- Android execution composition now injects the same runtime Emergency Stop controller into `ActionAuthorizationService`; this preserves one authoritative stop state across authorization and execution.
+- Regression tests cover: stopped user-confirmation token issuance, stopped device-token issuance before authentication, and stop activation during an in-flight authentication callback.
+- The immediately preceding head `f76d27c020889411c2226d99aba59eea142aea38` was successfully verified by Android workflow run #242 (`35441263184`), including JVM tests and managed-device instrumentation.
+- Verification of the new authorization-token hardening is not yet complete. GitHub Actions run #245 (`35489700331`) is pending on the exact current head; do not mark this layer verified until it completes successfully.
+
+**CURRENT STOP POINT:** authorization-token issuance now respects the authoritative Emergency Stop at the service boundary and is regression-tested in source; exact-head executable verification is pending.
+
+**NEXT ACTION:** inspect run #245 to completion. If successful, perform the consolidated authorization-service -> execution-pipeline -> Emergency Stop -> plan-binding -> one-time-token review, then record the verified checkpoint. If it fails, fix only the demonstrated failure and rerun.
