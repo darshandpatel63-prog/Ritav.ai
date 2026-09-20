@@ -322,3 +322,18 @@ A further failure-path review found that malformed execution clocks and oversize
 Current implementation SHA: `9bffe276bfb44cd689366eec552512f8d4b0ac70`.
 
 Emergency Stop generation invalidation, authorization token binding, protected-session invalidation, wrong-plan token preservation, and these audit/clock failure paths are source-reviewed with regression coverage. Exact-head Android CI is still pending through the available connector, so this checkpoint is not yet CI-verified.
+
+
+## 2026-09-20 latest security boundary correction — capability grant / Emergency Stop race
+
+A consolidated failure-path review identified a time-of-check/time-of-use gap in capability granting: the authorization token could be accepted before a concurrent Emergency Stop activation, while the durable permission-store mutation occurred afterward. The grant path is now executed inside the same Emergency Stop critical section, so Stop activation cannot interleave between authorization acceptance and the grant mutation. The service default also derives its Emergency Stop controller from the authorization gate, preventing accidental controller divergence.
+
+A blocking permission-store regression test was added to verify that a concurrent Stop activation cannot complete while a capability grant mutation is in progress, while the existing Stop, replay, wrong-plan, invalid-clock, risk, financial, and revocation coverage remains intact.
+
+Current implementation/test SHA: `22675b28646e5b35d3bce6232d5aaaf0519ec748`.
+
+Source and adversarial review found no demonstrated CRITICAL/HIGH bypass in this affected grant path. Direct local test execution was not available in this environment, and the connected GitHub workflow API exposes no push-triggered run/status for this exact head; therefore exact-head CI remains **not verified**.
+
+**CURRENT STOP POINT:** capability-grant / Emergency-Stop race hardening is implemented, integrated, source-reviewed, and regression-covered; exact-head CI is pending.
+
+**NEXT ACTION:** obtain exact-head Android CI evidence. After successful CI, perform the required independent audit checkpoint before beginning the next major security layer.
