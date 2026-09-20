@@ -291,3 +291,14 @@ For every subsequent `Start/Continue`, inspect the current `main` head and relev
 - `ActionAuthorizationService` now shares the authoritative runtime Emergency Stop controller and fails closed both before and after asynchronous device authentication when the stop is active.
 - Android runtime composition injects the same controller into the authorization service; regression coverage verifies stopped user-confirmation and device-authentication token issuance is blocked, including an in-flight authentication race.
 - Exact-head Android verification is pending at run #245 (`35489700331`) for commit `1495470de42438af5288784ad47ec0818d8ab714`. This change is not yet marked verified.
+
+
+## Latest security checkpoint — 2026-09-20
+
+Emergency Stop hardening has been extended beyond a point-in-time execution check. Authorization tokens and protected identity sessions now carry the Emergency Stop generation under the same authoritative runtime controller, so security state issued before an Emergency Stop does not become usable again merely because the stop is later reset. Token minting/consumption and direct internal session issuance fail closed while stopped, with regression coverage for stale-state invalidation.
+
+Current implementation head: `6c1b58e17d97ec5a69fc736a7d0ebb1e4e57a0ef`.
+
+The package is source-reviewed but **not yet CI-verified** on this exact head. Do not treat the older run #245 (`35489700331`) as verification evidence for this newer SHA.
+
+Signed release packaging remains intentionally unconfigured; the production external-app registry remains empty/deny-by-default; physical-device testing and independent target-app result observation remain unverified.
