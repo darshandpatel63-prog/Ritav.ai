@@ -97,8 +97,8 @@ class CapabilityGrantServiceTest {
     @Test
     fun emergencyStopBlocksCapabilityGrantWithoutAffectingRevocationPath() {
         val store = InMemoryPermissionStore()
-        val gate = ActionAuthorizationGate()
         val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
         val service = CapabilityGrantService(registry, store, gate)
         val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
