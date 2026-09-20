@@ -15,6 +15,34 @@ class ActionAuthorizationGateTest {
     )
 
     @Test
+    fun emergencyStopBlocksGateLevelTokenMinting() {
+        val emergencyStop = EmergencyStopController().apply { activate() }
+        val gate = ActionAuthorizationGate(emergencyStop)
+
+        try {
+            gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+            assertFalse(true)
+        } catch (_: IllegalStateException) {
+            assertTrue(true)
+        }
+    }
+
+    @Test
+    fun authorizationServiceDefaultsToGateEmergencyStop() {
+        val emergencyStop = EmergencyStopController().apply { activate() }
+        val gate = ActionAuthorizationGate(emergencyStop)
+        val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
+
+        assertTrue(
+            service.issueUserConfirmationToken(
+                plan,
+                plan.stableHash(),
+                1_000L
+            ) == null
+        )
+    }
+
+    @Test
     fun malformedPlanCannotMintAuthorizationToken() {
         val gate = ActionAuthorizationGate()
         val malformed = plan.copy(expectedState = "")
