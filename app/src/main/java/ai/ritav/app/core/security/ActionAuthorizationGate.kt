@@ -8,7 +8,9 @@ import java.util.concurrent.ConcurrentHashMap
  * Token minting is internal; production callers must use the trusted
  * ActionAuthorizationService rather than self-asserting an auth level.
  */
-class ActionAuthorizationGate {
+class ActionAuthorizationGate(
+    private val emergencyStop: EmergencyStopController = EmergencyStopController()
+) {
     private data class Grant(
         val planHash: String,
         val requiredLevel: AuthorizationLevel,
@@ -29,13 +31,18 @@ class ActionAuthorizationGate {
         require(nowEpochMillis >= 0)
         require(nowEpochMillis <= Long.MAX_VALUE - ttlMillis)
 
-        val token = UUID.randomUUID().toString()
-        grants[token] = Grant(
-            planHash = plan.stableHash(),
-            requiredLevel = requiredLevel,
-            expiresAtEpochMillis = nowEpochMillis + ttlMillis
-        )
-        return token
+        return emergencyStop.runIfInactive {
+            val token = UUID.randomUUID().toString()
+            grants[token] = Grant(
+                planHash = plan.stableHash(),
+                requiredLevel = requiredLevel,
+                expiresAtEpochMillis = nowEpochMillis + ttlMillis
+            )
+            token
+        } ?: throw IllegalStateException("Emergency Stop is active")
+    }
+
+    internal fun emergencyStopController(): EmergencyStopController = emergencyStop
     }
 
     /** Atomically validates and consumes a token. */
