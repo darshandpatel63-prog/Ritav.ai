@@ -22,6 +22,9 @@ class SecuritySession private constructor(
 
     internal fun isIssuedBy(binding: Any): Boolean = issuanceBinding === binding
 
+    internal fun hasEmergencyStopGeneration(generation: Long): Boolean =
+        emergencyStopGeneration == generation
+
     companion object {
         internal fun createForManager(
             issuanceBinding: Any,
@@ -65,13 +68,15 @@ class IdentitySessionManager(
         require(ttlMillis in 1..MAX_TTL_MILLIS)
         require(nowEpochMillis <= Long.MAX_VALUE - ttlMillis)
 
-        return SecuritySession.createForManager(
-            issuanceBinding = issuanceBinding,
-            identity = identity,
-            authenticatedAtEpochMillis = nowEpochMillis,
-            expiresAtEpochMillis = nowEpochMillis + ttlMillis,
-            emergencyStopGeneration = emergencyStop.generation()
-        )
+        return emergencyStop.runIfInactive {
+            SecuritySession.createForManager(
+                issuanceBinding = issuanceBinding,
+                identity = identity,
+                authenticatedAtEpochMillis = nowEpochMillis,
+                expiresAtEpochMillis = nowEpochMillis + ttlMillis,
+                emergencyStopGeneration = emergencyStop.generation()
+            )
+        } ?: throw IllegalStateException("Emergency Stop is active")
     }
 
     fun permitsProtectedCapability(session: SecuritySession?, nowEpochMillis: Long): Boolean =
@@ -79,11 +84,12 @@ class IdentitySessionManager(
             nowEpochMillis >= 0 &&
             session.isIssuedBy(issuanceBinding) &&
             session.isActive(nowEpochMillis) &&
+            !emergencyStop.isActive() &&
             sessionGenerationMatches(session) &&
             session.identity != IdentityLevel.UNKNOWN
 
     private fun sessionGenerationMatches(session: SecuritySession): Boolean =
-        session.emergencyStopGeneration == emergencyStop.generation()
+        session.hasEmergencyStopGeneration(emergencyStop.generation())
 
     private companion object {
         const val DEFAULT_TTL_MILLIS = 5 * 60_000L
