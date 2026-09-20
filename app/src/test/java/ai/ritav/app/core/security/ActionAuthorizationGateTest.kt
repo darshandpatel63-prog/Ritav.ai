@@ -156,6 +156,32 @@ class ActionAuthorizationGateTest {
     }
 
     @Test
+    fun rejectedWrongPlanAttemptDoesNotBurnValidToken() {
+        val gate = ActionAuthorizationGate()
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+
+        assertFalse(
+            gate.consume(
+                token,
+                plan.copy(action = "delete"),
+                AuthorizationLevel.USER_CONFIRMATION,
+                1_001L
+            )
+        )
+        assertTrue(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_002L))
+    }
+
+    @Test
+    fun rejectedExpiredAttemptDoesNotBurnUnexpiredReplacementToken() {
+        val gate = ActionAuthorizationGate()
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L, ttlMillis = 1_000L)
+
+        assertFalse(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 2_001L))
+        val replacement = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 3_000L)
+        assertTrue(gate.consume(replacement, plan, AuthorizationLevel.USER_CONFIRMATION, 3_001L))
+    }
+
+    @Test
     fun expiredTokenIsRejected() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
