@@ -9,7 +9,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ActionAuthorizationService(
     private val gate: ActionAuthorizationGate,
     private val deviceAuthorization: DeviceAuthorizationGateway,
-    private val clockEpochMillis: () -> Long = System::currentTimeMillis
+    private val clockEpochMillis: () -> Long = System::currentTimeMillis,
+    private val emergencyStop: EmergencyStopController = EmergencyStopController()
 ) {
     fun issueUserConfirmationToken(
         plan: ActionPlan,
@@ -17,6 +18,7 @@ class ActionAuthorizationService(
         nowEpochMillis: Long
     ): String? {
         if (!plan.isValid()) return null
+        if (emergencyStop.isActive()) return null
         if (plan.riskTier != RiskTier.TIER_2_CONTENT_MUTATION) return null
         if (confirmedPlanHash != plan.stableHash()) return null
         if (nowEpochMillis < 0) return null
@@ -38,7 +40,8 @@ class ActionAuthorizationService(
         }
 
         val validRequest = runCatching {
-            plan.isValid() &&
+            !emergencyStop.isActive() &&
+                plan.isValid() &&
                 plan.riskTier == RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE &&
                 reason.isNotBlank() &&
                 reason.length <= MAX_REASON_LENGTH &&
@@ -58,7 +61,7 @@ class ActionAuthorizationService(
                 }
                 val token = runCatching {
                     val now = clockEpochMillis()
-                    if (now < 0) null
+                    if (emergencyStop.isActive() || now < 0) null
                     else gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, now)
                 }.getOrNull()
                 respond(token)
