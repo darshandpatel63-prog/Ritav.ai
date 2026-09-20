@@ -14,6 +14,7 @@ class SecuritySession private constructor(
     val identity: IdentityLevel,
     val authenticatedAtEpochMillis: Long,
     val expiresAtEpochMillis: Long,
+    private val emergencyStopGeneration: Long,
     private val issuanceBinding: Any
 ) {
     fun isActive(nowEpochMillis: Long): Boolean =
@@ -26,7 +27,8 @@ class SecuritySession private constructor(
             issuanceBinding: Any,
             identity: IdentityLevel,
             authenticatedAtEpochMillis: Long,
-            expiresAtEpochMillis: Long
+            expiresAtEpochMillis: Long,
+            emergencyStopGeneration: Long
         ): SecuritySession {
             require(authenticatedAtEpochMillis >= 0)
             require(expiresAtEpochMillis >= authenticatedAtEpochMillis)
@@ -35,6 +37,7 @@ class SecuritySession private constructor(
                 identity = identity,
                 authenticatedAtEpochMillis = authenticatedAtEpochMillis,
                 expiresAtEpochMillis = expiresAtEpochMillis,
+                emergencyStopGeneration = emergencyStopGeneration,
                 issuanceBinding = issuanceBinding
             )
         }
@@ -43,7 +46,9 @@ class SecuritySession private constructor(
     }
 }
 
-class IdentitySessionManager {
+class IdentitySessionManager(
+    private val emergencyStop: EmergencyStopController = EmergencyStopController()
+) {
     private val issuanceBinding = Any()
 
     /**
@@ -64,7 +69,8 @@ class IdentitySessionManager {
             issuanceBinding = issuanceBinding,
             identity = identity,
             authenticatedAtEpochMillis = nowEpochMillis,
-            expiresAtEpochMillis = nowEpochMillis + ttlMillis
+            expiresAtEpochMillis = nowEpochMillis + ttlMillis,
+            emergencyStopGeneration = emergencyStop.generation()
         )
     }
 
@@ -73,7 +79,11 @@ class IdentitySessionManager {
             nowEpochMillis >= 0 &&
             session.isIssuedBy(issuanceBinding) &&
             session.isActive(nowEpochMillis) &&
+            sessionGenerationMatches(session) &&
             session.identity != IdentityLevel.UNKNOWN
+
+    private fun sessionGenerationMatches(session: SecuritySession): Boolean =
+        session.emergencyStopGeneration == emergencyStop.generation()
 
     private companion object {
         const val DEFAULT_TTL_MILLIS = 5 * 60_000L
