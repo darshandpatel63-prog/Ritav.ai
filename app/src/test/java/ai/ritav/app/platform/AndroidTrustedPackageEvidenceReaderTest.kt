@@ -67,6 +67,17 @@ class AndroidTrustedPackageEvidenceReaderTest {
     }
 
     @Test
+    fun certificateReaderFailureFailsClosed() {
+        val reader = AndroidTrustedPackageEvidenceReader(
+            certificateReader = AndroidPackageSigningCertificateReader {
+                throw IllegalStateException("certificate lookup failed")
+            }
+        )
+
+        assertNull(reader.read("com.example.safe"))
+    }
+
+    @Test
     fun oversizedCertificateFailsClosed() {
         val oversizedCertificate = ByteArray(64 * 1024 + 1)
         val reader = AndroidTrustedPackageEvidenceReader(
