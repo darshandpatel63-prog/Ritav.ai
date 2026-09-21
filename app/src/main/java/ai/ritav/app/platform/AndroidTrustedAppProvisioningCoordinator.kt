@@ -105,9 +105,12 @@ internal class AndroidTrustedAppProvisioningCoordinator(
         evidence: AndroidTrustedPackageEvidence?
     ): Boolean =
         evidence != null &&
-            evidence.packageName == plan.actionPlan.appId &&
-            evidence.signerCount == 1 &&
-            evidence.certificateSha256 == plan.certificateSha256
+            provisioningService.matchesEvidence(
+                plan = plan,
+                packageName = evidence.packageName,
+                certificateSha256 = evidence.certificateSha256,
+                signerCount = evidence.signerCount
+            )
 
     private fun safeNow(): Long? =
         runCatching { clockEpochMillis() }.getOrNull()?.takeIf { it >= 0L }

@@ -14,10 +14,19 @@ internal class TrustedAppProvisioningService(
     private val emergencyStop: EmergencyStopController = authorizationGate.emergencyStopController(),
     private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(emergencyStop)
 ) {
-    internal data class Plan(
+    internal class Plan private constructor(
         val actionPlan: ActionPlan,
-        val certificateSha256: String
-    )
+        private val certificateSha256: String
+    ) {
+        internal fun matchesEvidence(
+            packageName: String,
+            certificateSha256: String,
+            signerCount: Int
+        ): Boolean =
+            packageName == actionPlan.appId &&
+                signerCount == 1 &&
+                normalizeCertificate(certificateSha256) == this.certificateSha256
+    }
 
     fun createPlan(
         packageName: String,
@@ -45,7 +54,10 @@ internal class TrustedAppProvisioningService(
         )
         if (!actionPlan.isValid()) return null
 
-        return Plan(actionPlan, normalizedCertificate)
+        return Plan(
+            actionPlan = actionPlan,
+            certificateSha256 = normalizedCertificate
+        )
     }
 
     fun persist(
@@ -95,6 +107,15 @@ internal class TrustedAppProvisioningService(
             }
         } ?: false
     }
+
+    internal fun matchesEvidence(
+        plan: Plan,
+        packageName: String,
+        certificateSha256: String,
+        signerCount: Int
+    ): Boolean =
+        isValidPlan(plan) &&
+            plan.matchesEvidence(packageName, certificateSha256, signerCount)
 
     private fun isValidPlan(plan: Plan): Boolean {
         if (!plan.actionPlan.isValid()) return false
