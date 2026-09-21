@@ -190,7 +190,7 @@ class AppCapabilityRegistry(
     private companion object {
         const val MAX_ACTION_LENGTH = 128
         const val MAX_PACKAGE_NAME_LENGTH = 256
-        val PACKAGE_NAME_REGEX = Regex("^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$")
+        val PACKAGE_NAME_REGEX = Regex("""^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$""")
         val CERTIFICATE_DIGEST_REGEX = Regex("^[A-Fa-f0-9]{64}$")
     }
 }
@@ -210,4 +210,4 @@ internal fun isValidReviewedTrustedAppSpec(spec: AppCapabilitySpec): Boolean =
         !spec.financialCategory &&
         spec.trustedCertificateSha256?.matches(Regex("^[A-Fa-f0-9]{64}$")) == true &&
         spec.packageName.length in 1..256 &&
-        spec.packageName.matches(Regex("^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$"))
+        spec.packageName.matches(Regex("""^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$"""))
