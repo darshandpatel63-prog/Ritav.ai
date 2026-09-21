@@ -369,37 +369,30 @@ The release workflow remains separately controlled with manual dispatch plus rel
 **NEXT ACTION:** inspect run `#280` for conclusion and job results. Only after a successful exact-head CI checkpoint should this security layer be formally closed and the next major security layer begin.
 
 
-## 21. Latest trusted-app + user-authorization composition checkpoint — 2026-09-21
+## 21. Latest trusted-package provisioning-evidence checkpoint — 2026-09-21
 
 ### Current repository state
-- Implementation/test head: `3c28e9319f3a01702e5af93f61aec3c6976d9d40`.
-- Android test workflow Run #283 (`35557741305`) completed successfully on that exact SHA.
-- Run #283 passed JVM unit tests, Android instrumentation-test compilation/APK assembly, and managed-device instrumentation on `pixel2api30`.
-- Runs #281 and #282 were failures on intermediate commits caused by the Compose-test harness import used in an attempted UI assertion test; that test was removed from the executable verification path before Run #283.
-- The current production Android trusted registry is still intentionally empty, so external application execution and capability granting remain deny-by-default.
+- Implementation commit: `66c924927fead15c83d7abeb039f3cc43cee02df`.
+- Android workflow Run #284 (`35571240222`) is executing against that exact implementation SHA; verification is pending.
+- The previous verified Android checkpoint remains Run #283 on `3c28e9319f3a01702e5af93f61aec3c6976d9d40`.
+- The production trusted external-app registry remains intentionally empty, so external execution stays deny-by-default.
 
 ### What was implemented
-- Added a sanitized capability-candidate view that never exposes certificate material to UI code and excludes financial, Tier-4 and unpinned external-app entries from the grant UI.
-- Added `CapabilityGrantCoordinator` as the trusted caller composition between UI and the existing deterministic security services.
-- Grant plans are session-bound; the grant service revalidates the matching live identity session inside the same Emergency Stop critical section used for token consumption and permission mutation.
-- Tier-2 capability approval requires explicit user confirmation and exact-plan-bound one-time authorization. Tier-3 approval additionally requires platform device authentication.
-- Added a real Android `Permission Center` presentation path without moving security decisions into UI or AI.
-- Added regression coverage for candidate sanitization, session mismatch/staleness, wrong plans, explicit-confirmation denial, device-auth success/failure, and Emergency Stop blocking.
+- Added a read-only `AndroidTrustedPackageEvidenceReader` for the reviewed provisioning path.
+- The reader obtains the currently installed package's signing certificate through the existing Android certificate-reader boundary and returns only the package name, single-signer count and SHA-256 digest.
+- Malformed/oversized package identifiers, missing/unreadable certificates and multi-signer identities fail closed.
+- No registry mutation, capability grant, authorization token issuance or execution permission is performed by this evidence layer.
+- Existing package identity verification continues to be the authoritative execution-time trust decision.
 
-### Consolidated system review
-The completed layer was reviewed across the UI-to-coordinator call path, exact ActionPlan binding, risk-derived authorization, identity-session lifetime/generation, Emergency Stop races, permission-store mutation boundaries, financial hard-deny, trusted-certificate prerequisites, malformed/failure paths, and existing downstream execution gates. No new demonstrated CRITICAL/HIGH bypass was identified in this affected path.
+### Verification state
+- Implemented: yes.
+- Integrated: yes.
+- Tested by source-level regression coverage: yes.
+- CI Verified: pending Run #284.
+- Real-device Tested: no new physical-device testing; managed-device verification is pending for Run #284.
 
-### Current limitations
-- Trusted external-app registry is intentionally empty/deny-by-default; no real external application can currently be granted through the production UI.
-- Final target-app UI/result observation is still not independently implemented.
-- The model/context ingestion choke point and real screen/OCR/accessibility-to-model filtering path are still not implemented.
-- Native non-Android runtimes, signed production packaging and physical-device validation remain outstanding.
-- Sensitive-information detection remains pattern-based defense-in-depth rather than complete contextual secret classification.
+### Known limitations
+- No trusted package is currently populated into production configuration.
+- This layer intentionally produces evidence only; a separate explicit trust-decision/persistence path is still required.
+- Final target-app UI/result observation remains unimplemented.
 
-### Current stop point
-The Android trusted-app + user-authorization composition layer is implemented, integrated, regression-tested and executable-verified at `3c28e9319f3a01702e5af93f61aec3c6976d9d40` by Run #283. This exact implementation/test SHA is the verification anchor; documentation-only follow-up commits are not treated as new Android CI verification.
-
-### Next action
-Continue with the reviewed trusted-app provisioning/allowlist path only when authoritative package identity and signing-certificate evidence is available, while preserving the empty registry today. Then address independent target-app result/UI observation. Do not add speculative banking/UPI/OAuth/backend integrations or missing native platform implementations.
-
-New-chat handoff file: `RITAV_HANDOFF.md`.

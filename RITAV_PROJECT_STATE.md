@@ -720,3 +720,39 @@ Continue with the reviewed trusted-app allowlist/trust-entry provisioning path o
 ### EXACT COMMIT SHA
 Implementation/test verification anchor: `3c28e9319f3a01702e5af93f61aec3c6976d9d40`.
 This state update is documentation-only after that verified implementation/test commit and is not itself an additional Android CI verification checkpoint.
+
+## 2026-09-21 trusted-package provisioning evidence checkpoint
+
+### CURRENT STOP POINT
+Read-only Android trusted-package provisioning evidence is implemented at `66c924927fead15c83d7abeb039f3cc43cee02df`. It does not mutate the trusted registry or authorize execution. The production registry remains empty/deny-by-default.
+
+### COMPLETED
+- Added `AndroidTrustedPackageEvidenceReader` using the existing package signing-certificate reader boundary.
+- Added bounded package-name validation.
+- Added single-signer requirement and SHA-256 certificate evidence generation.
+- Added fail-closed regression coverage for malformed input, missing certificate data, multiple signers, and digest-only evidence.
+- Preserved the existing `AndroidPackageIdentityVerifier` as the authoritative execution-time trust decision.
+
+### VERIFIED
+- Previous implementation checkpoint Run #283 remains verified on `3c28e9319f3a01702e5af93f61aec3c6976d9d40`.
+- Run #284 (`35571240222`) has been triggered for `66c924927fead15c83d7abeb039f3cc43cee02df` and is currently pending/in progress.
+
+### NOT VERIFIED
+- Run #284 has not completed yet.
+- No physical-device testing.
+- No persistent trust-entry provisioning/mutation path.
+- No real external-app trust entry has been configured.
+
+### KNOWN LIMITATIONS
+- Evidence is not trust. A package digest must not be treated as trusted merely because it was read successfully.
+- The production registry remains empty until an explicit reviewed trust-decision/persistence path exists.
+- Target-app result/UI observation remains outstanding.
+
+### NEXT ACTION
+1. Obtain the Run #284 result for the exact implementation SHA.
+2. If green, perform the consolidated system review for this provisioning-evidence sub-layer and record the verified checkpoint.
+3. Then implement the separate explicit trust-entry decision/persistence path without inventing package identities or certificate pins.
+4. Keep finance/UPI hard-deny and all existing authorization/session/Emergency-Stop boundaries unchanged.
+
+### EXACT COMMIT SHA
+Implementation/test SHA: `66c924927fead15c83d7abeb039f3cc43cee02df`.

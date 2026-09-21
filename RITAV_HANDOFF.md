@@ -318,3 +318,14 @@ Selected important commits:
 Treat this handoff as a state map, not permission to invent missing functionality.
 
 Verify the live repository first. Preserve all existing deterministic security controls. Reuse existing components. Do not create duplicate security boundaries. Do not claim CI, device testing, production readiness or platform support without evidence. When a real security boundary is changed, continuously verify call paths, data flow, races, authorization, failures, resource bounds and privacy boundaries, then perform the consolidated review before marking that layer complete.
+## 2026-09-21 continuation checkpoint — trusted-package evidence
+
+The next provisioning increment is now implemented but awaits exact-head CI verification.
+
+- Implementation SHA: `66c924927fead15c83d7abeb039f3cc43cee02df`.
+- Run #284: `35571240222`, currently in progress for that exact SHA.
+- Added read-only `AndroidTrustedPackageEvidenceReader`.
+- It reuses the existing certificate-reader boundary, requires a bounded valid package name and exactly one installed signer, and returns only a SHA-256 digest as provisioning evidence.
+- It cannot mutate the registry, issue authorization, grant capabilities or execute actions.
+- The production registry remains empty.
+- Do not treat this implementation as CI-verified until Run #284 completes.
