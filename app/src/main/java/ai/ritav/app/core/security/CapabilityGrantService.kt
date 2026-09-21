@@ -11,7 +11,8 @@ internal class CapabilityGrantService(
     private val registry: AppCapabilityRegistry,
     private val permissionStore: MutablePermissionStore,
     private val authorizationGate: ActionAuthorizationGate,
-    private val emergencyStop: EmergencyStopController = authorizationGate.emergencyStopController()
+    private val emergencyStop: EmergencyStopController = authorizationGate.emergencyStopController(),
+    private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(emergencyStop)
 ) {
     fun createGrantPlan(
         packageName: String,
@@ -44,10 +45,29 @@ internal class CapabilityGrantService(
         ).takeIf { it.isValid() }
     }
 
+    internal fun isGrantPlan(plan: ActionPlan): Boolean {
+        if (!plan.isValid() ||
+            plan.expectedState != GRANT_EXPECTED_STATE ||
+            plan.action.length <= GRANT_ACTION_PREFIX.length ||
+            !plan.action.startsWith(GRANT_ACTION_PREFIX)
+        ) {
+            return false
+        }
+        val targetAction = plan.action.removePrefix(GRANT_ACTION_PREFIX)
+        if (targetAction.isBlank() || targetAction.length > MAX_TARGET_ACTION_LENGTH) return false
+        return createGrantPlan(
+            packageName = plan.appId,
+            capability = plan.capability,
+            action = targetAction,
+            sessionId = plan.sessionId
+        ) == plan
+    }
+
     fun grant(
         plan: ActionPlan,
         authorizationToken: String?,
-        nowEpochMillis: Long
+        nowEpochMillis: Long,
+        identitySession: SecuritySession? = null
     ): Boolean {
         return emergencyStop.runIfInactive {
             if (!plan.isValid() || plan.expectedState != GRANT_EXPECTED_STATE) return@runIfInactive false
@@ -64,6 +84,14 @@ internal class CapabilityGrantService(
             val authorizationRisk = authorizationRiskFor(targetRisk) ?: return@runIfInactive false
             if (plan.riskTier != authorizationRisk) return@runIfInactive false
             if (!registry.allows(plan.appId, plan.capability, targetAction, targetRisk)) return@runIfInactive false
+
+            if (plan.sessionId != null) {
+                if (identitySession == null || identitySession.id != plan.sessionId) return@runIfInactive false
+                if (!identitySessionManager.permitsProtectedCapability(identitySession, nowEpochMillis)) {
+                    return@runIfInactive false
+                }
+            }
+
             if (!authorizationGate.consume(
                     authorizationToken.orEmpty(),
                     plan,

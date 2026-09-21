@@ -178,6 +178,78 @@ class CapabilityGrantServiceTest {
     }
 
     @Test
+    fun sessionBoundGrantRequiresMatchingActiveIdentitySession() {
+        val store = InMemoryPermissionStore()
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(
+            identity = IdentityLevel.TRUSTED_SIGNAL,
+            nowEpochMillis = 1_000L
+        )
+        val otherSession = sessionManager.createSession(
+            identity = IdentityLevel.TRUSTED_SIGNAL,
+            nowEpochMillis = 1_000L
+        )
+        val service = CapabilityGrantService(
+            registry,
+            store,
+            gate,
+            stop,
+            sessionManager
+        )
+        val plan = requireNotNull(
+            service.createGrantPlan(
+                "com.example.safe",
+                Capability.APP_LAUNCH,
+                "open",
+                sessionId = session.id
+            )
+        )
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+
+        assertFalse(service.grant(plan, token, 1_001L, otherSession))
+        assertFalse(store.isGranted("com.example.safe", Capability.APP_LAUNCH, "open", session.id))
+
+        assertTrue(service.grant(plan, token, 1_001L, session))
+        assertTrue(store.isGranted("com.example.safe", Capability.APP_LAUNCH, "open", session.id))
+    }
+
+    @Test
+    fun staleSessionCannotAuthorizeGrantAfterEmergencyStopReset() {
+        val store = InMemoryPermissionStore()
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(
+            identity = IdentityLevel.TRUSTED_SIGNAL,
+            nowEpochMillis = 1_000L
+        )
+        val service = CapabilityGrantService(
+            registry,
+            store,
+            gate,
+            stop,
+            sessionManager
+        )
+        val plan = requireNotNull(
+            service.createGrantPlan(
+                "com.example.safe",
+                Capability.APP_LAUNCH,
+                "open",
+                sessionId = session.id
+            )
+        )
+
+        stop.activate()
+        stop.resetAfterExplicitUserConfirmation(true)
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 2_000L)
+
+        assertFalse(service.grant(plan, token, 2_001L, session))
+        assertFalse(store.isGranted("com.example.safe", Capability.APP_LAUNCH, "open", session.id))
+    }
+
+    @Test
     fun financialCapabilityCannotBeGrantedEvenIfRegistryMetadataIsMisconfigured() {
         val financialRegistry = AppCapabilityRegistry(
             listOf(

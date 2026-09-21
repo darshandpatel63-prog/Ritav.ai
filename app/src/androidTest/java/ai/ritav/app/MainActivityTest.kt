@@ -1,14 +1,23 @@
 package ai.ritav.app
 
-import androidx.test.core.app.ActivityScenario
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
 class MainActivityTest {
+    @get:Rule
+    val composeRule = createAndroidComposeRule<MainActivity>()
+
     @Test
-    fun activityStartsWithSecurityRuntimeWired() {
-        ActivityScenario.launch(MainActivity::class.java).use { }
+    fun permissionCenterStartsWithEmptyTrustedRegistry() {
+        composeRule.onNodeWithText("Permission Center").assertExists()
+        composeRule
+            .onNodeWithText("No trusted external applications are currently configured.")
+            .assertExists()
+        composeRule
+            .onNodeWithText("External actions remain blocked.")
+            .assertExists()
     }
 }

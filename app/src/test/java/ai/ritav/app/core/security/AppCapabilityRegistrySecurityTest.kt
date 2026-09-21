@@ -1,14 +1,16 @@
 package ai.ritav.app.core.security
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.junit.Assert.assertThrows
 
 class AppCapabilityRegistrySecurityTest {
     private val certificate = "a".repeat(64)
 
-    @Test fun trustedCertificateIsBoundToPackageMetadata() {
+    @Test
+    fun trustedCertificateIsBoundToPackageMetadata() {
         val registry = AppCapabilityRegistry(
             listOf(
                 AppCapabilitySpec(
@@ -25,7 +27,8 @@ class AppCapabilityRegistrySecurityTest {
         assertNull(registry.trustedCertificateSha256("com.example.unknown"))
     }
 
-    @Test fun invalidCertificateDigestIsRejected() {
+    @Test
+    fun invalidCertificateDigestIsRejected() {
         assertThrows(IllegalArgumentException::class.java) {
             AppCapabilityRegistry(
                 listOf(
@@ -41,7 +44,8 @@ class AppCapabilityRegistrySecurityTest {
         }
     }
 
-    @Test fun registryDefensivelyCopiesMutableActionSets() {
+    @Test
+    fun registryDefensivelyCopiesMutableActionSets() {
         val actions = mutableSetOf("open")
         val registry = AppCapabilityRegistry(
             listOf(
@@ -60,7 +64,8 @@ class AppCapabilityRegistrySecurityTest {
         assertEquals(false, registry.allows("com.example.safe", Capability.APP_LAUNCH, "unexpected", RiskTier.TIER_1_REVERSIBLE))
     }
 
-    @Test fun oversizedPackageNameIsRejected() {
+    @Test
+    fun oversizedPackageNameIsRejected() {
         assertThrows(IllegalArgumentException::class.java) {
             AppCapabilityRegistry(
                 listOf(
@@ -76,7 +81,8 @@ class AppCapabilityRegistrySecurityTest {
         }
     }
 
-    @Test fun financialCapabilityIsNeverAuthorizedByRegistry() {
+    @Test
+    fun financialCapabilityIsNeverAuthorizedByRegistry() {
         val registry = AppCapabilityRegistry(
             listOf(
                 AppCapabilitySpec(
@@ -102,7 +108,8 @@ class AppCapabilityRegistrySecurityTest {
         )
     }
 
-    @Test fun overlappingActionsWithDifferentRiskAreRejectedAsAmbiguous() {
+    @Test
+    fun overlappingActionsWithDifferentRiskAreRejectedAsAmbiguous() {
         val registry = AppCapabilityRegistry(
             listOf(
                 AppCapabilitySpec(
@@ -152,7 +159,8 @@ class AppCapabilityRegistrySecurityTest {
         )
     }
 
-    @Test fun conflictingCertificatePinsForOnePackageAreRejected() {
+    @Test
+    fun conflictingCertificatePinsForOnePackageAreRejected() {
         assertThrows(IllegalArgumentException::class.java) {
             AppCapabilityRegistry(
                 listOf(
@@ -173,5 +181,48 @@ class AppCapabilityRegistrySecurityTest {
                 )
             )
         }
+    }
+
+    @Test
+    fun grantCandidatesNeverExposeUntrustedOrFinancialSpecs() {
+        val registry = AppCapabilityRegistry(
+            listOf(
+                AppCapabilitySpec(
+                    packageName = "com.example.safe",
+                    capability = Capability.APP_LAUNCH,
+                    actions = setOf("open"),
+                    riskTier = RiskTier.TIER_1_REVERSIBLE,
+                    trustedCertificateSha256 = certificate
+                ),
+                AppCapabilitySpec(
+                    packageName = "com.example.noPin",
+                    capability = Capability.APP_LAUNCH,
+                    actions = setOf("open"),
+                    riskTier = RiskTier.TIER_1_REVERSIBLE
+                ),
+                AppCapabilitySpec(
+                    packageName = "com.example.finance",
+                    capability = Capability.FINANCIAL_ACTION,
+                    actions = setOf("pay"),
+                    riskTier = RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED,
+                    financialCategory = true,
+                    trustedCertificateSha256 = certificate
+                ),
+                AppCapabilitySpec(
+                    packageName = "com.example.blocked",
+                    capability = Capability.APP_LAUNCH,
+                    actions = setOf("open"),
+                    riskTier = RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED,
+                    trustedCertificateSha256 = certificate
+                )
+            )
+        )
+
+        val candidates = registry.capabilityGrantCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals("com.example.safe", candidates.single().packageName)
+        assertEquals(Capability.APP_LAUNCH, candidates.single().capability)
+        assertEquals("open", candidates.single().action)
+        assertEquals(RiskTier.TIER_1_REVERSIBLE, candidates.single().riskTier)
     }
 }

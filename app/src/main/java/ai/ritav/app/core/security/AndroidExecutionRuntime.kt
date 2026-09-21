@@ -40,6 +40,23 @@ class AndroidExecutionRuntime(
             emergencyStop = emergencyStop
         )
 
+    private val capabilityGrantService: CapabilityGrantService =
+        CapabilityGrantService(
+            registry = capabilityRegistry,
+            permissionStore = securityState.mutablePermissionStore(),
+            authorizationGate = authorizationGate,
+            emergencyStop = emergencyStop,
+            identitySessionManager = identitySessionManager
+        )
+
+    internal val capabilityGrantCoordinator: CapabilityGrantCoordinator =
+        CapabilityGrantCoordinator(
+            registry = capabilityRegistry,
+            grantService = capabilityGrantService,
+            authorizationService = authorizationService,
+            identitySessionManager = identitySessionManager
+        )
+
     /**
      * Trusted identity-session issuance for protected actions.
      * Session creation is possible only after platform authentication succeeds.
@@ -48,14 +65,6 @@ class AndroidExecutionRuntime(
         IdentitySessionService(
             sessionManager = identitySessionManager,
             authenticationGateway = deviceAuthorization,
-            emergencyStop = emergencyStop
-        )
-
-    internal val capabilityGrantService: CapabilityGrantService =
-        CapabilityGrantService(
-            registry = capabilityRegistry,
-            permissionStore = securityState.mutablePermissionStore(),
-            authorizationGate = authorizationGate,
             emergencyStop = emergencyStop
         )
 }

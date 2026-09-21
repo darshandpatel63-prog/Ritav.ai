@@ -12,6 +12,14 @@ data class AppCapabilitySpec(
     val trustedCertificateSha256: String? = null
 )
 
+/** Sanitized capability metadata suitable for user-facing authorization flows. */
+internal data class CapabilityGrantCandidate(
+    val packageName: String,
+    val capability: Capability,
+    val action: String,
+    val riskTier: RiskTier
+)
+
 /**
  * Explicit registry for app capabilities.
  *
@@ -66,6 +74,47 @@ class AppCapabilityRegistry(
         return risks.singleOrNull()
     }
 
+    /**
+     * Returns only user-grantable actions for the current Android composition.
+     *
+     * Certificate material is intentionally not exposed to the UI layer. A
+     * certificate pin is required so a displayed app action is also executable
+     * by the Android trusted-package adapter.
+     */
+    internal fun capabilityGrantCandidates(): List<CapabilityGrantCandidate> =
+        immutableSpecs.asSequence()
+            .filter {
+                !it.financialCategory &&
+                    it.capability != Capability.FINANCIAL_ACTION &&
+                    it.riskTier != RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED &&
+                    it.sensitiveContentBlocked &&
+                    it.trustedCertificateSha256 != null
+            }
+            .flatMap { spec ->
+                spec.actions.asSequence().map { action ->
+                    CapabilityGrantCandidate(
+                        packageName = spec.packageName,
+                        capability = spec.capability,
+                        action = action,
+                        riskTier = spec.riskTier
+                    )
+                }
+            }
+            .sortedWith(
+                compareBy(
+                    CapabilityGrantCandidate::packageName,
+                    { it.capability.name },
+                    CapabilityGrantCandidate::action
+                )
+            )
+            .toList()
+
+    fun trustedCertificateSha256(packageName: String): String? =
+        specsByPackage[packageName].orEmpty().firstOrNull()?.trustedCertificateSha256
+
+    fun specsFor(packageName: String): List<AppCapabilitySpec> =
+        specsByPackage[packageName].orEmpty()
+
     private fun matchingSpecs(
         packageName: String,
         capability: Capability,
@@ -74,12 +123,6 @@ class AppCapabilityRegistry(
         specsByPackage[packageName].orEmpty().filter {
             it.capability == capability && action in it.actions
         }
-
-    fun trustedCertificateSha256(packageName: String): String? =
-        specsByPackage[packageName].orEmpty().firstOrNull()?.trustedCertificateSha256
-
-    fun specsFor(packageName: String): List<AppCapabilitySpec> =
-        specsByPackage[packageName].orEmpty()
 
     private fun validate(spec: AppCapabilitySpec) {
         require(spec.packageName.length <= MAX_PACKAGE_NAME_LENGTH && spec.packageName.matches(PACKAGE_NAME_REGEX)) { "Invalid package name" }
