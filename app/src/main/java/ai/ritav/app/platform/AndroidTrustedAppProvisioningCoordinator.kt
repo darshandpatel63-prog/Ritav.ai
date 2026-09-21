@@ -73,7 +73,7 @@ internal class AndroidTrustedAppProvisioningCoordinator(
             }
 
             val latestEvidence = evidenceReader.read(packageName)
-            if (!matches(plan, latestEvidence)) {
+            if (latestEvidence == null || !matches(plan, latestEvidence)) {
                 complete(false)
                 return@issueDeviceAuthenticationToken
             }
