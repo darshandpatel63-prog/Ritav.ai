@@ -756,3 +756,41 @@ Read-only Android trusted-package provisioning evidence is implemented at `66c92
 
 ### EXACT COMMIT SHA
 Implementation/test SHA: `66c924927fead15c83d7abeb039f3cc43cee02df`.
+
+## 2026-09-21 trusted-package evidence — verified and independently reviewed
+
+### CURRENT STOP POINT
+The read-only Android trusted-package provisioning-evidence layer is implemented and exact-head CI verified at `2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`. The production trusted external-app registry remains empty/deny-by-default.
+
+### COMPLETED
+- Added bounded read-only Android package identity evidence using the existing `AndroidPackageSigningCertificateReader`.
+- Required a syntactically bounded package name and exactly one installed signer.
+- Added empty-certificate, 64 KiB certificate-size, and digest-operation failure fail-closed handling.
+- Added regression coverage for malformed/oversized package names, certificate-reader failure, certificate-size boundaries, multiple signers, and digest-only evidence.
+- Preserved the execution-time `AndroidPackageIdentityVerifier` as the authoritative trust decision; evidence does not equal trust.
+
+### VERIFIED
+- Run #290 (`35619464754`) succeeded on exact SHA `2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`.
+- JVM/unit tests, instrumentation-test compilation/APK assembly, and managed-device instrumentation on `pixel2api30` all completed successfully.
+- The intermediate Run #287 compile failure was caused by a Kotlin regex escaping defect in that intermediate commit and was corrected before the final verified checkpoint.
+- The required independent review was completed after exact-head CI. Security, QA/adversarial, red-team, privacy/permissions, platform/integration, resource, and Guardian lenses found no demonstrated CRITICAL/HIGH/MEDIUM bypass.
+
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release credentials/package.
+- Native non-Android runtime implementations.
+- Independent final target-app UI/result observation.
+- Real model/context ingestion and screen/OCR/accessibility-to-model filtering.
+- Any real production trusted-app entry; the registry is intentionally empty.
+
+### KNOWN LIMITATIONS
+- Evidence is provisioning evidence only. A successful evidence read cannot authorize execution.
+- The package-name grammar and 64 KiB certificate bound are conservative and may reject unusual-but-valid platform metadata; they only reduce availability.
+- No persistent trust-entry decision/mutation path exists yet.
+- Sensitive-information protection remains pattern-based defense-in-depth rather than complete contextual secret classification.
+
+### NEXT ACTION
+Implement the separate explicit trust-entry decision/persistence layer. It must consume authoritative package/certificate evidence, require deterministic reviewed approval, persist only validated trust metadata through existing secure local storage boundaries, keep financial/Tier-4 entries denied, and leave the production registry empty when no reviewed entries exist. Do not invent package identities or certificate pins.
+
+### EXACT COMMIT SHA
+Verified implementation/test checkpoint: `2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`.
