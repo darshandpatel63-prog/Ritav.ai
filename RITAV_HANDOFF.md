@@ -3,9 +3,9 @@
 Handoff date: 2026-09-21
 Repository: darshandpatel63-prog/Ritav.ai
 Branch: main
-Main HEAD at handoff start (before handoff documentation commits): 7e0b723a3c6ed834209e4bf702ce0ffd14881991
-Latest implementation/test checkpoint: e3475543e43da44f3daa7986800054bf25d89ae6
-Latest Android CI verification: Run #280 (35514982136) on e3475543e43da44f3daa7986800054bf25d89ae6 — SUCCESS
+Implementation/test head at this continuation start: 3c28e9319f3a01702e5af93f61aec3c6976d9d40
+Latest implementation/test checkpoint: 3c28e9319f3a01702e5af93f61aec3c6976d9d40
+Latest Android CI verification: Run #283 (35557741305) on 3c28e9319f3a01702e5af93f61aec3c6976d9d40 — SUCCESS
 Project phase: Phase 0 — secure foundation + cross-platform architecture expansion; runtime integration in progress.
 
 > This file is the primary new-chat handoff. Older historical sections in README/state remain useful for chronology, but the current status below is authoritative.
@@ -255,51 +255,35 @@ Not configured/verified:
 
 ## 13. What is currently in progress
 
-There is no unfinished feature implementation that should be guessed as “in progress.”
+The trusted-app + user-authorization composition increment requested at the previous checkpoint is now implemented and executable-verified. There is no unfinished implementation work in this layer that should be guessed from an older chat.
 
-The immediately preceding item was the exact Android CI verification of the permission/grant/Emergency-Stop package. That verification is now successful at e347....
+The implementation/test head is `3c28e9319f3a01702e5af93f61aec3c6976d9d40`. Run #283 (`35557741305`) completed successfully with JVM tests, Android instrumentation-test compilation/APK assembly and managed-device instrumentation on `pixel2api30`.
 
-The current state is therefore a clean development checkpoint:
-- security package implemented;
-- integrated into the real Android path;
-- regression-tested;
-- source-reviewed/audited for the permission/grant/Emergency-Stop path;
-- executable CI/device-emulator verification established.
-
-The next major work must start only from the current repository state, not from an older chat claim.
+Runs #281 and #282 were intermediate failures caused by the attempted Compose-test harness import. The failing test path was removed before the verified Run #283 checkpoint; those failed runs are not treated as evidence for the final SHA.
 
 ## 14. Known limitations that remain open
 
 - Trusted external-app registry is intentionally empty/deny-by-default.
-- Production capability-grant/user-authorization UX is not yet wired end-to-end.
-- Final target-app UI/result state is not independently observed.
-- Real model/context ingestion choke point is missing.
-- Real screen/OCR/accessibility-to-model filtering path is missing.
-- Native non-Android runtimes are missing.
-- Signed production packaging is not configured.
-- Managed-device testing is emulator evidence, not physical-device validation.
-- Pattern-based sensitive-data detection is not complete contextual classification.
-- Lightweight prompt-injection filtering is defense-in-depth, not a complete semantic guarantee.
+- No real external-app grant is currently enabled because no authoritative package/certificate trust entries are configured.
+- Final target-app UI/result observation is not independently implemented.
+- Real model/context ingestion and screen/OCR/accessibility-to-model filtering paths are not implemented.
+- Native non-Android runtimes are not implemented.
+- Signed production packaging and physical-device testing are not verified.
+- Pattern-based sensitive-data detection is defense-in-depth, not complete contextual classification.
 - No claim of universal device compatibility, complete production readiness, or perfect security.
 
 ## 15. Exact next development direction
 
-After re-checking current main and CI state, the next major package should be the production trusted-app + user-authorization composition, implemented incrementally.
+The completed layer should not be restarted. Continue from `3c28e9319f3a01702e5af93f61aec3c6976d9d40` and Run #283 evidence.
 
-Required order for that work:
-1. Inspect existing Android authorization UI/composition paths and reuse existing abstractions.
-2. Define the real user-facing permission/grant flow without moving the deterministic decision into UI/AI.
-3. Keep trusted external-app registry empty until authoritative package identity + certificate information is available.
-4. Ensure authorization UI cannot self-grant by merely asserting an enum or client-side state.
-5. Bind approval to the exact action plan, risk tier, session and Emergency Stop state.
-6. Re-check Emergency Stop around asynchronous authentication/confirmation.
-7. Add success, denial, replay, wrong-plan, stale-session, stop-race, malformed-input and failure-path tests.
-8. Perform the required consolidated system review.
-9. Update README/state/handoff with exact SHA and verification status.
-10. Obtain executable CI evidence before declaring the new layer complete.
-
-Do not jump directly to payment automation, speculative external-app integrations or missing native platforms.
-
+Required next direction:
+1. Keep the production trusted external-app registry empty until authoritative package identity and signing-certificate evidence is deliberately reviewed.
+2. Define the reviewed allowlist/trust-entry provisioning path using the existing Android package identity verifier and registry; do not invent package names or certificate pins.
+3. Preserve the coordinator/service separation: UI presents exact plans, while deterministic policy, authorization, session and permission controls decide execution.
+4. Preserve exact ActionPlan hashing/binding, risk-derived authorization, Emergency Stop generation checks and fail-closed clocks/failure paths.
+5. Implement independent target-app UI/result observation before treating external-app execution as user-visible success.
+6. Keep finance/UPI automation hard-denied and do not introduce speculative banking, OAuth, backend or external SDK integrations.
+7. Obtain a fresh executable CI checkpoint for any subsequent code change before declaring that next layer verified.
 ## 16. New-chat completion checklist
 
 At the end of every development chat, leave these fields explicitly documented:

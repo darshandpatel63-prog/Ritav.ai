@@ -684,3 +684,39 @@ Re-check current main and CI, then begin the production trusted-app + user-autho
 
 ### New-chat handoff
 RITAV_HANDOFF.md is the authoritative detailed handoff for continuation chats and records the implementation map, verification evidence, limitations, next direction and exact commits.
+## 2026-09-21 trusted-app + user-authorization composition checkpoint
+
+### CURRENT STOP POINT
+The Android trusted-app + user-authorization composition layer is implemented, integrated, regression-tested, consolidated-reviewed and executable-verified at implementation/test SHA `3c28e9319f3a01702e5af93f61aec3c6976d9d40`. The production trusted-app registry remains intentionally empty, so external-app execution and capability grants remain deny-by-default.
+
+### COMPLETED
+- Added sanitized registry capability candidates that do not expose certificate material to UI code and exclude financial, Tier-4 and unpinned entries from the grant UI.
+- Added `CapabilityGrantCoordinator` as the trusted caller composition around the existing `ActionAuthorizationService`, `CapabilityGrantService` and `IdentitySessionManager`.
+- Bound grant plans to the active identity session and revalidated the session inside the existing Emergency Stop critical section before durable permission mutation.
+- Wired Tier-2 explicit confirmation and Tier-3 device authentication to the exact grant `ActionPlan` through existing one-time authorization controls.
+- Added Android `PermissionCenter` presentation flow and kept the UI free of deterministic security decisions/token issuance/permission-store mutation.
+- Added adversarial/regression coverage for candidate sanitization, wrong plans, explicit-confirmation denial, matching/mismatched/stale sessions, device-auth success/failure and Emergency Stop blocking.
+
+### VERIFIED
+- GitHub Actions Android workflow Run #283 (`35557741305`) completed successfully on exact implementation/test SHA `3c28e9319f3a01702e5af93f61aec3c6976d9d40`.
+- Run #283 completed JVM unit tests, Android instrumentation-test compilation/APK assembly and managed-device instrumentation on `pixel2api30`.
+- Source/consolidated review covered UI-to-coordinator call paths, exact plan/risk/session binding, Emergency Stop races, permission-store boundaries, finance hard-deny, certificate prerequisites and fail-closed malformed/failure paths; no new demonstrated CRITICAL/HIGH bypass was identified.
+
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release credentials/package.
+- Native non-Android runtime implementations.
+- Independent final target-app UI/result observation.
+- Real model/context ingestion and screen/OCR/accessibility-to-model filtering.
+
+### KNOWN LIMITATIONS
+- The trusted external-app registry is empty by design; no real external application can currently be granted through the production UI.
+- The authorization composition is wired, but external execution remains unavailable until authoritative trust entries are reviewed and populated.
+- Sensitive-information defense is still pattern-based defense-in-depth rather than complete contextual secret classification.
+
+### NEXT ACTION
+Continue with the reviewed trusted-app allowlist/trust-entry provisioning path only when authoritative package identity and signing-certificate evidence is available. Then implement independent target-app result/UI observation. Do not invent banking/UPI identities, certificate pins, OAuth/backend integrations or native-platform support.
+
+### EXACT COMMIT SHA
+Implementation/test verification anchor: `3c28e9319f3a01702e5af93f61aec3c6976d9d40`.
+This state update is documentation-only after that verified implementation/test commit and is not itself an additional Android CI verification checkpoint.
