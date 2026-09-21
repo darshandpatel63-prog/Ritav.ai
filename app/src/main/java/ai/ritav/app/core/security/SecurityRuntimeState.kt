@@ -7,12 +7,14 @@ import ai.ritav.app.core.storage.SecureLocalStore
 class SecurityRuntimeState private constructor(
     private val emergencyStopController: EmergencyStopController,
     private val mutablePermissionStore: MutablePermissionStore,
+    private val secureLocalStore: SecureLocalStore?,
     val policyEngine: PolicyEngine,
     val auditLog: AuditLog
 ) {
     private constructor(deps: RuntimeDeps) : this(
         deps.emergencyStopController,
         deps.permissionStore,
+        deps.secureLocalStore,
         deps.policyEngine,
         deps.auditLog
     )
@@ -20,10 +22,12 @@ class SecurityRuntimeState private constructor(
     private constructor(
         emergencyStopController: EmergencyStopController,
         permissionStore: MutablePermissionStore,
+        secureLocalStore: SecureLocalStore?,
         auditLog: AuditLog
     ) : this(
         emergencyStopController = emergencyStopController,
         mutablePermissionStore = permissionStore,
+        secureLocalStore = secureLocalStore,
         policyEngine = PolicyEngine(
             permissionStore = permissionStore,
             emergencyStop = emergencyStopController
@@ -37,11 +41,18 @@ class SecurityRuntimeState private constructor(
     constructor(emergencyStopController: EmergencyStopController = EmergencyStopController()) : this(
         emergencyStopController = emergencyStopController,
         permissionStore = InMemoryPermissionStore(),
+        secureLocalStore = null,
         auditLog = InMemoryAuditLog()
     )
 
     /** Internal mutable capability-store access is kept inside the security composition. */
     internal fun mutablePermissionStore(): MutablePermissionStore = mutablePermissionStore
+
+    /** Internal encrypted storage access for security-owned durable state only. */
+    internal fun secureLocalStore(): SecureLocalStore =
+        requireNotNull(secureLocalStore) {
+            "Secure local store is unavailable in the lightweight test runtime"
+        }
 
     fun activateEmergencyStop() {
         emergencyStopController.activate()
@@ -80,13 +91,13 @@ class SecurityRuntimeState private constructor(
     fun isSafeModeActive(): Boolean = emergencyStopController.isActive()
 
     private class RuntimeDeps(context: Context) {
-        private val secureStore = SecureLocalStore(context)
+        val secureLocalStore = SecureLocalStore(context)
         val emergencyStopController = EmergencyStopController()
-        val permissionStore: MutablePermissionStore = SecurePermissionStore(secureStore)
+        val permissionStore: MutablePermissionStore = SecurePermissionStore(secureLocalStore)
         val policyEngine = PolicyEngine(
             permissionStore = permissionStore,
             emergencyStop = emergencyStopController
         )
-        val auditLog: AuditLog = SecureAuditLog(secureStore)
+        val auditLog: AuditLog = SecureAuditLog(secureLocalStore)
     }
 }

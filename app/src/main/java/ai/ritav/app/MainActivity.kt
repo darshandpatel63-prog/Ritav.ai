@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.AndroidExecutionRuntime
-import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.CapabilityGrantCandidate
 import ai.ritav.app.core.security.SecurityRuntimeState
 import ai.ritav.app.core.security.SecuritySession
@@ -31,7 +30,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Empty trusted registry keeps external actions deny-by-default until a reviewed allowlist exists.
-        executionRuntime = AndroidExecutionRuntime(this, AppCapabilityRegistry())
+        executionRuntime = AndroidExecutionRuntime(this)
         securityState = executionRuntime.securityState
 
         setContent {
