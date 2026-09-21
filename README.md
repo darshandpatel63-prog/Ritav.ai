@@ -396,3 +396,28 @@ The release workflow remains separately controlled with manual dispatch plus rel
 - This layer intentionally produces evidence only; a separate explicit trust-decision/persistence path is still required.
 - Final target-app UI/result observation remains unimplemented.
 
+## 2026-09-21 verified trusted-package provisioning-evidence checkpoint
+
+The hardened read-only Android trusted-package provisioning-evidence layer is implemented and exact-head CI verified.
+
+- Implementation/test checkpoint: `2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`.
+- Android workflow Run #290 (`35619464754`) completed successfully on that exact SHA.
+- Verification included JVM/unit tests, Android instrumentation-test compilation/APK assembly, and managed-device instrumentation on `pixel2api30`.
+- The evidence reader reuses the existing Android signing-certificate reader, validates a bounded package name, requires exactly one signer, rejects empty or oversized certificate material, hashes only bounded certificate bytes with SHA-256, and returns digest-only evidence.
+- Regression coverage includes malformed package input, the 256/257-character package-name boundary, reader failure, empty/oversized/max-size certificate boundaries, multiple signers, and absence of raw certificate bytes from returned evidence.
+- Runs #287 and #289 exposed and isolated an intermediate Kotlin regex-escaping defect; Run #290 is the final exact-head successful checkpoint after that defect was corrected. Run #288 was cancelled while superseded.
+- Evidence remains distinct from trust. The reader cannot mutate the registry, grant capabilities, issue authorization, or execute an action.
+- The production trusted external-app registry remains empty/deny-by-default. No package identity or certificate pin has been invented or enabled.
+
+### Independent security review checkpoint
+
+The completed evidence sub-layer received the required consolidated and independent review across security/authorization, QA/adversarial, red-team, privacy/permissions, Android integration, resource bounds, and final Guardian lenses.
+
+- No demonstrated CRITICAL, HIGH, or MEDIUM bypass was identified.
+- Package-name and certificate-size bounds are conservative availability restrictions that fail closed rather than weakening trust.
+- Existing execution-time `AndroidPackageIdentityVerifier` remains authoritative and still requires an explicit registry certificate pin plus exactly one matching installed signer.
+- Raw certificate bytes are not returned by the evidence object and are not persisted by the evidence reader.
+- Known limitations remain: no persistent trust-entry provisioning path yet, no production trust entries, no independent target-app UI/result observation, no physical-device testing, and no real model/context ingestion filtering path.
+- This is a completed audited checkpoint before the next major security layer.
+
+**Next action:** implement the separate explicit trusted-app trust-entry decision/persistence path using authoritative evidence, existing secure local storage boundaries, deterministic authorization, and empty/deny-by-default behavior when no reviewed entry exists. Do not invent package names, certificate pins, banking/UPI mappings, or external service integrations.
