@@ -139,7 +139,8 @@ private fun CapabilityGrantConfirmationDialog(
                 Text("Application: " + candidate.packageName)
                 Text("Capability: " + candidate.capability.name)
                 Text("Action: " + candidate.action)
-                Text("Risk: " + candidate.riskTier.name)
+                Text("Target action risk: " + candidate.riskTier.name)
+                Text("Grant authorization risk: " + plan.riskTier.name)
                 Text("Exact plan hash: " + plan.stableHash())
                 Text("Approval is bound to the current trusted identity session.")
                 if (candidate.riskTier == RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE) {
