@@ -148,6 +148,6 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
 
         assertTrue(result == true)
         assertTrue(store.entries.size == 1)
-        assertTrue(store.entries.single().trustedCertificateSha256 != null)
+        assertTrue(store.entries.single().trustedCertificateSha256?.matches(Regex("^[a-f0-9]{64}$")) == true)
     }
 }

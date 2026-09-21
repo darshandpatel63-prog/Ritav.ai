@@ -1,6 +1,7 @@
 package ai.ritav.app.platform
 
 import ai.ritav.app.core.security.ActionAuthorizationService
+import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.IdentitySessionManager
 import ai.ritav.app.core.security.SecuritySession
 import ai.ritav.app.core.security.TrustedAppProvisioningService
@@ -10,8 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Android-facing composition for trusted-app provisioning.
  *
  * It obtains fresh platform evidence and delegates the deterministic mutation
- * to the core provisioning service. It re-checks evidence immediately before
- * and immediately after device authentication to close package-update TOCTOU.
+ * to the core provisioning service. Certificate evidence is never returned to
+ * the caller; the core service retains the binding privately.
  */
 internal class AndroidTrustedAppProvisioningCoordinator(
     private val evidenceReader: AndroidTrustedPackageEvidenceReader,
@@ -23,7 +24,7 @@ internal class AndroidTrustedAppProvisioningCoordinator(
     fun prepare(
         packageName: String,
         identitySession: SecuritySession
-    ): TrustedAppProvisioningService.Plan? {
+    ): ActionPlan? {
         val now = safeNow() ?: return null
         if (!identitySessionManager.permitsProtectedCapability(identitySession, now)) return null
 
@@ -38,7 +39,7 @@ internal class AndroidTrustedAppProvisioningCoordinator(
     }
 
     fun approveAndPersist(
-        plan: TrustedAppProvisioningService.Plan,
+        plan: ActionPlan,
         identitySession: SecuritySession,
         userConfirmed: Boolean,
         onComplete: (Boolean) -> Unit
@@ -50,21 +51,22 @@ internal class AndroidTrustedAppProvisioningCoordinator(
         }
 
         if (!userConfirmed ||
-            plan.actionPlan.sessionId != identitySession.id ||
-            !plan.actionPlan.isValid()
+            plan.sessionId != identitySession.id ||
+            !plan.isValid()
         ) {
             complete(false)
             return
         }
 
-        val packageName = plan.actionPlan.appId
-        if (!matches(plan, evidenceReader.read(packageName))) {
+        val packageName = plan.appId
+        val beforeAuth = evidenceReader.read(packageName)
+        if (!matches(plan, beforeAuth)) {
             complete(false)
             return
         }
 
         authorizationService.issueDeviceAuthenticationToken(
-            plan = plan.actionPlan,
+            plan = plan,
             reason = "Approve trusted application: $packageName"
         ) { token ->
             if (token == null) {
@@ -101,7 +103,7 @@ internal class AndroidTrustedAppProvisioningCoordinator(
     }
 
     private fun matches(
-        plan: TrustedAppProvisioningService.Plan,
+        plan: ActionPlan,
         evidence: AndroidTrustedPackageEvidence?
     ): Boolean =
         evidence != null &&
