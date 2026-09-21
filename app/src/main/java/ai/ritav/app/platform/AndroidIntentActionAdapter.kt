@@ -82,7 +82,7 @@ internal fun interface AndroidPackageSigningCertificateReader {
 /**
  * Android framework-backed certificate reader.
  */
-private class ContextAndroidPackageSigningCertificateReader(
+internal class ContextAndroidPackageSigningCertificateReader(
     private val context: Context
 ) : AndroidPackageSigningCertificateReader {
     override fun read(packageName: String): List<ByteArray>? = runCatching {
