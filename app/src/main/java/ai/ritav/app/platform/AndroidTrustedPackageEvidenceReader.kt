@@ -23,10 +23,12 @@ internal data class AndroidTrustedPackageEvidence(
  * metadata, malformed input, and multi-signer identities fail closed.
  */
 internal class AndroidTrustedPackageEvidenceReader(
-    context: Context,
-    private val certificateReader: AndroidPackageSigningCertificateReader =
-        ContextAndroidPackageSigningCertificateReader(context.applicationContext)
+    private val certificateReader: AndroidPackageSigningCertificateReader
 ) {
+    internal constructor(context: Context) : this(
+        ContextAndroidPackageSigningCertificateReader(context.applicationContext)
+    )
+
     fun read(packageName: String): AndroidTrustedPackageEvidence? {
         if (!isBoundedPackageName(packageName)) return null
 

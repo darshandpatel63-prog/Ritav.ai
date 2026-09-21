@@ -13,7 +13,6 @@ class AndroidTrustedPackageEvidenceReaderTest {
     @Test
     fun exactSingleSignerProducesOnlyCertificateDigestEvidence() {
         val reader = AndroidTrustedPackageEvidenceReader(
-            context = throw UnsupportedOperationException(),
             certificateReader = AndroidPackageSigningCertificateReader { listOf(certificate) }
         )
 
@@ -28,7 +27,6 @@ class AndroidTrustedPackageEvidenceReaderTest {
     fun malformedPackageNameIsRejectedBeforeCertificateRead() {
         var reads = 0
         val reader = AndroidTrustedPackageEvidenceReader(
-            context = throw UnsupportedOperationException(),
             certificateReader = AndroidPackageSigningCertificateReader {
                 reads++
                 listOf(certificate)
@@ -43,7 +41,6 @@ class AndroidTrustedPackageEvidenceReaderTest {
     @Test
     fun missingOrUnreadableCertificateFailsClosed() {
         val reader = AndroidTrustedPackageEvidenceReader(
-            context = throw UnsupportedOperationException(),
             certificateReader = AndroidPackageSigningCertificateReader { null }
         )
 
@@ -53,7 +50,6 @@ class AndroidTrustedPackageEvidenceReaderTest {
     @Test
     fun multipleSignersFailClosed() {
         val reader = AndroidTrustedPackageEvidenceReader(
-            context = throw UnsupportedOperationException(),
             certificateReader = AndroidPackageSigningCertificateReader {
                 listOf(certificate, "second".toByteArray())
             }
@@ -65,7 +61,6 @@ class AndroidTrustedPackageEvidenceReaderTest {
     @Test
     fun certificateBytesNeverAppearInEvidence() {
         val reader = AndroidTrustedPackageEvidenceReader(
-            context = throw UnsupportedOperationException(),
             certificateReader = AndroidPackageSigningCertificateReader { listOf(certificate) }
         )
 
