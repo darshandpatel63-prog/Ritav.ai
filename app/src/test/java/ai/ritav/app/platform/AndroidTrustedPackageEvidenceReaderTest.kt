@@ -77,6 +77,18 @@ class AndroidTrustedPackageEvidenceReaderTest {
     }
 
     @Test
+    fun maximumCertificateSizeIsAccepted() {
+        val maximumCertificate = ByteArray(64 * 1024) { index -> (index and 0xff).toByte() }
+        val reader = AndroidTrustedPackageEvidenceReader(
+            certificateReader = AndroidPackageSigningCertificateReader { listOf(maximumCertificate) }
+        )
+
+        val evidence = reader.read("com.example.safe")
+
+        assertEquals(sha256(maximumCertificate), evidence?.certificateSha256)
+    }
+
+    @Test
     fun missingOrUnreadableCertificateFailsClosed() {
         val reader = AndroidTrustedPackageEvidenceReader(
             certificateReader = AndroidPackageSigningCertificateReader { null }
