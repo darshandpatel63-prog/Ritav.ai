@@ -651,3 +651,36 @@ The existing capability-grant Emergency Stop TOCTOU gap remains closed: grant va
 **NEXT ACTION:** inspect exact-head run `#280` and its jobs/conclusion. Do not start the next major security layer until successful CI evidence is established.
 
 **EXACT IMPLEMENTATION/TEST SHA:** `e3475543e43da44f3daa7986800054bf25d89ae6`.
+
+
+## 2026-09-21 new-chat handoff checkpoint
+
+### Current repository
+- Current main HEAD before this handoff documentation update: 7e0b723a3c6ed834209e4bf702ce0ffd14881991.
+- Latest implementation/test checkpoint: e3475543e43da44f3daa7986800054bf25d89ae6.
+- Android test workflow Run #280 (35514982136) completed successfully on e3475543e43da44f3daa7986800054bf25d89ae6.
+- Run #280 passed the JVM test task, Android instrumentation-test compilation/APK assembly and managed-device instrumentation on pixel2api30.
+- The current main head at the start of this handoff is documentation-only after the verified implementation/test commit; no separate exact-head CI run for the documentation-only head is being claimed.
+
+### What is completed
+- Cross-platform architecture/contracts are present; Android is the only executable runtime currently implemented.
+- Deterministic policy/capability/authorization/session/Emergency-Stop/security-pipeline/execution/result/audit layers are integrated.
+- Sensitive Information Firewall and Finance Execution Firewall are integrated.
+- Android trusted package identity verification is implemented; trusted registry remains intentionally empty.
+- Capability-grant + permission-store + Emergency Stop race/state hardening is implemented and source-reviewed.
+- Release-hardening is implemented and verified at 81dba435e3cd0b55d398db965dc63a92cf20bae2 by Run #12.
+
+### Verification status
+- Latest implementation/test checkpoint is executable-verified by Android CI Run #280.
+- Independent audit of the permission/grant/Emergency-Stop path was completed before the final CI checkpoint; the audit found no demonstrated CRITICAL/HIGH bypass and identified only existing architectural limitations.
+- Physical-device testing is not done.
+- Native non-Android runtimes are not verified or implemented.
+
+### Current stop point
+Security foundation + permission/grant/Emergency-Stop state/race hardening is complete for the current implementation scope and has CI/device-emulator evidence. The next major layer must not be started from memory or an old chat; inspect the live repository first.
+
+### Next action
+Re-check current main and CI, then begin the production trusted-app + user-authorization composition incrementally. Keep the trusted package registry empty until authoritative package/certificate identity is available. Preserve exact action-plan binding, risk-derived authorization, Emergency Stop generation checks, deterministic finance hard-deny, sensitive-data blocking and fail-closed behavior. Add tests and perform the consolidated security review before marking the new layer complete.
+
+### New-chat handoff
+RITAV_HANDOFF.md is the authoritative detailed handoff for continuation chats and records the implementation map, verification evidence, limitations, next direction and exact commits.
