@@ -367,3 +367,26 @@ The release workflow remains separately controlled with manual dispatch plus rel
 **CURRENT STOP POINT:** audited permission/grant/Emergency-Stop layer is implemented; exact-head Android CI is executing/queued and remains unverified.
 
 **NEXT ACTION:** inspect run `#280` for conclusion and job results. Only after a successful exact-head CI checkpoint should this security layer be formally closed and the next major security layer begin.
+
+
+## 21. Latest new-chat handoff — 2026-09-21
+
+The authoritative new-chat handoff is now maintained in RITAV_HANDOFF.md. It should be read together with README.md and RITAV_PROJECT_STATE.md at the start of a continuation chat.
+
+### Current repository state
+- Current main HEAD: 7e0b723a3c6ed834209e4bf702ce0ffd14881991.
+- Latest implementation/test checkpoint: e3475543e43da44f3daa7986800054bf25d89ae6.
+- Android test workflow Run #280 (35514982136) completed successfully on the exact implementation/test checkpoint.
+- Run #280 completed JVM tests, Android instrumentation-test compilation/APK assembly and managed-device instrumentation on pixel2api30.
+- Current HEAD is documentation-only after the verified implementation/test commit; no separate exact-head run is being claimed for the documentation-only HEAD.
+
+### Current stop point
+The permission/grant/Emergency-Stop security package is implemented, integrated, regression-tested, source-reviewed/audited for the affected path, and now has executable Android CI/device-emulator evidence at the latest implementation/test checkpoint.
+
+### Current limitations
+The production trusted external-app registry remains empty/deny-by-default; production grant/user-authorization UX is not wired end-to-end; independent target-app UI/result observation is missing; real model/context and screen/OCR/accessibility ingestion choke points are not implemented; native non-Android runtimes are not implemented; signed production packaging and physical-device validation remain outstanding.
+
+### Next major package
+Re-check current main and CI, then continue with the production trusted-app + user-authorization composition incrementally. Keep authoritative package/certificate identity requirements, exact plan binding, Emergency Stop generation/state checks, deterministic finance hard-deny and fail-closed behavior intact. Add regression/adversarial tests, perform the consolidated system review, document exact SHA/state and obtain executable CI evidence before marking the next security layer complete.
+
+New-chat handoff file: RITAV_HANDOFF.md.
