@@ -39,6 +39,25 @@ class AndroidTrustedPackageEvidenceReaderTest {
     }
 
     @Test
+    fun packageNameLengthBoundaryIsEnforcedBeforeCertificateRead() {
+        var reads = 0
+        val reader = AndroidTrustedPackageEvidenceReader(
+            certificateReader = AndroidPackageSigningCertificateReader {
+                reads++
+                listOf(certificate)
+            }
+        )
+        val validBoundaryName = "a.".repeat(127) + "ab"
+        val oversizedName = validBoundaryName + "c"
+
+        assertEquals(256, validBoundaryName.length)
+        assertEquals(257, oversizedName.length)
+        assertEquals(1, reader.read(validBoundaryName)?.signerCount)
+        assertNull(reader.read(oversizedName))
+        assertEquals(1, reads)
+    }
+
+    @Test
     fun missingOrUnreadableCertificateFailsClosed() {
         val reader = AndroidTrustedPackageEvidenceReader(
             certificateReader = AndroidPackageSigningCertificateReader { null }
