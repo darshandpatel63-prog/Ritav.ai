@@ -329,3 +329,41 @@ The next provisioning increment is now implemented but awaits exact-head CI veri
 - It cannot mutate the registry, issue authorization, grant capabilities or execute actions.
 - The production registry remains empty.
 - Do not treat this implementation as CI-verified until Run #284 completes.
+
+## 2026-09-21 verified trusted-package evidence checkpoint
+
+### CURRENT STOP POINT
+Read-only Android trusted-package provisioning evidence is now implementation-complete, exact-head CI verified, and independently reviewed at `2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`. Production external-app trust remains empty/deny-by-default.
+
+### COMPLETED
+- Reused the existing Android signing-certificate reader boundary.
+- Added bounded package-name validation and exact single-signer enforcement.
+- Added fail-closed empty/oversized certificate checks and bounded SHA-256 evidence generation.
+- Added regression coverage for malformed input, package length boundary, certificate-reader failure, certificate-size boundaries, multiple signers and digest-only output.
+- Kept evidence strictly separate from `AppCapabilityRegistry`, authorization, capability grants and execution.
+
+### VERIFIED
+- Run #290 (`35619464754`) succeeded on exact SHA `2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`.
+- The run completed JVM/unit tests, instrumentation-test compilation/APK assembly, and managed-device tests on `pixel2api30`.
+- Intermediate failures #287/#289 were concrete compile failures in earlier commit states; the final exact-head checkpoint passed after correcting the regex escaping defect.
+- Independent security review found no demonstrated CRITICAL/HIGH/MEDIUM bypass in the evidence layer.
+
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release.
+- Native non-Android runtimes.
+- Independent target-app UI/result observation.
+- Real model/context ingestion filtering.
+- Real production trust entries; registry remains intentionally empty.
+
+### KNOWN LIMITATIONS
+- Evidence is not trust and never authorizes execution by itself.
+- Conservative package-name/certificate-size bounds can deny unusual metadata.
+- Persistent trust-entry provisioning has not yet been implemented.
+- Target-app result observation remains outstanding.
+
+### NEXT ACTION
+Start the next major layer only from this reviewed checkpoint: a separate deterministic trusted-app trust-entry decision/persistence path backed by the existing `SecureLocalStore`, with explicit user/device authorization, authoritative package/certificate evidence, strict validation, race-safe mutation, finance/Tier-4 hard-deny, and empty/deny-by-default configuration when no reviewed entry exists. Do not invent package names, certificate pins, or banking/UPI integrations.
+
+### EXACT COMMIT SHA
+`2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`
