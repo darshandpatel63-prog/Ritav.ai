@@ -58,6 +58,25 @@ class AndroidTrustedPackageEvidenceReaderTest {
     }
 
     @Test
+    fun emptyCertificateFailsClosed() {
+        val reader = AndroidTrustedPackageEvidenceReader(
+            certificateReader = AndroidPackageSigningCertificateReader { listOf(ByteArray(0)) }
+        )
+
+        assertNull(reader.read("com.example.safe"))
+    }
+
+    @Test
+    fun oversizedCertificateFailsClosed() {
+        val oversizedCertificate = ByteArray(64 * 1024 + 1)
+        val reader = AndroidTrustedPackageEvidenceReader(
+            certificateReader = AndroidPackageSigningCertificateReader { listOf(oversizedCertificate) }
+        )
+
+        assertNull(reader.read("com.example.safe"))
+    }
+
+    @Test
     fun missingOrUnreadableCertificateFailsClosed() {
         val reader = AndroidTrustedPackageEvidenceReader(
             certificateReader = AndroidPackageSigningCertificateReader { null }

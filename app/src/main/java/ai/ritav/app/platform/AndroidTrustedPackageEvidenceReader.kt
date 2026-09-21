@@ -20,7 +20,8 @@ internal data class AndroidTrustedPackageEvidence(
  * Produces bounded signing-certificate evidence for a specific installed package.
  *
  * A single signer is required for an evidence record. Missing/unreadable package
- * metadata, malformed input, and multi-signer identities fail closed.
+ * metadata, malformed input, invalid certificate bytes, and multi-signer
+ * identities fail closed.
  */
 internal class AndroidTrustedPackageEvidenceReader(
     private val certificateReader: AndroidPackageSigningCertificateReader
@@ -38,9 +39,16 @@ internal class AndroidTrustedPackageEvidenceReader(
 
         if (certificates.size != 1) return null
 
+        val certificate = certificates.single()
+        if (certificate.isEmpty() || certificate.size > MAX_CERTIFICATE_BYTES) return null
+
+        val digest = runCatching {
+            certificate.sha256Hex()
+        }.getOrNull() ?: return null
+
         return AndroidTrustedPackageEvidence(
             packageName = packageName,
-            certificateSha256 = certificates.single().sha256Hex(),
+            certificateSha256 = digest,
             signerCount = certificates.size
         )
     }
@@ -57,6 +65,7 @@ internal class AndroidTrustedPackageEvidenceReader(
             }
 
     private companion object {
-        val PACKAGE_NAME_REGEX = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$")
+        const val MAX_CERTIFICATE_BYTES = 64 * 1024
+        val PACKAGE_NAME_REGEX = Regex("^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$")
     }
 }
