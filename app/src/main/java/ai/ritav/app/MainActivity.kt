@@ -40,6 +40,8 @@ class MainActivity : FragmentActivity() {
             var trustedPackageInput by remember { mutableStateOf("") }
             var pendingTrustedPackage by remember { mutableStateOf<String?>(null) }
             var pendingTrustedPlan by remember { mutableStateOf<ActionPlan?>(null) }
+            var pendingTrustedRemovalPackage by remember { mutableStateOf<String?>(null) }
+            var pendingTrustedRemovalPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var statusMessage by remember { mutableStateOf<String?>(null) }
 
             val identitySession = activeIdentitySession?.takeIf {
@@ -54,6 +56,11 @@ class MainActivity : FragmentActivity() {
             fun dismissPendingTrustedApproval() {
                 pendingTrustedPackage = null
                 pendingTrustedPlan = null
+            }
+
+            fun dismissPendingTrustedRemoval() {
+                pendingTrustedRemovalPackage = null
+                pendingTrustedRemovalPlan = null
             }
 
             fun authenticateProtectedActions() {
@@ -152,6 +159,55 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
+            fun reviewTrustedRemoval(packageName: String) {
+                statusMessage = null
+                val session = activeIdentitySession?.takeIf {
+                    it.isActive(System.currentTimeMillis())
+                }
+                if (session == null || securityState.isEmergencyStopActive()) {
+                    statusMessage = "Authenticate a protected identity session before removing trusted access."
+                    return
+                }
+
+                val plan = executionRuntime.trustedAppProvisioningCoordinator.prepareRemoval(
+                    packageName = packageName,
+                    identitySession = session
+                )
+                if (plan == null) {
+                    statusMessage = "Trusted-app removal could not be prepared; installed identity or stored trust state changed."
+                    return
+                }
+
+                pendingTrustedRemovalPackage = plan.appId
+                pendingTrustedRemovalPlan = plan
+            }
+
+            fun approvePendingTrustedRemoval() {
+                val plan = pendingTrustedRemovalPlan ?: return
+                val session = activeIdentitySession ?: run {
+                    dismissPendingTrustedRemoval()
+                    statusMessage = "Trusted identity session is unavailable."
+                    return
+                }
+
+                dismissPendingTrustedRemoval()
+                statusMessage = "Authorizing trusted-application removal..."
+
+                executionRuntime.trustedAppProvisioningCoordinator.approveAndRemove(
+                    plan = plan,
+                    identitySession = session,
+                    userConfirmed = true
+                ) { success ->
+                    runOnUiThread {
+                        statusMessage =
+                            if (success) {
+                                "Trusted application removed."
+                            } else {
+                                "Trusted-application removal was denied or became invalid."
+                            }
+                    }
+                }
+            }
             fun approvePendingGrant() {
                 val plan = pendingGrantPlan ?: return
                 val session = activeIdentitySession ?: run {
@@ -209,6 +265,15 @@ class MainActivity : FragmentActivity() {
                             statusMessage = null
                         },
                         onApproveTrustedApp = ::approvePendingTrustedApp,
+                        trustedPackages = executionRuntime.trustedAppProvisioningCoordinator.trustedPackageNames(),
+                        onTrustedPackageSelectedForRemoval = ::reviewTrustedRemoval,
+                        pendingTrustedRemovalPackage = pendingTrustedRemovalPackage,
+                        pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
+                        onDismissTrustedRemoval = {
+                            dismissPendingTrustedRemoval()
+                            statusMessage = null
+                        },
+                        onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
                         onAuthenticate = ::authenticateProtectedActions,
                         onEmergencyStop = {
                             securityState.activateEmergencyStop()
@@ -216,6 +281,7 @@ class MainActivity : FragmentActivity() {
                             activeIdentitySession = null
                             dismissPendingApproval()
                             dismissPendingTrustedApproval()
+                            dismissPendingTrustedRemoval()
                             statusMessage = "Emergency Stop activated. Protected actions are blocked."
                         },
                         onResume = {
@@ -224,6 +290,7 @@ class MainActivity : FragmentActivity() {
                             activeIdentitySession = null
                             dismissPendingApproval()
                             dismissPendingTrustedApproval()
+                            dismissPendingTrustedRemoval()
                             statusMessage =
                                 if (stopped) {
                                     "Emergency Stop remains active."
