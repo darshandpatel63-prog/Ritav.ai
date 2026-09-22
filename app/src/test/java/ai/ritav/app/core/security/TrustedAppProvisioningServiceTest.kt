@@ -38,7 +38,7 @@ class TrustedAppProvisioningServiceTest {
         val plan = requireNotNull(
             service.createPlan("com.example.safe", certificate, 1, session, 1_001L)
         )
-        val token = gate.issue(plan.actionPlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
+        val token = gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
 
         assertTrue(
             service.persist(
@@ -67,7 +67,7 @@ class TrustedAppProvisioningServiceTest {
         val plan = requireNotNull(
             service.createPlan("com.example.safe", certificate, 1, session, 1_001L)
         )
-        val token = gate.issue(plan.actionPlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
+        val token = gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
 
         assertFalse(
             service.persist(
@@ -95,6 +95,54 @@ class TrustedAppProvisioningServiceTest {
     }
 
     @Test
+    fun certificateChangeCannotReuseOldPlanAuthorization() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val registry = AppCapabilityRegistry()
+        val service = TrustedAppProvisioningService(registry, store, gate, stop, sessionManager)
+
+        val certificateA = "a".repeat(64)
+        val certificateB = "b".repeat(64)
+        val planA = requireNotNull(
+            service.createPlan("com.example.safe", certificateA, 1, session, 1_001L)
+        )
+        val planB = requireNotNull(
+            service.createPlan("com.example.safe", certificateB, 1, session, 1_002L)
+        )
+        assertTrue(planA.stableHash() != planB.stableHash())
+
+        val tokenA = gate.issue(planA, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_003L)
+
+        assertFalse(
+            service.persist(
+                planA,
+                "com.example.safe",
+                certificateA,
+                1,
+                tokenA,
+                1_003L,
+                session
+            )
+        )
+
+        val tokenB = gate.issue(planB, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_004L)
+        assertTrue(
+            service.persist(
+                planB,
+                "com.example.safe",
+                certificateB,
+                1,
+                tokenB,
+                1_004L,
+                session
+            )
+        )
+    }
+
+    @Test
     fun multipleSignerAndEmergencyStopFailClosed() {
         val stop = EmergencyStopController()
         val gate = ActionAuthorizationGate(stop)
@@ -106,7 +154,7 @@ class TrustedAppProvisioningServiceTest {
         val plan = requireNotNull(
             service.createPlan("com.example.safe", certificate, 1, session, 1_001L)
         )
-        val token = gate.issue(plan.actionPlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
+        val token = gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
 
         assertFalse(
             service.persist(
@@ -147,7 +195,7 @@ class TrustedAppProvisioningServiceTest {
         val plan = requireNotNull(
             service.createPlan("com.example.safe", certificate, 1, session, 1_001L)
         )
-        val token = gate.issue(plan.actionPlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
+        val token = gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
 
         assertFalse(
             service.persist(

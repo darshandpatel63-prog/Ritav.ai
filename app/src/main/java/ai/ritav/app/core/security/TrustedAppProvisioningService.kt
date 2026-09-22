@@ -1,5 +1,6 @@
 package ai.ritav.app.core.security
 
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -40,7 +41,7 @@ internal class TrustedAppProvisioningService(
             !identitySessionManager.permitsProtectedCapability(identitySession, nowEpochMillis)
         ) return null
 
-        val spec = specFor(packageName, normalizedCertificate) ?: return null
+        if (specFor(packageName, normalizedCertificate) == null) return null
         if (registry.isRegistered(packageName)) return null
 
         val snapshot = entryStore.snapshot()
@@ -59,7 +60,10 @@ internal class TrustedAppProvisioningService(
                 capability = Capability.APP_LAUNCH,
                 action = TRUST_ADD_ACTION,
                 riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
-                expectedState = TRUST_ENTRY_ADD_STATE,
+                expectedState = "${TRUST_ENTRY_ADD_STATE}:${evidenceBinding(
+                    packageName = packageName,
+                    certificateSha256 = normalizedCertificate
+                )}",
                 sessionId = identitySession.id
             )
             if (!plan.isValid()) return@runIfInactive null
@@ -152,7 +156,10 @@ internal class TrustedAppProvisioningService(
             plan.capability == Capability.APP_LAUNCH &&
             plan.action == TRUST_ADD_ACTION &&
             plan.riskTier == RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE &&
-            plan.expectedState == TRUST_ENTRY_ADD_STATE &&
+            plan.expectedState == "${TRUST_ENTRY_ADD_STATE}:${evidenceBinding(
+                packageName = plan.appId,
+                certificateSha256 = pending.certificateSha256
+            )}" &&
             plan.sessionId != null &&
             pending.sessionId == plan.sessionId &&
             pending.emergencyStopGeneration == emergencyStop.generation() &&
@@ -164,16 +171,32 @@ internal class TrustedAppProvisioningService(
         pendingPlans.entries.removeIf { nowEpochMillis > it.value.expiresAtEpochMillis }
     }
 
-    private fun specFor(packageName: String, certificateSha256: String): AppCapabilitySpec =
-        AppCapabilitySpec(
-            packageName = packageName,
-            capability = Capability.APP_LAUNCH,
-            actions = setOf(OPEN_ACTION),
-            riskTier = RiskTier.TIER_1_REVERSIBLE,
-            sensitiveContentBlocked = true,
-            financialCategory = false,
-            trustedCertificateSha256 = certificateSha256
-        ).also { require(isValidReviewedTrustedAppSpec(it)) }
+    private fun specFor(packageName: String, certificateSha256: String): AppCapabilitySpec? {
+        val spec = runCatching {
+            AppCapabilitySpec(
+                packageName = packageName,
+                capability = Capability.APP_LAUNCH,
+                actions = setOf(OPEN_ACTION),
+                riskTier = RiskTier.TIER_1_REVERSIBLE,
+                sensitiveContentBlocked = true,
+                financialCategory = false,
+                trustedCertificateSha256 = certificateSha256
+            )
+        }.getOrNull() ?: return null
+        return spec.takeIf(::isValidReviewedTrustedAppSpec)
+    }
+
+    private fun evidenceBinding(
+        packageName: String,
+        certificateSha256: String
+    ): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(
+                listOf(packageName, certificateSha256, "1")
+                    .joinToString("\u001f")
+                    .toByteArray(Charsets.UTF_8)
+            )
+            .joinToString("") { byte -> "%02x".format(byte) }
 
     private fun normalizeCertificate(value: String): String? =
         value.takeIf { it.matches(CERTIFICATE_DIGEST_REGEX) }?.lowercase()
