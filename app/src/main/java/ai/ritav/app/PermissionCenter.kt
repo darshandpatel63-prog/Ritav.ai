@@ -11,6 +11,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +30,13 @@ internal fun PermissionCenter(
     pendingCandidate: CapabilityGrantCandidate?,
     pendingPlan: ActionPlan?,
     statusMessage: String?,
+    trustedPackageInput: String,
+    onTrustedPackageInputChanged: (String) -> Unit,
+    onPrepareTrustedApp: () -> Unit,
+    pendingTrustedPackage: String?,
+    pendingTrustedPlan: ActionPlan?,
+    onDismissTrustedApproval: () -> Unit,
+    onApproveTrustedApp: () -> Unit,
     onAuthenticate: () -> Unit,
     onEmergencyStop: () -> Unit,
     onResume: () -> Unit,
@@ -56,6 +64,31 @@ internal fun PermissionCenter(
         if (identitySession == null && !stopped) {
             Button(onClick = onAuthenticate) {
                 Text("Authenticate protected actions")
+            }
+        }
+
+        if (identitySession != null && !stopped) {
+            Text(
+                "Add a trusted external application",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                "Enter an installed Android package name. Ritav will verify its installed signing identity before any trust entry is persisted."
+            )
+            OutlinedTextField(
+                value = trustedPackageInput,
+                onValueChange = onTrustedPackageInputChanged,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Android package name") },
+                supportingText = { Text("Certificate details are verified internally and are not shown here.") }
+            )
+            Button(
+                onClick = onPrepareTrustedApp,
+                enabled = trustedPackageInput.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Review trusted-app approval")
             }
         }
 
@@ -118,6 +151,17 @@ internal fun PermissionCenter(
             onConfirm = onApprove
         )
     }
+
+    val trustedPackage = pendingTrustedPackage
+    val trustedPlan = pendingTrustedPlan
+    if (trustedPackage != null && trustedPlan != null) {
+        TrustedAppConfirmationDialog(
+            packageName = trustedPackage,
+            plan = trustedPlan,
+            onDismiss = onDismissTrustedApproval,
+            onConfirm = onApproveTrustedApp
+        )
+    }
 }
 
 /**
@@ -151,6 +195,41 @@ private fun CapabilityGrantConfirmationDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text("Approve")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+
+@Composable
+private fun TrustedAppConfirmationDialog(
+    packageName: String,
+    plan: ActionPlan,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Trust this application?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Application package: " + packageName)
+                Text("Capability: " + plan.capability.name)
+                Text("Action: open")
+                Text("Trust-entry authorization risk: " + plan.riskTier.name)
+                Text("Exact plan hash: " + plan.stableHash())
+                Text("The installed signing identity will be re-verified before persistence.")
+                Text("Device authentication is required to persist this trusted-app entry.")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Trust application")
             }
         },
         dismissButton = {
