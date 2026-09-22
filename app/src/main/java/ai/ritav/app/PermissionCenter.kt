@@ -37,6 +37,12 @@ internal fun PermissionCenter(
     pendingTrustedPlan: ActionPlan?,
     onDismissTrustedApproval: () -> Unit,
     onApproveTrustedApp: () -> Unit,
+    trustedPackages: List<String>,
+    onTrustedPackageSelectedForRemoval: (String) -> Unit,
+    pendingTrustedRemovalPackage: String?,
+    pendingTrustedRemovalPlan: ActionPlan?,
+    onDismissTrustedRemoval: () -> Unit,
+    onApproveTrustedRemoval: () -> Unit,
     onAuthenticate: () -> Unit,
     onEmergencyStop: () -> Unit,
     onResume: () -> Unit,
@@ -92,9 +98,33 @@ internal fun PermissionCenter(
             }
         }
 
-        if (candidates.isEmpty()) {
+        if (trustedPackages.isNotEmpty() && !stopped) {
+            Text(
+                "Trusted external applications",
+                style = MaterialTheme.typography.titleMedium
+            )
+            trustedPackages.forEach { packageName ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        packageName,
+                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    )
+                    TextButton(onClick = { onTrustedPackageSelectedForRemoval(packageName) }) {
+                        Text("Remove trust")
+                    }
+                }
+                HorizontalDivider()
+            }
+        }
+
+        if (candidates.isEmpty() && trustedPackages.isEmpty()) {
             Text("No trusted external applications are currently configured.")
             Text("External actions remain blocked.")
+        } else if (candidates.isEmpty()) {
+            Text("Capability actions for trusted applications remain separately permission-controlled.")
         } else if (identitySession == null && !stopped) {
             Text("A trusted identity session is required before capability approval.")
         } else if (stopped) {
@@ -230,6 +260,39 @@ private fun TrustedAppConfirmationDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text("Trust application")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+
+@Composable
+private fun TrustedAppRemovalConfirmationDialog(
+    packageName: String,
+    plan: ActionPlan,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Remove trusted access?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Application package: " + packageName)
+                Text("Trust action: remove")
+                Text("Exact plan hash: " + plan.stableHash())
+                Text("The installed signing identity will be re-verified before trust is removed.")
+                Text("Device authentication is required to remove this trusted-app entry.")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Remove trust")
             }
         },
         dismissButton = {
