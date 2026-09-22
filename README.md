@@ -456,3 +456,67 @@ The explicit deterministic trusted-app trust-entry decision/persistence layer is
 Wire the verified provisioning coordinator into a narrow user-visible trusted-app management flow using the existing authorization/session UI patterns. Do not expose certificate material to UI, do not invent package/certificate identities, and do not enable any production trust entry without authoritative evidence and explicit review.
 ### EXACT COMMIT SHA
 `c5dad4ce6db7bf00615e649e0b77e05b033a620e`
+
+## 21. Latest verified trusted-app management checkpoint — 2026-09-22
+
+The trusted-app user-visible management layer is now implemented, integrated, tested and exact-head CI verified. The verified production-code/test checkpoint is `9318f89e8fa62bb6b021b6938d771e6d92e144a2`; GitHub Actions Run #314 (`35694971910`) completed successfully on that exact SHA.
+
+### What is now implemented
+
+- `MainActivity` is wired to the existing `AndroidTrustedAppProvisioningCoordinator` for both trusted-app add and trusted-app removal.
+- `PermissionCenter` exposes a narrow session-gated trusted-app management surface:
+  - installed Android package-name input for trust review;
+  - reviewable add approval;
+  - authenticated trusted-package list;
+  - explicit `Remove trust` action and review flow.
+- Trusted-app management UI state is cached in Compose state rather than re-reading encrypted storage during recomposition.
+- Emergency Stop clears pending add/remove plans and active protected identity state.
+- Certificate material is not shown in UI or exposed as ordinary UI state; the coordinator/service retain deterministic evidence internally.
+- Existing capability granting remains separate from trust-entry provisioning; trusting an app does not grant unrestricted capability access.
+- The production trusted external-app registry remains intentionally empty/deny-by-default.
+
+### Verification
+
+Run #314 (`35694971910`) on exact SHA `9318f89e8fa62bb6b021b6938d771e6d92e144a2` passed:
+- `:core:jvmTest`;
+- Android debug unit tests (`testDebugUnitTest`);
+- instrumentation-test compilation/APK assembly (`assembleDebugAndroidTest`);
+- managed-device instrumentation on `pixel2api30`.
+
+The final regression suite reported all tests passing. Two superseded intermediate runs are retained only as failure history:
+- Run #312 failed in `changedEvidenceAfterRemovalAuthenticationAlsoBlocksPersistence` because the test fixture created a fresh empty in-memory registry for the removal coordinator; this was a test-fixture defect, not an authorization bypass.
+- Run #313 failed to compile because an intermediate fixture correction accidentally declared `addPlan` twice; that was corrected before Run #314.
+
+### Consolidated security review
+
+The completed trusted-app add/remove UI composition was reviewed end-to-end across:
+- UI → coordinator → deterministic provisioning service → encrypted store/registry call paths;
+- exact package/certificate evidence binding before and after device authentication;
+- exact `ActionPlan` hashing and one-time authorization-token use;
+- identity-session and Emergency-Stop generation binding;
+- removal ordering, rollback behavior and persistence failure;
+- certificate privacy boundaries;
+- package/certificate bounds and pending-plan bounds;
+- finance/Tier-4 denial and capability-grant separation;
+- stale/wrong evidence and asynchronous authentication race coverage.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this completed layer.
+
+### Important current limitations
+
+- Physical-device testing is not verified.
+- Signed production release is not verified.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes are not implemented.
+- Independent target-app UI/result observation is not implemented.
+- Real model/context ingestion filtering and screen/OCR/accessibility-to-model filtering are not implemented.
+- The production trusted-app registry is intentionally empty; no package name or certificate pin has been invented or approved.
+- Sensitive-information protection remains pattern-based defense-in-depth rather than complete contextual secret classification.
+- The managed-device result verifies the automated test environment, not a physical consumer device.
+
+### Exact continuation point
+
+The next chat must first inspect the actual current `main` head and CI, then treat `9318f89e8fa62bb6b021b6938d771e6d92e144a2` + Run #314 as the latest verified production-code/test checkpoint unless newer code is independently verified.
+
+Do not restart the trusted-app management layer. Do not invent trusted packages/certificate pins or add speculative banking, UPI, OAuth, payment, backend or external-SDK integrations.
+
+**Next development direction:** continue from the verified trusted-app management checkpoint into the next explicitly justified security layer, only after inspecting the live repository and preserving the existing deterministic security boundary.
