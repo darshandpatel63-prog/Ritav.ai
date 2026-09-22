@@ -291,7 +291,7 @@ class TrustedAppProvisioningServiceTest {
     }
 
     @Test
-    fun removalStoreFailureLeavesRegistryRestricted() {
+    fun removalStoreFailureRestoresActiveTrust() {
         val stop = EmergencyStopController()
         val gate = ActionAuthorizationGate(stop)
         val sessionManager = IdentitySessionManager(stop)
@@ -311,7 +311,7 @@ class TrustedAppProvisioningServiceTest {
         assertFalse(service.remove(
             removePlan, "com.example.safe", certificate, 1, removeToken, 1_004L, session
         ))
-        assertFalse(registry.isRegistered("com.example.safe"))
+        assertTrue(registry.isRegistered("com.example.safe"))
         assertEquals(1, store.entries.size)
     }
 }
