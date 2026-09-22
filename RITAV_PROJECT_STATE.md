@@ -794,3 +794,35 @@ Implement the separate explicit trust-entry decision/persistence layer. It must 
 
 ### EXACT COMMIT SHA
 Verified implementation/test checkpoint: `2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`.
+
+
+## 2026-09-22 verified trusted-app trust-entry provisioning checkpoint
+
+### CURRENT STOP POINT
+The explicit deterministic trusted-app trust-entry decision/persistence path is implemented, integrated and exact-head CI verified at `c5dad4ce6db7bf00615e649e0b77e05b033a620e`. Run #298 (`35679864201`) succeeded with JVM/unit tests, Android instrumentation-test compilation/APK assembly and managed-device instrumentation on `pixel2api30`.
+### COMPLETED
+- Durable reviewed trust-entry state is persisted through the existing `SecureLocalStore`; invalid/corrupt state loads as deny-by-default.
+- Trust-entry mutation is constrained to `APP_LAUNCH + open`, Tier-1 execution metadata, sensitive-content blocking, non-financial status and an authoritative 64-hex SHA-256 signing-certificate digest.
+- Provisioning requires a valid trusted identity session, exact package/certificate evidence, exactly one signer, exact plan binding, device authentication and the same Emergency-Stop generation.
+- Certificate evidence is kept inside the deterministic service boundary; the coordinator exposes only the exact `ActionPlan` and boolean completion result.
+- Certificate changes alter the plan binding and cannot reuse a token issued for another certificate-bound plan.
+- Android runtime loads persisted trust only from the security-owned encrypted store; absent/invalid state produces an empty registry.
+### VERIFIED
+- Exact-head CI Run #298: SUCCESS.
+- Adversarial/regression coverage and consolidated system review completed for authorization, session, Stop, evidence freshness, persistence, registry mutation, races, bounds, privacy and financial hard-deny.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass identified in the reviewed provisioning path.
+### NOT VERIFIED
+- Final user-visible trusted-app provisioning UI.
+- Physical-device testing.
+- Signed production release.
+- Native non-Android runtime implementations.
+- Independent target-app UI/result observation.
+- Real model/context ingestion filtering.
+- Real production trust entries.
+### KNOWN LIMITATIONS
+- The deterministic provisioning core and Android coordinator are integrated into the runtime, but a final user-facing trusted-app management flow is still required.
+- Persistence is intentionally fail-closed. The store-write-then-registry-activate sequence is race-safe within the current runtime, while an anomalous storage rollback failure remains a consistency edge case to harden if that path becomes reachable in production.
+### NEXT ACTION
+Implement the narrow user-visible trusted-app provisioning flow using the existing PermissionCenter/authorization patterns, preserving exact-plan and evidence binding. Do not invent package names/certificate pins or enable production trust by default.
+### EXACT COMMIT SHA
+`c5dad4ce6db7bf00615e649e0b77e05b033a620e`
