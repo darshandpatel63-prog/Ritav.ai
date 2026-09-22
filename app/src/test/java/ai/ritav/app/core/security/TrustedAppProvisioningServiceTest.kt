@@ -314,4 +314,28 @@ class TrustedAppProvisioningServiceTest {
         assertTrue(registry.isRegistered("com.example.safe"))
         assertEquals(1, store.entries.size)
     }
+    @Test
+    fun emergencyStopBlocksTrustedAppRemoval() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val registry = AppCapabilityRegistry()
+        val service = TrustedAppProvisioningService(registry, store, gate, stop, sessionManager)
+
+        val addPlan = requireNotNull(service.createPlan("com.example.safe", certificate, 1, session, 1_001L))
+        val addToken = gate.issue(addPlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
+        assertTrue(service.persist(addPlan, "com.example.safe", certificate, 1, addToken, 1_002L, session))
+
+        val removePlan = requireNotNull(service.createRemovalPlan("com.example.safe", certificate, 1, session, 1_003L))
+        val removeToken = gate.issue(removePlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_004L)
+        stop.activate()
+
+        assertFalse(service.remove(
+            removePlan, "com.example.safe", certificate, 1, removeToken, 1_004L, session
+        ))
+        assertTrue(registry.isRegistered("com.example.safe"))
+        assertEquals(1, store.entries.size)
+    }
 }
