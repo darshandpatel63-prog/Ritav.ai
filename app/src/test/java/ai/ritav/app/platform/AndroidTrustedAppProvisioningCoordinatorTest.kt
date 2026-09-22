@@ -214,15 +214,8 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
         val reader = MutableCertificateReader(listOf(certificateBytes))
-
-        val addCoordinator = coordinator(
-            reader, store, gate, sessionManager,
-            StubDeviceAuthorizationGateway(available = true, result = true)
-        )
-        val addPlan = requireNotNull(addCoordinator.prepare("com.example.safe", session))
-        addCoordinator.approveAndPersist(addPlan, session, true) { }
-
         var mutateAfterAuthentication = false
+
         val deviceAuthorization = object : DeviceAuthorizationGateway {
             override fun isDeviceAuthenticationAvailable(): Boolean = true
 
@@ -236,9 +229,11 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
         val coordinator = coordinator(
             reader, store, gate, sessionManager, deviceAuthorization
         )
+
         val addPlan = requireNotNull(coordinator.prepare("com.example.safe", session))
         coordinator.approveAndPersist(addPlan, session, true) { }
         reader.certificates = listOf(certificateBytes)
+
         val removePlan = requireNotNull(coordinator.prepareRemoval("com.example.safe", session))
         mutateAfterAuthentication = true
 
@@ -247,5 +242,4 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
 
         assertFalse(result == true)
         assertTrue(store.entries.size == 1)
-    }
-}
+    }}
