@@ -1,11 +1,11 @@
 # Ritav.ai — New Chat Handoff (Authoritative)
 
-Handoff date: 2026-09-21
+Handoff date: 2026-09-22
 Repository: darshandpatel63-prog/Ritav.ai
 Branch: main
-Implementation/test head at this continuation start: 3c28e9319f3a01702e5af93f61aec3c6976d9d40
-Latest implementation/test checkpoint: 3c28e9319f3a01702e5af93f61aec3c6976d9d40
-Latest Android CI verification: Run #283 (35557741305) on 3c28e9319f3a01702e5af93f61aec3c6976d9d40 — SUCCESS
+Implementation/test head at this continuation start: 9318f89e8fa62bb6b021b6938d771e6d92e144a2
+Latest implementation/test checkpoint: 9318f89e8fa62bb6b021b6938d771e6d92e144a2
+Latest Android CI verification: Run #314 (35694971910) on 9318f89e8fa62bb6b021b6938d771e6d92e144a2 — SUCCESS
 Project phase: Phase 0 — secure foundation + cross-platform architecture expansion; runtime integration in progress.
 
 > This file is the primary new-chat handoff. Older historical sections in README/state remain useful for chronology, but the current status below is authoritative.
@@ -400,3 +400,58 @@ Trusted-app trust-entry provisioning is implemented, integrated and exact-head C
 Wire the coordinator into a narrow user-visible trusted-app provisioning/management flow using existing authorization/session UI patterns. Keep certificate material out of UI/state, keep finance and Tier-4 hard-deny absolute, and keep production trusted-app configuration empty until authoritative evidence is explicitly reviewed.
 ### EXACT COMMIT SHA
 `c5dad4ce6db7bf00615e649e0b77e05b033a620e`
+
+## 2026-09-22 final handoff checkpoint — trusted-app management UI + revocation
+
+### CURRENT STOP POINT
+The trusted-app add/remove user-facing management flow is implemented, integrated, regression-tested and exact-head CI verified at `9318f89e8fa62bb6b021b6938d771e6d92e144a2`. Run #314 (`35694971910`) succeeded. This is the latest verified production-code/test checkpoint.
+
+### COMPLETED
+- Wired `MainActivity` to the existing deterministic trusted-app provisioning coordinator for add and remove trust flows.
+- Added a session-gated trusted-app management UI in `PermissionCenter`.
+- Added installed Android package-name review, explicit trusted-app approval, authenticated trusted-package listing, and explicit `Remove trust` review/action.
+- Kept certificate material out of UI/state exposed to the user; certificate evidence remains inside the deterministic coordinator/service boundary.
+- Kept trusted-app trust-entry provisioning separate from capability granting.
+- Cached the trusted-package management list in Compose state to avoid repeated encrypted-store reads during recomposition.
+- Emergency Stop clears pending add/remove state and protected identity state in the UI composition.
+- Kept production trusted-app configuration empty/deny-by-default.
+
+### VERIFIED
+- Run #314 (`35694971910`) on exact SHA `9318f89e8fa62bb6b021b6938d771e6d92e144a2`: SUCCESS.
+- JVM tests passed.
+- Android debug unit tests passed.
+- Instrumentation-test compilation/APK assembly passed.
+- Managed-device instrumentation passed on `pixel2api30`.
+- Consolidated review covered UI-to-service call paths, deterministic authorization, exact plan/evidence binding, Emergency Stop/session generation, removal rollback/failure ordering, privacy, bounds, finance/Tier-4 denial, and adversarial race coverage.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in the reviewed layer.
+
+### CI FAILURE HISTORY THAT MUST NOT BE MISTAKEN FOR THE VERIFIED HEAD
+- Run #312 (`35694134421`) failed because the new post-auth removal-race test fixture created a second coordinator with a fresh empty in-memory registry; the failure occurred while preparing removal and was a test-fixture defect.
+- Run #313 (`35694771907`) failed to compile after an intermediate correction declared `addPlan` twice.
+- Run #314 is the corrected exact-head success and is the verification evidence for `9318f89e8fa62bb6b021b6938d771e6d92e144a2`.
+
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime implementations.
+- Independent target-app UI/result observation.
+- Real model/context ingestion filtering and screen/OCR/accessibility-to-model filtering.
+- Any real production trusted-app entry; the registry remains intentionally empty.
+- Complete contextual secret classification; sensitive-data detection remains pattern-based defense-in-depth.
+
+### KNOWN LIMITATIONS
+- Removal currently requires fresh installed signing evidence for the selected package. A stale/uninstalled trusted entry therefore cannot be removed through the current evidence-backed UI path when the package is no longer installed.
+- Store/registry mutation is fail-closed and rollback-aware; an anomalous rollback failure remains a consistency edge case, not a demonstrated authorization bypass.
+- Trusted-app trust does not itself grant app capability permissions; the separate capability-grant path remains authoritative.
+- Managed-device CI is not physical-device validation.
+
+### NEXT ACTION
+Begin the next security layer only after the next chat re-checks the live repository and current CI state. Do not restart trusted-app management. Preserve the deterministic chain: exact package/signing evidence → exact `ActionPlan` binding → user confirmation → device authentication → session/Stop checks → secure persistence/registry mutation → downstream capability/execution gates.
+
+Do not invent package names, certificate pins, banking/UPI mappings, OAuth identities, payment integrations, backend services or external SDKs. Keep the production trusted-app registry empty until authoritative package identity and certificate evidence is explicitly reviewed.
+
+### EXACT VERIFIED PRODUCTION-CODE/TEST SHA
+`9318f89e8fa62bb6b021b6938d771e6d92e144a2`
+
+### EXACT VERIFIED CI RUN
+Run #314 — `35694971910`
