@@ -96,6 +96,74 @@ internal class TrustedAppProvisioningService(
             normalizeCertificate(certificateSha256) == pending.certificateSha256
     } ?: false
 
+    fun trustedPackageNames(): List<String> =
+        when (val snapshot = entryStore.snapshot()) {
+            TrustedAppEntrySnapshot.Unconfigured -> emptyList()
+            TrustedAppEntrySnapshot.Invalid -> emptyList()
+            is TrustedAppEntrySnapshot.Loaded -> snapshot.specs
+                .map(AppCapabilitySpec::packageName)
+                .sorted()
+        }
+
+    fun createRemovalPlan(
+        packageName: String,
+        certificateSha256: String,
+        signerCount: Int,
+        identitySession: SecuritySession?,
+        nowEpochMillis: Long
+    ): ActionPlan? {
+        val normalizedCertificate = normalizeCertificate(certificateSha256) ?: return null
+        if (signerCount != 1 ||
+            identitySession == null ||
+            !identitySessionManager.permitsProtectedCapability(identitySession, nowEpochMillis)
+        ) return null
+
+        if (!registry.isRegistered(packageName)) return null
+
+        val snapshot = entryStore.snapshot()
+        val spec = when (snapshot) {
+            TrustedAppEntrySnapshot.Unconfigured -> return null
+            TrustedAppEntrySnapshot.Invalid -> return null
+            is TrustedAppEntrySnapshot.Loaded -> snapshot.specs.singleOrNull {
+                it.packageName == packageName &&
+                    it.trustedCertificateSha256 == normalizedCertificate
+            } ?: return null
+        }
+
+        if (!isValidReviewedTrustedAppSpec(spec)) return null
+
+        return emergencyStop.runIfInactive {
+            if (nowEpochMillis < 0L || nowEpochMillis > Long.MAX_VALUE - PENDING_TTL_MILLIS) {
+                return@runIfInactive null
+            }
+
+            val plan = ActionPlan(
+                appId = packageName,
+                capability = Capability.APP_LAUNCH,
+                action = TRUST_REMOVE_ACTION,
+                riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE,
+                expectedState = "${TRUST_ENTRY_REMOVE_STATE}:" + evidenceBinding(
+                    packageName = packageName,
+                    certificateSha256 = normalizedCertificate
+                ),
+                sessionId = identitySession.id
+            )
+            if (!plan.isValid()) return@runIfInactive null
+
+            purgeExpired(nowEpochMillis)
+            val hash = plan.stableHash()
+            if (pendingPlans.size >= MAX_PENDING_PLANS && !pendingPlans.containsKey(hash)) {
+                return@runIfInactive null
+            }
+            pendingPlans[hash] = PendingPlan(
+                certificateSha256 = normalizedCertificate,
+                sessionId = identitySession.id,
+                emergencyStopGeneration = emergencyStop.generation(),
+                expiresAtEpochMillis = nowEpochMillis + PENDING_TTL_MILLIS
+            )
+            plan
+        }
+    }
     fun persist(
         plan: ActionPlan,
         currentPackageName: String,
@@ -151,6 +219,83 @@ internal class TrustedAppProvisioningService(
         } ?: false
     }
 
+    fun remove(
+        plan: ActionPlan,
+        currentPackageName: String,
+        currentCertificateSha256: String,
+        currentSignerCount: Int,
+        authorizationToken: String?,
+        nowEpochMillis: Long,
+        identitySession: SecuritySession?
+    ): Boolean {
+        return emergencyStop.runIfInactive {
+            val pending = pendingPlans[plan.stableHash()] ?: return@runIfInactive false
+            if (!isValidRemovalPlan(plan, pending)) return@runIfInactive false
+            if (pending.expiresAtEpochMillis < nowEpochMillis) {
+                pendingPlans.remove(plan.stableHash(), pending)
+                return@runIfInactive false
+            }
+            if (currentPackageName != plan.appId) return@runIfInactive false
+
+            val currentCertificate = normalizeCertificate(currentCertificateSha256)
+                ?: return@runIfInactive false
+            if (currentCertificate != pending.certificateSha256 || currentSignerCount != 1) {
+                return@runIfInactive false
+            }
+
+            val session = identitySession ?: return@runIfInactive false
+            if (plan.sessionId != session.id ||
+                pending.sessionId != session.id ||
+                !identitySessionManager.permitsProtectedCapability(session, nowEpochMillis)
+            ) return@runIfInactive false
+
+            if (!authorizationGate.consume(
+                    authorizationToken.orEmpty(),
+                    plan,
+                    AuthorizationLevel.DEVICE_AUTHENTICATION,
+                    nowEpochMillis
+                )
+            ) return@runIfInactive false
+
+            val spec = when (val snapshot = entryStore.snapshot()) {
+                TrustedAppEntrySnapshot.Unconfigured -> null
+                TrustedAppEntrySnapshot.Invalid -> null
+                is TrustedAppEntrySnapshot.Loaded -> snapshot.specs.singleOrNull {
+                    it.packageName == plan.appId &&
+                        it.trustedCertificateSha256 == pending.certificateSha256
+                }
+            } ?: return@runIfInactive false
+
+            if (!isValidReviewedTrustedAppSpec(spec)) return@runIfInactive false
+
+            if (!registry.removeReviewedTrustedAppSpec(spec)) return@runIfInactive false
+            if (entryStore.remove(spec)) {
+                pendingPlans.remove(plan.stableHash(), pending)
+                true
+            } else {
+                // A failed restore leaves the active registry more restrictive;
+                // persistence can recover on the next process start.
+                registry.addReviewedTrustedAppSpec(spec)
+                false
+            }
+        } ?: false
+    }
+    private fun isValidRemovalPlan(plan: ActionPlan, pending: PendingPlan): Boolean =
+        plan.isValid() &&
+            plan.capability == Capability.APP_LAUNCH &&
+            plan.action == TRUST_REMOVE_ACTION &&
+            plan.riskTier == RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE &&
+            plan.expectedState == "${TRUST_ENTRY_REMOVE_STATE}:" + evidenceBinding(
+                packageName = plan.appId,
+                certificateSha256 = pending.certificateSha256
+            ) &&
+            plan.sessionId != null &&
+            pending.sessionId == plan.sessionId &&
+            pending.emergencyStopGeneration == emergencyStop.generation() &&
+            pending.expiresAtEpochMillis >= 0L &&
+            normalizeCertificate(pending.certificateSha256) == pending.certificateSha256 &&
+            registry.isRegistered(plan.appId)
+
     private fun isValidPlan(plan: ActionPlan, pending: PendingPlan): Boolean =
         plan.isValid() &&
             plan.capability == Capability.APP_LAUNCH &&
@@ -204,7 +349,9 @@ internal class TrustedAppProvisioningService(
     private companion object {
         const val OPEN_ACTION = "open"
         const val TRUST_ADD_ACTION = "trust:add:open"
+        const val TRUST_REMOVE_ACTION = "trust:remove:open"
         const val TRUST_ENTRY_ADD_STATE = "TRUST_ENTRY_ADD"
+        const val TRUST_ENTRY_REMOVE_STATE = "TRUST_ENTRY_REMOVE"
         const val MAX_PENDING_PLANS = 16
         const val PENDING_TTL_MILLIS = 5 * 60_000L
         val CERTIFICATE_DIGEST_REGEX = Regex("^[A-Fa-f0-9]{64}$")
