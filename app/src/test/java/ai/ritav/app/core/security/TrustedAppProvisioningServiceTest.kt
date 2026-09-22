@@ -118,9 +118,9 @@ class TrustedAppProvisioningServiceTest {
 
         assertFalse(
             service.persist(
-                planA,
+                planB,
                 "com.example.safe",
-                certificateA,
+                certificateB,
                 1,
                 tokenA,
                 1_003L,
