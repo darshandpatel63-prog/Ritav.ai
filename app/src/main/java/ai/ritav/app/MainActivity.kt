@@ -38,6 +38,9 @@ class MainActivity : FragmentActivity() {
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var trustedPackageInput by remember { mutableStateOf("") }
+            var trustedPackages by remember {
+                mutableStateOf(executionRuntime.trustedAppProvisioningCoordinator.trustedPackageNames())
+            }
             var pendingTrustedPackage by remember { mutableStateOf<String?>(null) }
             var pendingTrustedPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var pendingTrustedRemovalPackage by remember { mutableStateOf<String?>(null) }
@@ -151,6 +154,7 @@ class MainActivity : FragmentActivity() {
                         statusMessage =
                             if (success) {
                                 trustedPackageInput = ""
+                                trustedPackages = (trustedPackages + plan.appId).distinct().sorted()
                                 "Trusted application added. Capability access still requires its separate grant flow."
                             } else {
                                 "Trusted-application approval was denied or became invalid."
@@ -201,6 +205,7 @@ class MainActivity : FragmentActivity() {
                     runOnUiThread {
                         statusMessage =
                             if (success) {
+                                trustedPackages = trustedPackages.filterNot { it == plan.appId }
                                 "Trusted application removed."
                             } else {
                                 "Trusted-application removal was denied or became invalid."
@@ -265,7 +270,7 @@ class MainActivity : FragmentActivity() {
                             statusMessage = null
                         },
                         onApproveTrustedApp = ::approvePendingTrustedApp,
-                        trustedPackages = executionRuntime.trustedAppProvisioningCoordinator.trustedPackageNames(),
+                        trustedPackages = trustedPackages,
                         onTrustedPackageSelectedForRemoval = ::reviewTrustedRemoval,
                         pendingTrustedRemovalPackage = pendingTrustedRemovalPackage,
                         pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
