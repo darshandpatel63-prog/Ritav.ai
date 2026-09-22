@@ -222,22 +222,28 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
         val addPlan = requireNotNull(addCoordinator.prepare("com.example.safe", session))
         addCoordinator.approveAndPersist(addPlan, session, true) { }
 
+        var mutateAfterAuthentication = false
         val deviceAuthorization = object : DeviceAuthorizationGateway {
             override fun isDeviceAuthenticationAvailable(): Boolean = true
 
             override fun authenticate(reason: String, callback: (success: Boolean) -> Unit) {
-                reader.certificates = listOf("changed-after-auth".toByteArray())
+                if (mutateAfterAuthentication) {
+                    reader.certificates = listOf("changed-after-auth".toByteArray())
+                }
                 callback(true)
             }
         }
-        val removalCoordinator = coordinator(
+        val coordinator = coordinator(
             reader, store, gate, sessionManager, deviceAuthorization
         )
+        val addPlan = requireNotNull(coordinator.prepare("com.example.safe", session))
+        coordinator.approveAndPersist(addPlan, session, true) { }
         reader.certificates = listOf(certificateBytes)
-        val removePlan = requireNotNull(removalCoordinator.prepareRemoval("com.example.safe", session))
+        val removePlan = requireNotNull(coordinator.prepareRemoval("com.example.safe", session))
+        mutateAfterAuthentication = true
 
         var result: Boolean? = null
-        removalCoordinator.approveAndRemove(removePlan, session, true) { result = it }
+        coordinator.approveAndRemove(removePlan, session, true) { result = it }
 
         assertFalse(result == true)
         assertTrue(store.entries.size == 1)
