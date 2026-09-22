@@ -143,6 +143,29 @@ class TrustedAppProvisioningServiceTest {
     }
 
     @Test
+    fun malformedPackageNameFailsClosedWithoutRegisteringTrust() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val registry = AppCapabilityRegistry()
+        val service = TrustedAppProvisioningService(registry, store, gate, stop, sessionManager)
+
+        val plan = service.createPlan(
+            packageName = "not a package",
+            certificateSha256 = "a".repeat(64),
+            signerCount = 1,
+            identitySession = session,
+            nowEpochMillis = 1_001L
+        )
+
+        assertFalse(plan != null)
+        assertFalse(registry.isRegistered("not a package"))
+        assertTrue(store.entries.isEmpty())
+    }
+
+    @Test
     fun multipleSignerAndEmergencyStopFailClosed() {
         val stop = EmergencyStopController()
         val gate = ActionAuthorizationGate(stop)
