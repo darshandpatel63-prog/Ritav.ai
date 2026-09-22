@@ -206,4 +206,40 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
         assertFalse(result == true)
         assertTrue(store.entries.size == 1)
     }
+    @Test
+    fun changedEvidenceAfterRemovalAuthenticationAlsoBlocksPersistence() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val reader = MutableCertificateReader(listOf(certificateBytes))
+
+        val addCoordinator = coordinator(
+            reader, store, gate, sessionManager,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
+        val addPlan = requireNotNull(addCoordinator.prepare("com.example.safe", session))
+        addCoordinator.approveAndPersist(addPlan, session, true) { }
+
+        val deviceAuthorization = object : DeviceAuthorizationGateway {
+            override fun isDeviceAuthenticationAvailable(): Boolean = true
+
+            override fun authenticate(reason: String, callback: (success: Boolean) -> Unit) {
+                reader.certificates = listOf("changed-after-auth".toByteArray())
+                callback(true)
+            }
+        }
+        val removalCoordinator = coordinator(
+            reader, store, gate, sessionManager, deviceAuthorization
+        )
+        reader.certificates = listOf(certificateBytes)
+        val removePlan = requireNotNull(removalCoordinator.prepareRemoval("com.example.safe", session))
+
+        var result: Boolean? = null
+        removalCoordinator.approveAndRemove(removePlan, session, true) { result = it }
+
+        assertFalse(result == true)
+        assertTrue(store.entries.size == 1)
+    }
 }
