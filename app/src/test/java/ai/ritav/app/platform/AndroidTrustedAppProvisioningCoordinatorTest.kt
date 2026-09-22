@@ -150,4 +150,60 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
         assertTrue(store.entries.size == 1)
         assertTrue(store.entries.single().trustedCertificateSha256?.matches(Regex("^[a-f0-9]{64}$")) == true)
     }
+    @Test
+    fun successfulDeviceAuthenticationRemovesTrust() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val reader = MutableCertificateReader(listOf(certificateBytes))
+        val coordinator = coordinator(
+            reader,
+            store,
+            gate,
+            sessionManager,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
+
+        val addPlan = requireNotNull(coordinator.prepare("com.example.safe", session))
+        var addResult: Boolean? = null
+        coordinator.approveAndPersist(addPlan, session, true) { addResult = it }
+        assertTrue(addResult == true)
+
+        val removePlan = requireNotNull(coordinator.prepareRemoval("com.example.safe", session))
+        var removeResult: Boolean? = null
+        coordinator.approveAndRemove(removePlan, session, true) { removeResult = it }
+
+        assertTrue(removeResult == true)
+        assertTrue(store.entries.isEmpty())
+    }
+
+    @Test
+    fun changedEvidenceBeforeRemovalAuthenticationBlocksApproval() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val reader = MutableCertificateReader(listOf(certificateBytes))
+        val coordinator = coordinator(
+            reader,
+            store,
+            gate,
+            sessionManager,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
+
+        val addPlan = requireNotNull(coordinator.prepare("com.example.safe", session))
+        coordinator.approveAndPersist(addPlan, session, true) { }
+        val removePlan = requireNotNull(coordinator.prepareRemoval("com.example.safe", session))
+        reader.certificates = listOf("changed".toByteArray())
+
+        var result: Boolean? = null
+        coordinator.approveAndRemove(removePlan, session, true) { result = it }
+
+        assertFalse(result == true)
+        assertTrue(store.entries.size == 1)
+    }
 }
