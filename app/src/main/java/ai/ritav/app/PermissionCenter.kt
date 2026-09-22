@@ -98,7 +98,7 @@ internal fun PermissionCenter(
             }
         }
 
-        if (trustedPackages.isNotEmpty() && !stopped) {
+        if (identitySession != null && trustedPackages.isNotEmpty() && !stopped) {
             Text(
                 "Trusted external applications",
                 style = MaterialTheme.typography.titleMedium
