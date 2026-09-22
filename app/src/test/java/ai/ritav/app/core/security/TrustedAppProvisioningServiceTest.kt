@@ -11,6 +11,7 @@ class TrustedAppProvisioningServiceTest {
     private class FakeStore : TrustedAppEntryStore {
         val entries = mutableListOf<AppCapabilitySpec>()
         var failAdd = false
+        var failRemove = false
 
         override fun snapshot(): TrustedAppEntrySnapshot =
             if (entries.isEmpty()) TrustedAppEntrySnapshot.Unconfigured
@@ -22,7 +23,8 @@ class TrustedAppProvisioningServiceTest {
             return true
         }
 
-        override fun remove(spec: AppCapabilitySpec): Boolean = entries.remove(spec)
+        override fun remove(spec: AppCapabilitySpec): Boolean =
+            !failRemove && entries.remove(spec)
     }
 
     @Test
@@ -232,5 +234,84 @@ class TrustedAppProvisioningServiceTest {
             )
         )
         assertFalse(registry.isRegistered("com.example.safe"))
+    }
+    @Test
+    fun exactEvidenceAndDeviceTokenRemoveReviewedEntry() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val registry = AppCapabilityRegistry()
+        val service = TrustedAppProvisioningService(registry, store, gate, stop, sessionManager)
+
+        val addPlan = requireNotNull(
+            service.createPlan("com.example.safe", certificate, 1, session, 1_001L)
+        )
+        val addToken = gate.issue(addPlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
+        assertTrue(service.persist(
+            addPlan, "com.example.safe", certificate, 1, addToken, 1_002L, session
+        ))
+
+        val removePlan = requireNotNull(
+            service.createRemovalPlan("com.example.safe", certificate, 1, session, 1_003L)
+        )
+        val removeToken = gate.issue(removePlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_004L)
+
+        assertTrue(service.remove(
+            removePlan, "com.example.safe", certificate, 1, removeToken, 1_004L, session
+        ))
+        assertFalse(registry.isRegistered("com.example.safe"))
+        assertTrue(store.entries.isEmpty())
+    }
+
+    @Test
+    fun wrongRemovalEvidenceDoesNotConsumeToken() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val registry = AppCapabilityRegistry()
+        val service = TrustedAppProvisioningService(registry, store, gate, stop, sessionManager)
+
+        val addPlan = requireNotNull(service.createPlan("com.example.safe", certificate, 1, session, 1_001L))
+        val addToken = gate.issue(addPlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
+        assertTrue(service.persist(addPlan, "com.example.safe", certificate, 1, addToken, 1_002L, session))
+
+        val removePlan = requireNotNull(service.createRemovalPlan("com.example.safe", certificate, 1, session, 1_003L))
+        val removeToken = gate.issue(removePlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_004L)
+
+        assertFalse(service.remove(
+            removePlan, "com.example.safe", "b".repeat(64), 1, removeToken, 1_004L, session
+        ))
+        assertTrue(service.remove(
+            removePlan, "com.example.safe", certificate, 1, removeToken, 1_004L, session
+        ))
+    }
+
+    @Test
+    fun removalStoreFailureLeavesRegistryRestricted() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val registry = AppCapabilityRegistry()
+        val service = TrustedAppProvisioningService(registry, store, gate, stop, sessionManager)
+
+        val addPlan = requireNotNull(service.createPlan("com.example.safe", certificate, 1, session, 1_001L))
+        val addToken = gate.issue(addPlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_002L)
+        assertTrue(service.persist(addPlan, "com.example.safe", certificate, 1, addToken, 1_002L, session))
+
+        val removePlan = requireNotNull(service.createRemovalPlan("com.example.safe", certificate, 1, session, 1_003L))
+        val removeToken = gate.issue(removePlan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_004L)
+        store.failRemove = true
+
+        assertFalse(service.remove(
+            removePlan, "com.example.safe", certificate, 1, removeToken, 1_004L, session
+        ))
+        assertFalse(registry.isRegistered("com.example.safe"))
+        assertEquals(1, store.entries.size)
     }
 }
