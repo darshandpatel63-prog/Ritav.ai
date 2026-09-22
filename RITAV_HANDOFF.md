@@ -359,7 +359,7 @@ Read-only Android trusted-package provisioning evidence is now implementation-co
 ### KNOWN LIMITATIONS
 - Evidence is not trust and never authorizes execution by itself.
 - Conservative package-name/certificate-size bounds can deny unusual metadata.
-- Persistent trust-entry provisioning has not yet been implemented.
+- Deterministic persistent trust-entry provisioning is now implemented and CI verified.
 - Target-app result observation remains outstanding.
 
 ### NEXT ACTION
@@ -367,3 +367,36 @@ Start the next major layer only from this reviewed checkpoint: a separate determ
 
 ### EXACT COMMIT SHA
 `2ee78ca995cab7fa1bd9dd0794c0ac2a0855c8b3`
+
+
+## 2026-09-22 latest verified handoff — trusted-app trust-entry provisioning
+
+### CURRENT STOP POINT
+Trusted-app trust-entry provisioning is implemented, integrated and exact-head CI verified at `c5dad4ce6db7bf00615e649e0b77e05b033a620e`. Run #298 (`35679864201`) succeeded, including JVM/unit tests, instrumentation-test compilation/APK assembly and managed-device instrumentation on `pixel2api30`.
+### COMPLETED
+- Secure reviewed trust-entry persistence uses the existing encrypted `SecureLocalStore`.
+- Provisioning is constrained to `APP_LAUNCH + open` with Tier-1 execution metadata, sensitive-content blocking, non-financial classification and a required 64-hex SHA-256 signing-certificate digest.
+- Trust writes require a valid identity session, exact package/certificate evidence, exactly one signer, exact `ActionPlan` binding, device authorization and current Emergency-Stop generation.
+- Certificate evidence is kept private to the deterministic provisioning service.
+- Android coordinator performs evidence checks before authentication, after authentication and again through the deterministic persist boundary.
+- Persisted trust is loaded into the runtime registry only from the security-owned store; absent/invalid state remains empty and deny-by-default.
+- The certificate-change authorization regression test was corrected so token A is explicitly attempted against certificate-bound plan B before token B is accepted.
+### VERIFIED
+- Run #298 exact-head SUCCESS.
+- Consolidated review covered call paths, data flow, authorization, session binding, Emergency Stop, TOCTOU/evidence freshness, registry/store mutation, concurrency, bounds, privacy and finance/Tier-4 denial.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass identified in this reviewed path.
+### NOT VERIFIED
+- Final user-visible trusted-app management/provisioning UI.
+- Physical-device testing.
+- Signed production release.
+- Native non-Android runtime implementations.
+- Independent target-app UI/result observation.
+- Real model/context ingestion filtering.
+- Real production trust entries.
+### KNOWN LIMITATIONS
+- The core/coordinator path is executable-verified, but there is no final user-facing trusted-app management entrypoint yet.
+- Store-first activation preserves the safer durable-before-active ordering. An anomalous failure of registry rollback after a store write is a consistency edge case worth future hardening; no demonstrated authorization bypass was found in review.
+### NEXT ACTION
+Wire the coordinator into a narrow user-visible trusted-app provisioning/management flow using existing authorization/session UI patterns. Keep certificate material out of UI/state, keep finance and Tier-4 hard-deny absolute, and keep production trusted-app configuration empty until authoritative evidence is explicitly reviewed.
+### EXACT COMMIT SHA
+`c5dad4ce6db7bf00615e649e0b77e05b033a620e`
