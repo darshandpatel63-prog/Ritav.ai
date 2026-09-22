@@ -390,7 +390,8 @@ class ExecutionBridgeTest {
         val gate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
-            pipelineFor(policy, fixture.identityManager, gate)
+            pipelineFor(policy, fixture.identityManager, gate),
+            adapter
         )
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
         val first = bridge.execute(
@@ -466,10 +467,11 @@ class ExecutionBridgeTest {
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
+        val pipeline = pipelineFor(policy, IdentitySessionManager())
         var now = 1000L
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
-            pipelineFor(policy, IdentitySessionManager()),
+            pipeline,
             adapter,
             clock = { now += 1000L; now }
         )
