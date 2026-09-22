@@ -38,6 +38,89 @@ internal class AndroidTrustedAppProvisioningCoordinator(
         )
     }
 
+    fun trustedPackageNames(): List<String> = provisioningService.trustedPackageNames()
+
+    fun prepareRemoval(
+        packageName: String,
+        identitySession: SecuritySession
+    ): ActionPlan? {
+        val now = safeNow() ?: return null
+        if (!identitySessionManager.permitsProtectedCapability(identitySession, now)) return null
+
+        val evidence = evidenceReader.read(packageName) ?: return null
+        return provisioningService.createRemovalPlan(
+            packageName = evidence.packageName,
+            certificateSha256 = evidence.certificateSha256,
+            signerCount = evidence.signerCount,
+            identitySession = identitySession,
+            nowEpochMillis = now
+        )
+    }
+
+    fun approveAndRemove(
+        plan: ActionPlan,
+        identitySession: SecuritySession,
+        userConfirmed: Boolean,
+        onComplete: (Boolean) -> Unit
+    ) {
+        val completed = AtomicBoolean(false)
+
+        fun complete(result: Boolean) {
+            if (completed.compareAndSet(false, true)) onComplete(result)
+        }
+
+        if (!userConfirmed ||
+            plan.sessionId != identitySession.id ||
+            !plan.isValid()
+        ) {
+            complete(false)
+            return
+        }
+
+        val packageName = plan.appId
+        val beforeAuth = evidenceReader.read(packageName)
+        if (!matchesRemoval(plan, beforeAuth)) {
+            complete(false)
+            return
+        }
+
+        authorizationService.issueDeviceAuthenticationToken(
+            plan = plan,
+            reason = "Remove trusted application: $packageName"
+        ) { token ->
+            if (token == null) {
+                complete(false)
+                return@issueDeviceAuthenticationToken
+            }
+
+            val latestEvidence = evidenceReader.read(packageName)
+            if (latestEvidence == null || !matchesRemoval(plan, latestEvidence)) {
+                complete(false)
+                return@issueDeviceAuthenticationToken
+            }
+
+            val now = safeNow()
+            if (now == null ||
+                !identitySessionManager.permitsProtectedCapability(identitySession, now)
+            ) {
+                complete(false)
+                return@issueDeviceAuthenticationToken
+            }
+
+            complete(
+                provisioningService.remove(
+                    plan = plan,
+                    currentPackageName = latestEvidence.packageName,
+                    currentCertificateSha256 = latestEvidence.certificateSha256,
+                    currentSignerCount = latestEvidence.signerCount,
+                    authorizationToken = token,
+                    nowEpochMillis = now,
+                    identitySession = identitySession
+                )
+            )
+        }
+    }
+
     fun approveAndPersist(
         plan: ActionPlan,
         identitySession: SecuritySession,
@@ -101,6 +184,18 @@ internal class AndroidTrustedAppProvisioningCoordinator(
             )
         }
     }
+
+    private fun matchesRemoval(
+        plan: ActionPlan,
+        evidence: AndroidTrustedPackageEvidence?
+    ): Boolean =
+        evidence != null &&
+            provisioningService.matchesRemovalEvidence(
+                plan = plan,
+                packageName = evidence.packageName,
+                certificateSha256 = evidence.certificateSha256,
+                signerCount = evidence.signerCount
+            )
 
     private fun matches(
         plan: ActionPlan,
