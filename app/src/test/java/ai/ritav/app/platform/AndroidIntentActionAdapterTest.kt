@@ -4,11 +4,9 @@ import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.AppCapabilitySpec
 import ai.ritav.app.core.security.Capability
-import ai.ritav.app.core.security.ExecutionResult
 import ai.ritav.app.core.security.RiskTier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.security.MessageDigest
@@ -31,6 +29,32 @@ class AndroidIntentActionAdapterTest {
         private val certificates: List<ByteArray>?
     ) : AndroidPackageSigningCertificateReader {
         override fun read(packageName: String): List<ByteArray>? = certificates
+    }
+
+    private class FakeTargetAppObserver(
+        private val available: Boolean = true,
+        private val observed: Boolean = false
+    ) : AndroidTargetAppResultObserver {
+        var canObserveCalls = 0
+        var observeCalls = 0
+        var lastPackage: String? = null
+        var lastDispatchStartedAtMillis: Long? = null
+
+        override fun canObserve(packageName: String): Boolean {
+            canObserveCalls++
+            lastPackage = packageName
+            return available
+        }
+
+        override fun observeForegroundAfterDispatch(
+            packageName: String,
+            dispatchStartedAtMillis: Long
+        ): Boolean {
+            observeCalls++
+            lastPackage = packageName
+            lastDispatchStartedAtMillis = dispatchStartedAtMillis
+            return observed
+        }
     }
 
     private val certificateBytes = byteArrayOf(1, 2, 3, 4, 5)
@@ -67,10 +91,21 @@ class AndroidIntentActionAdapterTest {
         certificateReader = FakeCertificateReader(certificates)
     )
 
+    private fun adapter(
+        dispatcher: RecordingDispatcher,
+        trusted: Boolean = true,
+        observer: FakeTargetAppObserver = FakeTargetAppObserver(),
+        clock: () -> Long = { 1_000L }
+    ) = AndroidIntentActionAdapter(
+        dispatcher = dispatcher,
+        isTrustedPackage = { trusted },
+        targetAppResultObserver = observer,
+        clock = clock
+    )
+
     @Test fun unsupportedActionNeverReachesDispatcher() {
         val dispatcher = RecordingDispatcher(true)
-        val adapter = AndroidIntentActionAdapter(dispatcher) { true }
-        val result = adapter.execute(trustedPlan().copy(action = "close"))
+        val result = adapter(dispatcher).execute(trustedPlan().copy(action = "close"))
 
         assertFalse(result.success)
         assertEquals(0, dispatcher.calls)
@@ -78,8 +113,7 @@ class AndroidIntentActionAdapterTest {
 
     @Test fun untrustedPackageNeverReachesDispatcher() {
         val dispatcher = RecordingDispatcher(true)
-        val adapter = AndroidIntentActionAdapter(dispatcher) { false }
-        val result = adapter.execute(trustedPlan())
+        val result = adapter(dispatcher, trusted = false).execute(trustedPlan())
 
         assertFalse(result.success)
         assertEquals(0, dispatcher.calls)
@@ -87,8 +121,7 @@ class AndroidIntentActionAdapterTest {
 
     @Test fun malformedPlanNeverReachesDispatcher() {
         val dispatcher = RecordingDispatcher(true)
-        val adapter = AndroidIntentActionAdapter(dispatcher) { true }
-        val result = adapter.execute(trustedPlan().copy(appId = ""))
+        val result = adapter(dispatcher).execute(trustedPlan().copy(appId = ""))
 
         assertFalse(result.success)
         assertEquals(0, dispatcher.calls)
@@ -96,29 +129,81 @@ class AndroidIntentActionAdapterTest {
 
     @Test fun unexpectedExpectedStateNeverReachesDispatcher() {
         val dispatcher = RecordingDispatcher(true)
-        val adapter = AndroidIntentActionAdapter(dispatcher) { true }
-        val result = adapter.execute(trustedPlan(expectedState = "OPENED"))
+        val result = adapter(dispatcher).execute(trustedPlan(expectedState = "OPENED"))
 
         assertFalse(result.success)
         assertEquals(0, dispatcher.calls)
     }
 
-    @Test fun successfulDispatchReturnsOnlyDispatchObservation() {
+    @Test fun unavailableObservationPreventsDispatch() {
         val dispatcher = RecordingDispatcher(true)
-        val adapter = AndroidIntentActionAdapter(dispatcher) { true }
-        val result = adapter.execute(trustedPlan())
+        val observer = FakeTargetAppObserver(available = false)
+        val result = adapter(dispatcher, observer = observer).execute(trustedPlan())
+
+        assertFalse(result.success)
+        assertFalse(result.verified)
+        assertEquals(0, dispatcher.calls)
+        assertEquals(1, observer.canObserveCalls)
+        assertEquals(0, observer.observeCalls)
+    }
+
+    @Test fun successfulDispatchReturnsOnlyDispatchObservationUntilIndependentObservationCompletes() {
+        val dispatcher = RecordingDispatcher(true)
+        val observer = FakeTargetAppObserver(observed = false)
+        val result = adapter(dispatcher, observer = observer).execute(trustedPlan())
 
         assertTrue(result.success)
         assertFalse(result.verified)
         assertEquals("LAUNCH_DISPATCHED", result.observedState)
         assertEquals("com.example.safe", dispatcher.lastPackage)
+        assertEquals("com.example.safe", observer.lastPackage)
+        assertEquals(1_000L, observer.lastDispatchStartedAtMillis)
         assertEquals(1, dispatcher.calls)
+        assertEquals(1, observer.observeCalls)
+    }
+
+    @Test fun successfulDispatchAndIndependentObservationAreVerified() {
+        val dispatcher = RecordingDispatcher(true)
+        val observer = FakeTargetAppObserver(observed = true)
+        val result = adapter(dispatcher, observer = observer).execute(trustedPlan())
+
+        assertTrue(result.success)
+        assertTrue(result.verified)
+        assertEquals("LAUNCH_DISPATCHED", result.observedState)
+        assertEquals(1, dispatcher.calls)
+        assertEquals(1, observer.observeCalls)
+    }
+
+    @Test fun observerFailureCannotClaimVerifiedResult() {
+        val dispatcher = RecordingDispatcher(true)
+        val observer = object : AndroidTargetAppResultObserver {
+            override fun canObserve(packageName: String): Boolean = true
+
+            override fun observeForegroundAfterDispatch(
+                packageName: String,
+                dispatchStartedAtMillis: Long
+            ): Boolean = error("observer failure")
+        }
+
+        val result = adapter(dispatcher, observer = observer).execute(trustedPlan())
+
+        assertTrue(result.success)
+        assertFalse(result.verified)
+        assertEquals(1, dispatcher.calls)
+    }
+
+    @Test fun clockFailurePreventsDispatch() {
+        val dispatcher = RecordingDispatcher(true)
+        val result = adapter(dispatcher, clock = { error("clock failure") }).execute(trustedPlan())
+
+        assertFalse(result.success)
+        assertFalse(result.verified)
+        assertEquals(0, dispatcher.calls)
     }
 
     @Test fun failedDispatchDoesNotReportSuccess() {
         val dispatcher = RecordingDispatcher(false)
-        val adapter = AndroidIntentActionAdapter(dispatcher) { true }
-        val result = adapter.execute(trustedPlan())
+        val result = adapter(dispatcher).execute(trustedPlan())
 
         assertFalse(result.success)
         assertFalse(result.verified)
@@ -180,7 +265,7 @@ class AndroidIntentActionAdapterTest {
         val result = verifier(registry, listOf(certificateBytes)).isTrusted("com.example.unknown")
 
         assertFalse(result)
-        assertNull(registry.trustedCertificateSha256("com.example.unknown"))
+        assertEquals(null, registry.trustedCertificateSha256("com.example.unknown"))
     }
 
     @Test fun productionAdapterRejectsMissingCertificatePinBeforeDispatch() {
@@ -191,7 +276,8 @@ class AndroidIntentActionAdapterTest {
             isTrustedPackage = AndroidPackageIdentityVerifier(
                 registry = registry,
                 certificateReader = FakeCertificateReader(listOf(certificateBytes))
-            )::isTrusted
+            )::isTrusted,
+            targetAppResultObserver = FakeTargetAppObserver(observed = true)
         )
 
         val result = adapter.execute(trustedPlan())

@@ -12,12 +12,15 @@ import ai.ritav.app.core.security.ExecutionResult
 /**
  * Minimal production Android action adapter.
  *
- * It deliberately exposes only APP_LAUNCH + "open" and requires a deterministic
- * dispatch-state expectation. The common security boundary remains authoritative.
+ * It deliberately exposes only APP_LAUNCH + "open" and requires independent
+ * target-app foreground observation after launch dispatch. The common security
+ * boundary remains authoritative.
  */
 class AndroidIntentActionAdapter internal constructor(
     private val dispatcher: AndroidAppLaunchDispatcher,
-    private val isTrustedPackage: (String) -> Boolean
+    private val isTrustedPackage: (String) -> Boolean,
+    private val targetAppResultObserver: AndroidTargetAppResultObserver,
+    private val clock: () -> Long = System::currentTimeMillis
 ) : AndroidActionAdapter {
 
     constructor(
@@ -28,7 +31,8 @@ class AndroidIntentActionAdapter internal constructor(
         isTrustedPackage = AndroidPackageIdentityVerifier(
             registry = registry,
             certificateReader = ContextAndroidPackageSigningCertificateReader(context.applicationContext)
-        )::isTrusted
+        )::isTrusted,
+        targetAppResultObserver = AndroidTargetAppForegroundObserver(context.applicationContext)
     )
 
     override fun execute(plan: ActionPlan): ExecutionResult {
@@ -44,25 +48,44 @@ class AndroidIntentActionAdapter internal constructor(
         if (!isTrustedPackage(plan.appId)) {
             return ExecutionResult(false, false, "Target package identity is not trusted")
         }
+        if (!runCatching { targetAppResultObserver.canObserve(plan.appId) }.getOrDefault(false)) {
+            return ExecutionResult(false, false, "Independent target-app observation is unavailable")
+        }
+
+        val dispatchStartedAtMillis = runCatching { clock() }
+            .getOrNull()
+            ?.takeIf { it >= 0L }
+            ?: return ExecutionResult(false, false, "Security clock unavailable")
 
         val dispatched = runCatching {
             dispatcher.dispatchLaunch(plan.appId)
         }.getOrDefault(false)
 
-        return if (dispatched) {
-            ExecutionResult(
-                success = true,
-                verified = false,
-                message = "Android launch request dispatched; final UI state is not independently observed",
-                observedState = LAUNCH_DISPATCHED_STATE
-            )
-        } else {
-            ExecutionResult(
+        if (!dispatched) {
+            return ExecutionResult(
                 success = false,
                 verified = false,
                 message = "Android launch request could not be dispatched"
             )
         }
+
+        val independentlyObserved = runCatching {
+            targetAppResultObserver.observeForegroundAfterDispatch(
+                packageName = plan.appId,
+                dispatchStartedAtMillis = dispatchStartedAtMillis
+            )
+        }.getOrDefault(false)
+
+        return ExecutionResult(
+            success = true,
+            verified = independentlyObserved,
+            message = if (independentlyObserved) {
+                "Android launch dispatched and target package independently observed in the foreground"
+            } else {
+                "Android launch dispatched; target-app foreground observation failed"
+            },
+            observedState = LAUNCH_DISPATCHED_STATE
+        )
     }
 
     private companion object {

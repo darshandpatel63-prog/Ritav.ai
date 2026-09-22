@@ -7,6 +7,7 @@ interface AndroidActionAdapter {
 
 data class ExecutionResult(
     val success: Boolean,
+    /** True only when the adapter has completed its required deterministic post-action verification. */
     val verified: Boolean,
     val message: String,
     val observedState: String? = null
@@ -91,21 +92,53 @@ class ExecutionBridge(
             adapterResult.success, false,
             if (adapterResult.success) "Adapter execution succeeded" else "Adapter execution failed"))
 
+        if (!adapterResult.success) {
+            val verification = resultVerifier.verify(
+                expectedSuccess = false,
+                evidence = ActionResultEvidence(
+                    success = adapterResult.success,
+                    observedState = adapterResult.observedState,
+                    errorCode = "ADAPTER_EXECUTION_FAILED"
+                ),
+                expectedState = plan.expectedState
+            )
+            auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
+                false, verification.verified, "Result verification failed"))
+            return ExecutionResult(false, false, verification.reason, adapterResult.observedState)
+        }
+
+        if (!adapterResult.verified) {
+            auditLog.append(AuditEvent(
+                safeClock(now),
+                plan.sessionId,
+                actionHash,
+                AuditEventType.VERIFICATION,
+                true,
+                false,
+                "Adapter execution completed without required independent result verification"
+            ))
+            return ExecutionResult(
+                success = false,
+                verified = false,
+                message = "Required independent result verification was not completed",
+                observedState = adapterResult.observedState
+            )
+        }
+
         val verification = resultVerifier.verify(
             expectedSuccess = true,
             evidence = ActionResultEvidence(
-                success = adapterResult.success,
-                observedState = adapterResult.observedState,
-                errorCode = if (adapterResult.success) null else "ADAPTER_EXECUTION_FAILED"
+                success = true,
+                observedState = adapterResult.observedState
             ),
             expectedState = plan.expectedState
         )
         auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
-            adapterResult.success, verification.verified,
+            true, verification.verified,
             if (verification.verified) "Result verification passed" else "Result verification failed"))
 
         return ExecutionResult(
-            success = adapterResult.success && verification.verified,
+            success = verification.verified,
             verified = verification.verified,
             message = verification.reason,
             observedState = adapterResult.observedState

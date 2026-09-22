@@ -10,7 +10,15 @@ class ExecutionBridgeTest {
         var calls = 0
         override fun execute(plan: ActionPlan): ExecutionResult {
             calls++
-            return ExecutionResult(true, false, "adapter called", observedState = plan.expectedState)
+            return ExecutionResult(true, true, "adapter called", observedState = plan.expectedState)
+        }
+    }
+
+    private class UnverifiedAdapter : AndroidActionAdapter {
+        var calls = 0
+        override fun execute(plan: ActionPlan): ExecutionResult {
+            calls++
+            return ExecutionResult(true, false, "adapter dispatched but did not verify", observedState = plan.expectedState)
         }
     }
 
@@ -129,6 +137,26 @@ class ExecutionBridgeTest {
         )
         val result = bridge.execute(plan, userExplicitlyRequested = true)
         assertTrue(result.success)
+        assertTrue(result.verified)
+        assertEquals(1, adapter.calls)
+    }
+
+    @Test fun adapterDeclaredSuccessWithoutVerificationCannotBecomeFinalSuccess() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val adapter = UnverifiedAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
+
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+
+        assertFalse(result.success)
+        assertFalse(result.verified)
+        assertEquals("Required independent result verification was not completed", result.message)
         assertEquals(1, adapter.calls)
     }
 
@@ -362,8 +390,7 @@ class ExecutionBridgeTest {
         val gate = ActionAuthorizationGate()
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
-            pipelineFor(policy, fixture.identityManager, gate),
-            adapter
+            pipelineFor(policy, fixture.identityManager, gate)
         )
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, System.currentTimeMillis())
         val first = bridge.execute(
@@ -439,16 +466,16 @@ class ExecutionBridgeTest {
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
-        val pipeline = pipelineFor(policy, IdentitySessionManager())
         var now = 1000L
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
-            pipeline,
+            pipelineFor(policy, IdentitySessionManager()),
             adapter,
             clock = { now += 1000L; now }
         )
 
         val result = bridge.execute(plan, true)
+
         assertTrue(result.success)
 
         val execution = pipeline.audit().single { it.eventType == AuditEventType.EXECUTION }
@@ -462,7 +489,7 @@ class ExecutionBridgeTest {
         val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
         val adapter = object : AndroidActionAdapter {
             override fun execute(plan: ActionPlan) =
-                ExecutionResult(true, false, "wrong state", observedState = "CLOSED")
+                ExecutionResult(true, true, "wrong state", observedState = "CLOSED")
         }
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
