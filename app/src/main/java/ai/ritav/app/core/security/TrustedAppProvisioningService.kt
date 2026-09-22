@@ -96,6 +96,19 @@ internal class TrustedAppProvisioningService(
             normalizeCertificate(certificateSha256) == pending.certificateSha256
     } ?: false
 
+
+    internal fun matchesRemovalEvidence(
+        plan: ActionPlan,
+        packageName: String,
+        certificateSha256: String,
+        signerCount: Int
+    ): Boolean = emergencyStop.runIfInactive {
+        val pending = pendingPlans[plan.stableHash()] ?: return@runIfInactive false
+        isValidRemovalPlan(plan, pending) &&
+            packageName == plan.appId &&
+            signerCount == 1 &&
+            normalizeCertificate(certificateSha256) == pending.certificateSha256
+    } ?: false
     fun trustedPackageNames(): List<String> =
         when (val snapshot = entryStore.snapshot()) {
             TrustedAppEntrySnapshot.Unconfigured -> emptyList()
