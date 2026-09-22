@@ -826,3 +826,73 @@ The explicit deterministic trusted-app trust-entry decision/persistence path is 
 Implement the narrow user-visible trusted-app provisioning flow using the existing PermissionCenter/authorization patterns, preserving exact-plan and evidence binding. Do not invent package names/certificate pins or enable production trust by default.
 ### EXACT COMMIT SHA
 `c5dad4ce6db7bf00615e649e0b77e05b033a620e`
+
+## 2026-09-22 final authoritative state — trusted-app management
+
+### CURRENT STOP POINT
+The verified trusted-app management layer is complete at production-code/test checkpoint `9318f89e8fa62bb6b021b6938d771e6d92e144a2`. GitHub Actions Run #314 (`35694971910`) succeeded on that exact SHA.
+
+### COMPLETED
+- User-visible trusted-app add/review flow is wired through `MainActivity` and `PermissionCenter`.
+- User-visible trusted-app removal/revocation flow is wired through the same deterministic provisioning coordinator.
+- Trusted-package management is protected by the authenticated identity-session gate.
+- Fresh installed package/signing evidence is checked before device authentication and again after device authentication.
+- Exact `ActionPlan` binding, device authorization, identity-session validation and Emergency-Stop generation checks remain enforced below the UI.
+- Certificate details remain outside the user-facing UI/state boundary.
+- Trusted-app trust remains distinct from capability permission granting.
+- Compose state caches the trusted-package list to avoid repeated encrypted-store reads during recomposition.
+- Emergency Stop clears pending trusted-app add/remove state in the UI.
+
+### VERIFIED
+Run #314 (`35694971910`) on `9318f89e8fa62bb6b021b6938d771e6d92e144a2` completed successfully:
+- `:core:jvmTest`
+- `testDebugUnitTest`
+- `assembleDebugAndroidTest`
+- managed-device instrumentation on `pixel2api30`
+
+The final coordinator regression suite passed, including changed-evidence-before/after-authentication coverage for add and removal, successful add/remove flows, and the trusted-app service's persistence, Emergency Stop, signer-count and token-binding checks.
+
+### CONSOLIDATED REVIEW
+The completed layer was re-reviewed across security/authorization, QA/adversarial testing, red-team attack paths, privacy/permissions, Android integration/lifecycle boundaries, resource bounds and final consistency/Guardian checks.
+
+Review focus included:
+- UI → coordinator → deterministic service → secure store/registry data flow.
+- Exact evidence/plan/token binding and asynchronous-authentication TOCTOU.
+- Emergency-Stop and identity-session invalidation.
+- Removal registry/store ordering and rollback behavior.
+- Certificate privacy and package/certificate input bounds.
+- Finance/Tier-4 denial and separation from capability grants.
+- Failure history versus final verification evidence.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this completed layer.
+
+### CI FAILURE HISTORY
+- Run #312 (`35694134421`) failed because an intermediate removal-race test used a fresh empty in-memory registry for the removal coordinator. This was a test-fixture defect.
+- Run #313 (`35694771907`) failed to compile because an intermediate fixture correction declared `addPlan` twice.
+- Run #314 (`35694971910`) is the corrected exact-head success and is the authoritative verification for `9318f89e8fa62bb6b021b6938d771e6d92e144a2`.
+
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime implementations.
+- Independent target-app UI/result observation.
+- Real model/context ingestion and screen/OCR/accessibility-to-model filtering.
+- Any real production trusted-app entry; the registry remains empty/deny-by-default.
+- Complete contextual secret classification.
+
+### KNOWN LIMITATIONS
+- The current removal UI requires the package to remain installed so authoritative signing evidence can be read again; stale/uninstalled trusted entries cannot currently be revoked through this evidence-backed path.
+- Secure persistence and registry mutation are fail-closed and rollback-aware; anomalous rollback failure remains a consistency edge case, not a demonstrated authorization bypass.
+- Trusting an app does not grant capability permissions automatically.
+- Managed-device CI does not substitute for physical-device validation.
+
+### NEXT ACTION
+The next development chat must inspect the live `main`, latest commit(s), relevant source/tests and CI before any new work. Treat `9318f89e8fa62bb6b021b6938d771e6d92e144a2` + Run #314 as the latest verified production-code/test checkpoint unless newer code has its own exact-head verification.
+
+Do not restart or duplicate trusted-app management. Preserve the common deterministic security boundary and continue only with the next explicitly justified security layer. Never invent trusted package identities, certificate pins, banking/UPI mappings, OAuth identities, payment integrations, backend services or external SDKs.
+
+### EXACT VERIFIED PRODUCTION-CODE/TEST SHA
+`9318f89e8fa62bb6b021b6938d771e6d92e144a2`
+
+### EXACT VERIFIED CI RUN
+Run #314 — `35694971910`
