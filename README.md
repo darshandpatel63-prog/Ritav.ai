@@ -417,7 +417,42 @@ The completed evidence sub-layer received the required consolidated and independ
 - Package-name and certificate-size bounds are conservative availability restrictions that fail closed rather than weakening trust.
 - Existing execution-time `AndroidPackageIdentityVerifier` remains authoritative and still requires an explicit registry certificate pin plus exactly one matching installed signer.
 - Raw certificate bytes are not returned by the evidence object and are not persisted by the evidence reader.
-- Known limitations remain: no persistent trust-entry provisioning path yet, no production trust entries, no independent target-app UI/result observation, no physical-device testing, and no real model/context ingestion filtering path.
+- Known limitations remain: no production trust entries, no independent target-app UI/result observation, no physical-device testing, and no real model/context ingestion filtering path.
 - This is a completed audited checkpoint before the next major security layer.
 
-**Next action:** implement the separate explicit trusted-app trust-entry decision/persistence path using authoritative evidence, existing secure local storage boundaries, deterministic authorization, and empty/deny-by-default behavior when no reviewed entry exists. Do not invent package names, certificate pins, banking/UPI mappings, or external service integrations.
+**Next action:** wire the verified trusted-app provisioning service/coordinator into a user-visible, reviewable flow without bypassing the deterministic core. Preserve authoritative package/certificate evidence, device authorization, exact-plan binding, Emergency Stop and deny-by-default behavior.
+
+
+## 2026-09-22 verified trusted-app trust-entry provisioning checkpoint
+
+The explicit deterministic trusted-app trust-entry decision/persistence layer is now implemented, integrated and exact-head CI verified. The production trusted external-app registry remains empty/deny-by-default because no real package identity/certificate pin has been approved.
+### CURRENT STOP POINT
+- Verified implementation/test head: `c5dad4ce6db7bf00615e649e0b77e05b033a620e`.
+- Android workflow Run #298 (`35679864201`) completed successfully on that exact SHA.
+- CI covered JVM/unit tests, Android instrumentation-test compilation/APK assembly, and managed-device instrumentation on `pixel2api30`.
+### COMPLETED
+- Added bounded encrypted durable trust-entry storage using the existing `SecureLocalStore`.
+- Added deterministic trust-entry provisioning bound to exact package identity evidence, certificate digest, single-signer state, identity session, device-auth token, Emergency-Stop generation and short-lived pending state.
+- Added evidence binding into `ActionPlan.expectedState` so certificate changes produce distinct plan hashes and cannot reuse authorization tokens.
+- Added Android coordinator checks before and after device authentication so package/certificate evidence must remain consistent before persistence.
+- Kept the trusted registry mutation internal and constrained to the reviewed `APP_LAUNCH + open` capability shape; financial/Tier-4 trust entries are rejected.
+- Added regression coverage for wrong evidence, certificate-change plan binding, malformed package names, multiple signers, Emergency Stop and durable-store failure.
+### VERIFIED
+- Run #298 exact-head CI: SUCCESS.
+- Consolidated security review covered authorization/token binding, identity sessions, Emergency Stop, evidence/TOCTOU boundaries, persistence validation, registry mutation, concurrency, resource limits, privacy boundary, and finance/Tier-4 denial.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed provisioning path.
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release.
+- Native non-Android runtimes.
+- Independent target-app UI/result observation.
+- Real model/context ingestion filtering.
+- Real production trust entries.
+### KNOWN LIMITATIONS
+- The provisioning core/coordinator exists but is not yet wired to a final user-visible trusted-app management UI.
+- Store/registry persistence is fail-closed and rollback-aware; a catastrophic storage failure during an anomalous in-memory registry mutation rollback remains an architectural consistency edge case, not a demonstrated authorization bypass.
+- Target-app result observation remains outstanding.
+### NEXT ACTION
+Wire the verified provisioning coordinator into a narrow user-visible trusted-app management flow using the existing authorization/session UI patterns. Do not expose certificate material to UI, do not invent package/certificate identities, and do not enable any production trust entry without authoritative evidence and explicit review.
+### EXACT COMMIT SHA
+`c5dad4ce6db7bf00615e649e0b77e05b033a620e`
