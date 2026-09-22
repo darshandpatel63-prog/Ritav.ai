@@ -37,6 +37,9 @@ class MainActivity : FragmentActivity() {
             var stopped by remember { mutableStateOf(securityState.isEmergencyStopActive()) }
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
+            var trustedPackageInput by remember { mutableStateOf("") }
+            var pendingTrustedPackage by remember { mutableStateOf<String?>(null) }
+            var pendingTrustedPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var statusMessage by remember { mutableStateOf<String?>(null) }
 
             val identitySession = activeIdentitySession?.takeIf {
@@ -46,6 +49,11 @@ class MainActivity : FragmentActivity() {
             fun dismissPendingApproval() {
                 pendingCandidate = null
                 pendingGrantPlan = null
+            }
+
+            fun dismissPendingTrustedApproval() {
+                pendingTrustedPackage = null
+                pendingTrustedPlan = null
             }
 
             fun authenticateProtectedActions() {
@@ -85,6 +93,63 @@ class MainActivity : FragmentActivity() {
 
                 pendingCandidate = candidate
                 pendingGrantPlan = plan
+            }
+
+            fun reviewTrustedApp() {
+                statusMessage = null
+                val session = activeIdentitySession?.takeIf {
+                    it.isActive(System.currentTimeMillis())
+                }
+                if (session == null || securityState.isEmergencyStopActive()) {
+                    statusMessage = "Authenticate a protected identity session before trusting an application."
+                    return
+                }
+
+                val packageName = trustedPackageInput.trim()
+                if (packageName.isEmpty()) {
+                    statusMessage = "Enter an installed Android package name."
+                    return
+                }
+
+                val plan = executionRuntime.trustedAppProvisioningCoordinator.prepare(
+                    packageName = packageName,
+                    identitySession = session
+                )
+                if (plan == null) {
+                    statusMessage = "The installed package identity could not be verified or is not eligible for trust."
+                    return
+                }
+
+                pendingTrustedPackage = plan.appId
+                pendingTrustedPlan = plan
+            }
+
+            fun approvePendingTrustedApp() {
+                val plan = pendingTrustedPlan ?: return
+                val session = activeIdentitySession ?: run {
+                    dismissPendingTrustedApproval()
+                    statusMessage = "Trusted identity session is unavailable."
+                    return
+                }
+
+                dismissPendingTrustedApproval()
+                statusMessage = "Authorizing trusted-application approval..."
+
+                executionRuntime.trustedAppProvisioningCoordinator.approveAndPersist(
+                    plan = plan,
+                    identitySession = session,
+                    userConfirmed = true
+                ) { success ->
+                    runOnUiThread {
+                        statusMessage =
+                            if (success) {
+                                trustedPackageInput = ""
+                                "Trusted application added. Capability access still requires its separate grant flow."
+                            } else {
+                                "Trusted-application approval was denied or became invalid."
+                            }
+                    }
+                }
             }
 
             fun approvePendingGrant() {
@@ -132,12 +197,25 @@ class MainActivity : FragmentActivity() {
                         pendingCandidate = pendingCandidate,
                         pendingPlan = pendingGrantPlan,
                         statusMessage = statusMessage,
+                        trustedPackageInput = trustedPackageInput,
+                        onTrustedPackageInputChanged = { value ->
+                            trustedPackageInput = value.take(256)
+                        },
+                        onPrepareTrustedApp = ::reviewTrustedApp,
+                        pendingTrustedPackage = pendingTrustedPackage,
+                        pendingTrustedPlan = pendingTrustedPlan,
+                        onDismissTrustedApproval = {
+                            dismissPendingTrustedApproval()
+                            statusMessage = null
+                        },
+                        onApproveTrustedApp = ::approvePendingTrustedApp,
                         onAuthenticate = ::authenticateProtectedActions,
                         onEmergencyStop = {
                             securityState.activateEmergencyStop()
                             stopped = true
                             activeIdentitySession = null
                             dismissPendingApproval()
+                            dismissPendingTrustedApproval()
                             statusMessage = "Emergency Stop activated. Protected actions are blocked."
                         },
                         onResume = {
@@ -145,6 +223,7 @@ class MainActivity : FragmentActivity() {
                             stopped = securityState.isEmergencyStopActive()
                             activeIdentitySession = null
                             dismissPendingApproval()
+                            dismissPendingTrustedApproval()
                             statusMessage =
                                 if (stopped) {
                                     "Emergency Stop remains active."
