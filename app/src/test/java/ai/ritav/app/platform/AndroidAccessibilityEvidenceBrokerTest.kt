@@ -1,6 +1,7 @@
 package ai.ritav.app.platform
 
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import ai.ritav.app.core.security.ContentTrustLevel
 import ai.ritav.app.core.security.UntrustedContent
 import org.junit.Assert.assertEquals
@@ -73,6 +74,63 @@ class AndroidAccessibilityEvidenceBrokerTest {
                     )
                 )
             )
+        } finally {
+            AndroidAccessibilityEvidenceBroker.setServiceConnected(false)
+        }
+    }
+
+
+    @Test fun semanticEvidenceRequiresPostDispatchSourceAndReceiptTimes() {
+        AndroidAccessibilityEvidenceBroker.setServiceConnected(true)
+        try {
+            assertTrue(AndroidAccessibilityEvidenceBroker.arm("com.example.safe"))
+            val event = AccessibilityEvent.obtain(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED)
+            event.packageName = "com.example.safe"
+            event.eventTime = 200L
+            val root = AccessibilityNodeInfo.obtain()
+            root.packageName = "com.example.safe"
+            AndroidAccessibilityEvidenceBroker.recordSemanticEvent(
+                event = event,
+                receivedAtElapsedMillis = 250L,
+                root = root
+            )
+            assertTrue(
+                AndroidAccessibilityEvidenceBroker.observeSemanticEvidenceAfter(
+                    packageName = "com.example.safe",
+                    dispatchCompletedAtElapsedMillis = 100L,
+                    nowElapsedMillis = 300L
+                )
+            )
+            root.recycle()
+            event.recycle()
+        } finally {
+            AndroidAccessibilityEvidenceBroker.setServiceConnected(false)
+        }
+    }
+
+    @Test fun staleAccessibilityEventCannotBecomePostDispatchEvidence() {
+        AndroidAccessibilityEvidenceBroker.setServiceConnected(true)
+        try {
+            assertTrue(AndroidAccessibilityEvidenceBroker.arm("com.example.safe"))
+            val event = AccessibilityEvent.obtain(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED)
+            event.packageName = "com.example.safe"
+            event.eventTime = 90L
+            val root = AccessibilityNodeInfo.obtain()
+            root.packageName = "com.example.safe"
+            AndroidAccessibilityEvidenceBroker.recordSemanticEvent(
+                event = event,
+                receivedAtElapsedMillis = 200L,
+                root = root
+            )
+            assertFalse(
+                AndroidAccessibilityEvidenceBroker.observeSemanticEvidenceAfter(
+                    packageName = "com.example.safe",
+                    dispatchCompletedAtElapsedMillis = 100L,
+                    nowElapsedMillis = 300L
+                )
+            )
+            root.recycle()
+            event.recycle()
         } finally {
             AndroidAccessibilityEvidenceBroker.setServiceConnected(false)
         }
