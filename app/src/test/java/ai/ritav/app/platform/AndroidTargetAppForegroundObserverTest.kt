@@ -177,12 +177,11 @@ class AndroidTargetAppForegroundObserverTest {
             )
         )
 
-        assertFalse(
-            observer(reader).observeForegroundAfterDispatch(
-                packageName = "demo.app",
-                dispatchStartedAtMillis = 1_000L
-            )
+        val result = observer(reader).observeForegroundAfterDispatch(
+            packageName = "demo.app",
+            dispatchStartedAtMillis = 1_000L
         )
+        assertTrue(result == null)
     }
 
     @Test fun pollingCanObserveLaterForegroundEventWithinBound() {
@@ -218,12 +217,11 @@ class AndroidTargetAppForegroundObserverTest {
         val reader = FakeReader(listOf(emptyList()))
         val observer = observer(reader)
         assertFalse(observer.canObserve(""))
-        assertFalse(
-            observer.observeForegroundAfterDispatch(
-                packageName = "",
-                dispatchStartedAtMillis = 1_000L
-            )
+        val result = observer.observeForegroundAfterDispatch(
+            packageName = "",
+            dispatchStartedAtMillis = 1_000L
         )
+        assertTrue(result == null)
         assertTrue(reader.calls == 0)
     }
 
