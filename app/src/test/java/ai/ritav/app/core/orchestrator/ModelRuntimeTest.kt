@@ -1,5 +1,7 @@
 package ai.ritav.app.core.orchestrator
 
+import ai.ritav.app.core.security.AppCapabilitySpec
+import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.ContentTrustLevel
 import ai.ritav.app.core.security.RiskTier
@@ -274,10 +276,10 @@ class ModelRuntimeTest {
         val invoker = ScopedAgentInvoker()
         val registry = AppCapabilityRegistry(
             listOf(
-                AppCapability(
+                AppCapabilitySpec(
                     packageName = "com.example.safe",
-                    capabilities = setOf(Capability.APP_LAUNCH),
-                    allowedActions = mapOf(Capability.APP_LAUNCH to setOf("open")),
+                    capability = Capability.APP_LAUNCH,
+                    actions = setOf("open"),
                     riskTier = RiskTier.TIER_1_REVERSIBLE,
                     financial = false
                 )
