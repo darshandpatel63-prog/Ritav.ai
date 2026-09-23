@@ -8,7 +8,7 @@ import android.provider.Settings
  * Accessibility-backed semantic result observation.
  *
  * The current executable scope is APP_LAUNCH + open: completion requires a
- * post-dispatch target-package window-state/content event with a matching
+ * post-dispatch target-package window-state transition with a matching
  * active-window package. It does not claim arbitrary in-app task completion.
  */
 internal interface AndroidSemanticTaskObserver {
