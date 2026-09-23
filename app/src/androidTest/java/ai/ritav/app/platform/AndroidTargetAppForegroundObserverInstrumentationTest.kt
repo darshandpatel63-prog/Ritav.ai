@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import ai.ritav.app.MainActivity
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,11 +30,12 @@ class AndroidTargetAppForegroundObserverInstrumentationTest {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
 
-        assertTrue(
-            observer.observeForegroundAfterDispatch(
-                packageName = context.packageName,
-                dispatchStartedAtMillis = dispatchStartedAtMillis
-            )
+        val observation = observer.observeForegroundAfterDispatch(
+            packageName = context.packageName,
+            dispatchStartedAtMillis = dispatchStartedAtMillis
         )
+        assertTrue(observation != null)
+        assertEquals(context.packageName, observation?.packageName)
+        assertTrue((observation?.observedAtMillis ?: -1L) >= dispatchStartedAtMillis)
     }
 }
