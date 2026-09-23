@@ -1017,3 +1017,31 @@ The target-app observation race hardening is merged into `main`. Current merge c
 ### NEXT ACTION
 Continue from current main without restarting trusted-app management. Evaluate semantic verification only when a real deterministic evidence producer/consumer path exists.
 
+## 2026-09-23 independent audit checkpoint — target-app observation
+
+### CURRENT STOP POINT
+Independent audit of the target-app foreground observation layer is complete. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified.
+
+### AUDIT COVERAGE
+- Deterministic execution chain and alternate adapter-path search.
+- Trust/certificate binding and empty-registry behavior.
+- Authorization/session/Emergency Stop preservation.
+- Observation data minimization and privacy boundary.
+- Dispatch/observation ordering and wall-clock failure behavior.
+- Timestamp freshness, query-window/deadline enforcement and overflow bounds.
+- Oversized event/query handling and bounded polling.
+- Managed-device instrumentation coverage.
+- Android special-access semantics and realistic platform limitations. citeturn658278search0
+
+### FINDINGS
+No CRITICAL/HIGH/MEDIUM bypass demonstrated.
+
+LOW/INFORMATIONAL operational limitations:
+- `PACKAGE_USAGE_STATS` requires user-granted Settings access; declaration alone is insufficient. Current production behavior therefore fails closed when access is absent. citeturn658278search0
+- Foreground observation cannot establish semantic task completion.
+- A richer UI-state evidence path would require a user-enabled AccessibilityService or another explicitly consented mechanism; AccessibilityService window-content retrieval is opt-in and subject to Android service rules. citeturn366553search0
+- MediaProjection is intentionally not introduced as a shortcut because screen capture is consent-gated and Android 14+ requires user consent for each capture session. citeturn366553search3turn366553search1
+
+### AUDIT GATE
+The completed observation layer now has its required independent-audit checkpoint. Do not restart trusted-app management. Proceed to the next major layer only when a real deterministic semantic-evidence producer/consumer path is identified and reviewed.
+
