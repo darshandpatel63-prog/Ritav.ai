@@ -80,9 +80,7 @@ internal object AndroidAccessibilityEvidenceBroker {
         val packageName = event.packageName?.toString() ?: return
         if (!isValidPackageName(packageName)) return
 
-        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
-            event.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-        ) return
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
         synchronized(lock) {
             if (!serviceConnected || armedPackage != packageName) return
