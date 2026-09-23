@@ -103,13 +103,18 @@ internal class ContextAndroidUsageEventReader(
  * This does not inspect UI contents. It verifies only that the exact target
  * package produced a foreground activity event after launch dispatch.
  */
+internal data class AndroidForegroundObservation(
+    val packageName: String,
+    val observedAtMillis: Long
+)
+
 internal interface AndroidTargetAppResultObserver {
     fun canObserve(packageName: String): Boolean
 
     fun observeForegroundAfterDispatch(
         packageName: String,
         dispatchStartedAtMillis: Long
-    ): Boolean
+    ): AndroidForegroundObservation?
 }
 
 internal class AndroidTargetAppForegroundObserver(
@@ -138,16 +143,16 @@ internal class AndroidTargetAppForegroundObserver(
     override fun observeForegroundAfterDispatch(
         packageName: String,
         dispatchStartedAtMillis: Long
-    ): Boolean {
-        if (!isValidPackageName(packageName)) return false
-        if (dispatchStartedAtMillis < 0L) return false
-        if (dispatchStartedAtMillis > Long.MAX_VALUE - MAX_WAIT_MILLIS) return false
+    ): AndroidForegroundObservation? {
+        if (!isValidPackageName(packageName)) return null
+        if (dispatchStartedAtMillis < 0L) return null
+        if (dispatchStartedAtMillis > Long.MAX_VALUE - MAX_WAIT_MILLIS) return null
 
         val deadline = dispatchStartedAtMillis + MAX_WAIT_MILLIS
 
         repeat(MAX_POLL_ATTEMPTS) { attempt ->
-            val now = safeNow() ?: return false
-            if (now < dispatchStartedAtMillis) return false
+            val now = safeNow() ?: return null
+            if (now < dispatchStartedAtMillis) return null
 
             val queryEnd = minOf(now, deadline)
                 .let { end -> end + 1L }
@@ -159,10 +164,10 @@ internal class AndroidTargetAppForegroundObserver(
                         beginMillis = dispatchStartedAtMillis,
                         endMillis = queryEnd
                     )
-                }.getOrNull() ?: return false
+                }.getOrNull() ?: return null
 
                 if (events.size > MAX_EVENTS_PER_QUERY) {
-                    return false
+                    return null
                 }
 
                 if (events.any { event ->
@@ -173,20 +178,20 @@ internal class AndroidTargetAppForegroundObserver(
                             isForegroundEvent(event.eventType)
                     }
                 ) {
-                    return true
+                    return AndroidForegroundObservation(packageName = packageName, observedAtMillis = eventTimestamp)
                 }
             }
 
             if (now >= deadline || attempt == MAX_POLL_ATTEMPTS - 1) {
-                return false
+                return null
             }
 
             if (!runCatching { sleeper(POLL_INTERVAL_MILLIS) }.isSuccess) {
-                return false
+                return null
             }
         }
 
-        return false
+        return null
     }
 
     private fun safeNow(): Long? =
