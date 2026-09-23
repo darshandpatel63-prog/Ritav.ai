@@ -1,6 +1,5 @@
 package ai.ritav.app.core.orchestrator
 
-import ai.ritav.app.core.security.ContentTrustLevel
 import ai.ritav.app.core.security.PromptInjectionBoundary
 import ai.ritav.app.core.security.SensitiveInformationFirewall
 import ai.ritav.app.core.security.TrustedUserCommand
@@ -38,7 +37,6 @@ class ModelContextBoundary(
         var totalCharacters = safeUserCommand.text.length
 
         for (item in context) {
-            if (item.trustLevel == ContentTrustLevel.USER_COMMAND) return null
             val safeItem = sanitizeForModel(item) ?: return null
             totalCharacters += safeItem.text.length
             if (totalCharacters > MAX_TOTAL_CONTEXT_CHARACTERS) return null
