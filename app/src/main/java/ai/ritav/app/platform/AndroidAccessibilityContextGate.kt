@@ -10,6 +10,7 @@ import ai.ritav.app.core.orchestrator.ScreenContentSource
 import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.ContentTrustLevel
 import ai.ritav.app.core.security.UntrustedContent
+import java.util.Collections
 
 internal class AndroidAccessibilityContextGate(
     private val filter: ScreenContextSecurityFilter = ScreenContextSecurityFilter()
@@ -47,7 +48,7 @@ internal class AndroidAccessibilityContextGate(
             request = request,
             packageName = packageName,
             agentId = agentId,
-            allowedCapabilities = request.scope.allowedCapabilities.toSet(),
+            allowedCapabilities = Collections.unmodifiableSet(request.scope.allowedCapabilities.toSet()),
             expiresAtElapsedRealtime = expiresAtElapsedRealtime,
             stopGeneration = stopGeneration
         )
