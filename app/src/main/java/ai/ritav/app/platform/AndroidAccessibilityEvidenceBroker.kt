@@ -53,6 +53,7 @@ internal object AndroidAccessibilityEvidenceBroker {
         if (!isValidPackageName(packageName)) return false
         synchronized(lock) {
             if (!serviceConnected) return false
+            if (armedPackage != null) return false
             armedPackage = packageName
             latestSemanticEvidence = null
             latestContext = null
@@ -118,6 +119,7 @@ internal object AndroidAccessibilityEvidenceBroker {
     }
 
     fun publishModelContext(content: UntrustedContent): Boolean {
+        if (!content.source.startsWith(SOURCE_PREFIX)) return false
         val packageName = content.source.removePrefix(SOURCE_PREFIX)
         if (!isValidPackageName(packageName)) return false
         if (content.text.isBlank() || content.text.length > MAX_CONTEXT_LENGTH) return false
