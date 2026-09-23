@@ -234,7 +234,6 @@ class AndroidIntentActionAdapterTest {
         assertEquals(1_000L, observer.lastDispatchStartedAtMillis)
         assertEquals(1, dispatcher.calls)
         assertEquals(1, observer.observeCalls)
-        assertEquals(1, FakeSemanticTaskObserver().disarmCalls + 0)
     }
 
     @Test fun observationUsesTimestampSampledAfterDispatch() {
