@@ -1,7 +1,6 @@
 package ai.ritav.app.core.orchestrator
 
 import ai.ritav.app.core.security.Capability
-import ai.ritav.app.core.security.ContentTrustLevel
 import ai.ritav.app.core.security.SensitiveInformationFirewall
 import ai.ritav.app.core.security.RiskTier
 import ai.ritav.app.core.security.UntrustedContent
