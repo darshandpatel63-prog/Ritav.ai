@@ -84,9 +84,12 @@ internal class AndroidAccessibilitySemanticTaskObserver(
     }
 
     private fun isValidPackageName(packageName: String): Boolean =
-        packageName.isNotBlank() && packageName.length <= 256
+        packageName.length <= MAX_PACKAGE_NAME_LENGTH &&
+            PACKAGE_NAME_REGEX.matches(packageName)
 
     private companion object {
+        const val MAX_PACKAGE_NAME_LENGTH = 256
+        val PACKAGE_NAME_REGEX = Regex("""^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$""")
         const val MAX_WAIT_MILLIS = 2_000L
         const val POLL_INTERVAL_MILLIS = 100L
         const val MAX_POLL_ATTEMPTS = 21
