@@ -1,6 +1,8 @@
 package ai.ritav.app
 
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -279,6 +281,12 @@ class MainActivity : FragmentActivity() {
                             statusMessage = null
                         },
                         onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
+                        onOpenUsageAccessSettings = {
+                            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        },
+                        onOpenAccessibilitySettings = {
+                            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        },
                         onAuthenticate = ::authenticateProtectedActions,
                         onEmergencyStop = {
                             securityState.activateEmergencyStop()
