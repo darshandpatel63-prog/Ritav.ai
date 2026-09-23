@@ -530,3 +530,46 @@ Run #321 — `35821727487`
 ### EXACT MERGE COMMIT
 `6b31f3013b2b044f2f1352ae712638d4ba9db2a5`
 
+## 2026-09-23 latest handoff checkpoint — post-dispatch observation timestamp hardening
+
+### CURRENT STOP POINT
+PR #3 is merged. Current live `main` merge commit: `41711ae54da4fddfc8d5fc77b21c733a4f967a28`.
+
+### COMPLETED
+- Hardened the Android observation ordering so the observation timestamp is sampled after successful launch dispatch.
+- Preserved fail-closed clock preflight before dispatch.
+- Added regression coverage for post-dispatch timestamp binding.
+- Preserved all existing trust/capability/authorization/session/Emergency Stop/sensitive-data/finance controls.
+- Production trusted-app registry remains empty/deny-by-default.
+
+### VERIFIED
+- Implementation/test SHA `0b8e15a58830690ba9fc9b10055e5eaad31f3d35`.
+- Run #323 (`35822250738`) SUCCESS.
+- JVM/unit tests, instrumentation-test compilation/APK assembly and managed-device instrumentation on `pixel2api30` passed.
+- Consolidated affected-path security review completed with no demonstrated CRITICAL/HIGH/MEDIUM bypass.
+
+### NOT VERIFIED
+- No separate post-merge CI evidence is currently exposed for merge commit `41711ae54da4fddfc8d5fc77b21c733a4f967a28`.
+- Physical-device testing.
+- Signed production release.
+- Semantic target-app task/result verification.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes.
+- Real model/context and screen/OCR/accessibility-to-model filtering.
+- Real production trusted-app entries.
+- Complete contextual secret classification.
+
+### KNOWN LIMITATIONS
+Foreground observation remains intentionally limited to package-level state and cannot prove semantic task completion. `PACKAGE_USAGE_STATS` remains a special-access boundary. Managed-device CI is not physical-device validation.
+
+### NEXT ACTION
+Continue from `41711ae54da4fddfc8d5fc77b21c733a4f967a28`. Do not restart trusted-app management. The next major layer is semantic result verification only when a concrete, privacy-preserving, deterministic evidence path can be established.
+
+### EXACT VERIFIED IMPLEMENTATION/TEST SHA
+`0b8e15a58830690ba9fc9b10055e5eaad31f3d35`
+
+### EXACT VERIFIED CI
+Run #323 — `35822250738`
+
+### EXACT MERGE SHA
+`41711ae54da4fddfc8d5fc77b21c733a4f967a28`
+
