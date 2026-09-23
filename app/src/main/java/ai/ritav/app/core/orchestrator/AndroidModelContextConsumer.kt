@@ -1,5 +1,6 @@
 package ai.ritav.app.core.orchestrator
 
+import ai.ritav.app.core.security.TrustedUserCommand
 import ai.ritav.app.core.security.UntrustedContent
 
 /**
@@ -15,7 +16,7 @@ internal class AndroidModelContextConsumer(
 ) {
     fun createRequest(
         taskId: String,
-        userCommand: UntrustedContent,
+        userCommand: TrustedUserCommand,
         scope: AgentCapabilityScope,
         targetPackage: String? = null
     ): AgentRequest? {
