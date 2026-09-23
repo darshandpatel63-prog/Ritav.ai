@@ -2,7 +2,7 @@ package ai.ritav.app.core.orchestrator
 
 import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.RiskTier
-import ai.ritav.app.core.security.ContentTrustLevel
+import ai.ritav.app.core.security.TrustedUserCommand
 import ai.ritav.app.core.security.UntrustedContent
 
 data class AgentCapabilityScope(
@@ -26,12 +26,15 @@ class AgentRequest private constructor(
             taskId: String,
             input: String,
             scope: AgentCapabilityScope
-        ): AgentRequest? = createFromContext(
-            taskId = taskId,
-            userCommand = UntrustedContent(input, "direct-user-input", ContentTrustLevel.USER_COMMAND),
-            context = emptyList(),
-            scope = scope
-        )
+        ): AgentRequest? {
+            val command = TrustedUserCommand.create(input, "direct-user-input") ?: return null
+            return createFromContext(
+                taskId = taskId,
+                userCommand = command,
+                context = emptyList(),
+                scope = scope
+            )
+        }
 
         /**
          * Primary model/agent ingress. Security filtering happens before the
@@ -39,7 +42,7 @@ class AgentRequest private constructor(
          */
         fun createFromContext(
             taskId: String,
-            userCommand: UntrustedContent,
+            userCommand: TrustedUserCommand,
             context: List<UntrustedContent>,
             scope: AgentCapabilityScope
         ): AgentRequest? {
