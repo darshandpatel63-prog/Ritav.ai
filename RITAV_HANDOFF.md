@@ -573,3 +573,34 @@ Run #323 — `35822250738`
 ### EXACT MERGE SHA
 `41711ae54da4fddfc8d5fc77b21c733a4f967a28`
 
+## 2026-09-23 independent audit checkpoint — observation layer
+
+### CURRENT STOP POINT
+The independent audit gate for target-app foreground observation is complete.
+
+### RESULT
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was found after a fresh repository inspection.
+
+The review covered:
+- all `AndroidActionAdapter` execution paths;
+- trust and certificate checks;
+- capability/authorization/session/Emergency Stop controls;
+- post-dispatch timestamp ordering;
+- observation query-window/deadline binding;
+- malformed/oversized/clock-failure behavior;
+- privacy/data-flow isolation;
+- Android special-access behavior;
+- absence of alternate UI/OCR/accessibility-to-model paths.
+
+### AUDIT FINDINGS
+No high-impact bypass identified.
+
+Known lower-severity limitations remain:
+- `PACKAGE_USAGE_STATS` must be granted by the user in Settings; declaration alone does not grant access. citeturn658278search0
+- Foreground evidence proves only package-level foreground transition, not semantic task completion.
+- AccessibilityService is a possible future evidence source, but it is explicitly user-enabled and window-content retrieval is a separately declared capability. citeturn366553search0
+- Screen capture remains out of scope for now because MediaProjection is user-consent gated, including per-session consent on Android 14+. citeturn366553search3turn366553search1
+
+### NEXT ACTION
+The major security-layer audit gate is satisfied. Begin the next work only from this audited checkpoint, with no restart of trusted-app management and no speculative UI/content ingestion.
+
