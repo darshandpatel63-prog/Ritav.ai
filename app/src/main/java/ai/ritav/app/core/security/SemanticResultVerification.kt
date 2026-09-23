@@ -29,12 +29,23 @@ data class VerificationEvidence(
  * An action with no registered semantic evidence contract cannot be reported as
  * successfully completed.
  */
+internal object ExpectedActionStateRegistry {
+    const val OPEN_ACTION = "open"
+    const val LAUNCH_DISPATCHED_STATE = "LAUNCH_DISPATCHED"
+
+    fun expectedStateFor(capability: Capability, action: String): String? =
+        when {
+            capability == Capability.APP_LAUNCH && action == OPEN_ACTION -> LAUNCH_DISPATCHED_STATE
+            else -> null
+        }
+}
+
 internal object SemanticVerificationContract {
     const val TARGET_APP_FOREGROUND = "TARGET_APP_FOREGROUND"
 
     fun requiredEvidenceType(plan: ActionPlan): String? =
         when {
-            plan.capability == Capability.APP_LAUNCH && plan.action == "open" ->
+            ExpectedActionStateRegistry.expectedStateFor(plan.capability, plan.action) != null ->
                 TARGET_APP_FOREGROUND
             else -> null
         }
@@ -66,6 +77,12 @@ class SemanticResultVerifier(
         }
         if (verificationCheckedAtMillis < executionStartedAtMillis) {
             return VerificationResult(false, "Verification clock moved backwards")
+        }
+
+        val expectedContractState = ExpectedActionStateRegistry.expectedStateFor(plan.capability, plan.action)
+            ?: return VerificationResult(false, "No semantic verification contract exists for this action")
+        if (plan.expectedState != expectedContractState) {
+            return VerificationResult(false, "Action plan expected state does not match the security verification contract")
         }
 
         val requiredEvidenceType = SemanticVerificationContract.requiredEvidenceType(plan)
