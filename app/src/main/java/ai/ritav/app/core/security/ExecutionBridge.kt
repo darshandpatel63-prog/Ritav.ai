@@ -10,7 +10,9 @@ data class ExecutionResult(
     /** True only when the adapter has completed its required deterministic post-action verification. */
     val verified: Boolean,
     val message: String,
-    val observedState: String? = null
+    val observedState: String? = null,
+    /** Structured evidence consumed by the central semantic verifier. */
+    val verificationEvidence: VerificationEvidence? = null
 )
 
 /** Final execution boundary. No adapter execution occurs before the full security pipeline passes. */
@@ -18,7 +20,7 @@ class ExecutionBridge(
     private val capabilityPolicyGate: CapabilityPolicyGate,
     private val securityPipeline: SecurityExecutionPipeline,
     private val adapter: AndroidActionAdapter,
-    private val resultVerifier: ResultVerifier = ResultVerifier(),
+    private val semanticResultVerifier: SemanticResultVerifier = SemanticResultVerifier(),
     private val auditLog: AuditLog = securityPipeline.auditLog,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
@@ -107,7 +109,11 @@ class ExecutionBridge(
             return ExecutionResult(false, false, verification.reason, adapterResult.observedState)
         }
 
-        if (!adapterResult.verified) {
+        val verificationCheckedAtMillis = runCatching { clock() }
+            .getOrNull()
+            ?.takeIf { it >= 0L }
+
+        if (verificationCheckedAtMillis == null) {
             auditLog.append(AuditEvent(
                 safeClock(now),
                 plan.sessionId,
@@ -115,23 +121,24 @@ class ExecutionBridge(
                 AuditEventType.VERIFICATION,
                 true,
                 false,
-                "Adapter execution completed without required independent result verification"
+                "Verification clock unavailable"
             ))
             return ExecutionResult(
                 success = false,
                 verified = false,
-                message = "Required independent result verification was not completed",
-                observedState = adapterResult.observedState
+                message = "Verification clock unavailable",
+                observedState = adapterResult.observedState,
+                verificationEvidence = adapterResult.verificationEvidence
             )
         }
 
-        val verification = resultVerifier.verify(
-            expectedSuccess = true,
-            evidence = ActionResultEvidence(
-                success = true,
-                observedState = adapterResult.observedState
-            ),
-            expectedState = plan.expectedState
+        val verification = semanticResultVerifier.verify(
+            plan = plan,
+            executionStartedAtMillis = now,
+            verificationCheckedAtMillis = verificationCheckedAtMillis,
+            executionSucceeded = adapterResult.success,
+            observedState = adapterResult.observedState,
+            evidence = adapterResult.verificationEvidence
         )
         auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
             true, verification.verified,
@@ -141,7 +148,8 @@ class ExecutionBridge(
             success = verification.verified,
             verified = verification.verified,
             message = verification.reason,
-            observedState = adapterResult.observedState
+            observedState = adapterResult.observedState,
+            verificationEvidence = adapterResult.verificationEvidence
         )
     }
 
