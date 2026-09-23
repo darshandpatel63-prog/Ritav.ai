@@ -944,3 +944,40 @@ Merge PR #1 after the branch remains green, then verify the resulting main merge
 ### EXACT CI RUN
 Run #317 — `35813576845`
 
+## 2026-09-23 latest verified checkpoint — observation evidence freshness hardening
+
+### CURRENT STOP POINT
+The independent Android target-app foreground observation layer plus evidence-freshness hardening is merged into `main`. Current main includes merge commit `6b31f3013b2b044f2f1352ae712638d4ba9db2a5`; the documentation sync continues from this checkpoint.
+
+### COMPLETED
+- `AndroidTargetAppForegroundObserver` provides bounded package-only foreground evidence.
+- Accepted evidence must have the exact target package, qualifying foreground event type, timestamp strictly after dispatch, timestamp inside the actual query window, and timestamp at or before the two-second deadline.
+- Added adversarial regression coverage for out-of-window event timestamps.
+- `ExecutionBridge` continues to require adapter-level independent verification before final success.
+- Production trusted-app registry remains empty/deny-by-default.
+
+### VERIFIED
+- Exact implementation/test SHA `f5a22bdb547f97dfabce75dc31bc7a8b1767a351`.
+- GitHub Actions Run #321 (`35821727487`) SUCCESS.
+- JVM/unit tests, instrumentation compilation/APK assembly, and managed-device instrumentation on `pixel2api30` passed.
+- Consolidated review covered observation data flow, timestamp/race bounds, trust identity, authorization/session/Emergency Stop preservation, privacy, finance denial and fail-closed behavior.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass identified.
+
+### NOT VERIFIED
+- Post-merge CI specifically for merge commit `6b31f3013b2b044f2f1352ae712638d4ba9db2a5` is not exposed by the connected workflow-run API.
+- Physical-device testing.
+- Signed release.
+- Semantic target-app result verification.
+- Native non-Android runtimes.
+- Real model/context and screen/OCR/accessibility filtering.
+- Real production trust entries.
+- Complete contextual secret classification.
+
+### KNOWN LIMITATIONS
+- Usage-stat access is special app access and requires explicit platform handling outside managed-device CI.
+- Foreground observation is intentionally not semantic task verification.
+- Managed-device execution does not establish physical-device compatibility.
+
+### NEXT ACTION
+No further change to trusted-app management. Continue only with a genuinely supported semantic verification path, with deterministic evidence contracts and untrusted-content isolation.
+
