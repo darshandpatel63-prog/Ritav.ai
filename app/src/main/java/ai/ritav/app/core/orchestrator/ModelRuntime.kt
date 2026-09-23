@@ -167,3 +167,11 @@ class ModelBackedSpecialistAgent(
     override fun propose(request: AgentRequest): AgentProposal? =
         gateway.propose(request, id)
 }
+
+/**
+ * Safe default until a concrete, reviewed model provider is selected and wired.
+ * It never fabricates model output and always fails closed.
+ */
+object UnavailableModelRuntime : ModelRuntime {
+    override fun generate(request: ModelRuntimeRequest): ModelProposalDraft? = null
+}
