@@ -701,3 +701,12 @@ Run #380 — `35830655333`
 
 ### EXACT MERGE SHA
 `86d70f90c05692d72464056601dc2fb8f165b01a`
+
+
+## 2026-09-23 latest security/handoff checkpoint
+
+The repository is currently private. Open security work is in PR #8 (`security/accessibility-model-context-filter`) and PR #9 (`security/ai-model-runtime-boundary`). Both currently have failing exact-head CI and must be repaired before merge; no green status is claimed. The latest merged semantic-verification checkpoint remains `86d70f90c05692d72464056601dc2fb8f165b01a`, with exact implementation/test SHA `faec08d8083150da2fe4ef961fe3562b31edf9af` and Run #380 (`35830655333`) SUCCESS.
+
+GitHub currently documents standard GitHub-hosted Actions as free for public repositories, while private repositories consume the plan's monthly included minutes. Therefore making this repository public should prevent standard public-repository Actions runs from consuming the private minute allowance, although already-used minutes are not retroactively erased and other Actions limits still apply. Before making the repository public, perform a complete history-aware secret scan because public visibility exposes the repository's full Git history. The assistant has not changed repository visibility.
+
+For continuation, read `RITAV_HANDOFF.md` and `RITAV_PROJECT_STATE.md` for the exact security roadmap, CI failures, open PR heads, verification evidence and new-chat procedure. Do not restart completed trusted-app, observation or semantic-verification layers.
