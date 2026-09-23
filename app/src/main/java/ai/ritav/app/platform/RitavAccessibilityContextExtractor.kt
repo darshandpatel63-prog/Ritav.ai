@@ -37,6 +37,7 @@ internal class RitavAccessibilityContextExtractor {
         if (depth > MAX_DEPTH || visited.size >= MAX_NODES || builder.length >= MAX_TEXT_LENGTH) return
         if (!visited.add(node)) return
         if (node.packageName?.toString() != packageName) return
+        if (!node.isVisibleToUser || node.isPassword) return
 
         append(node.text?.toString(), builder)
         append(node.contentDescription?.toString(), builder)
