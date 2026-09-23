@@ -128,5 +128,6 @@ internal object AndroidAccessibilityEvidenceBroker {
     }
 
     private fun isValidPackageName(packageName: String): Boolean =
-        packageName.isNotBlank() && packageName.length <= MAX_PACKAGE_NAME_LENGTH
+        packageName.length <= MAX_PACKAGE_NAME_LENGTH &&
+            PACKAGE_NAME_REGEX.matches(packageName)
 }
