@@ -6,6 +6,7 @@ class ScopedAgentInvoker {
     fun invoke(agent: SpecialistAgent, request: AgentRequest): AgentProposal? {
         val proposal = agent.propose(request) ?: return null
         if (proposal.taskId != request.taskId) return null
+        if (proposal.agentId != agent.id) return null
         if (proposal.agentId.isBlank() || proposal.agentId.length > MAX_ID_LENGTH) return null
         if (proposal.proposedAction.isBlank() || proposal.proposedAction.length > MAX_TEXT_LENGTH) return null
         if (proposal.rationale.length > MAX_TEXT_LENGTH) return null
