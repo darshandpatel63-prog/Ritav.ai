@@ -19,6 +19,7 @@ internal object AndroidAccessibilityEvidenceBroker {
     internal data class SemanticEvidence(
         val packageName: String,
         val eventType: Int,
+        val eventTimeElapsedMillis: Long,
         val receivedAtElapsedMillis: Long
     )
 
@@ -75,7 +76,7 @@ internal object AndroidAccessibilityEvidenceBroker {
         receivedAtElapsedMillis: Long,
         root: AccessibilityNodeInfo?
     ) {
-        if (receivedAtElapsedMillis < 0L) return
+        if (receivedAtElapsedMillis < 0L || event.eventTime < 0L) return
         val packageName = event.packageName?.toString() ?: return
         if (!isValidPackageName(packageName)) return
 
@@ -89,6 +90,7 @@ internal object AndroidAccessibilityEvidenceBroker {
             latestSemanticEvidence = SemanticEvidence(
                 packageName = packageName,
                 eventType = event.eventType,
+                eventTimeElapsedMillis = event.eventTime,
                 receivedAtElapsedMillis = receivedAtElapsedMillis
             )
         }
@@ -106,10 +108,14 @@ internal object AndroidAccessibilityEvidenceBroker {
         synchronized(lock) {
             val evidence = latestSemanticEvidence ?: return false
             if (evidence.packageName != packageName) return false
+            if (evidence.eventTimeElapsedMillis <= dispatchCompletedAtElapsedMillis) return false
             if (evidence.receivedAtElapsedMillis <= dispatchCompletedAtElapsedMillis) return false
+            if (evidence.eventTimeElapsedMillis > nowElapsedMillis) return false
             if (evidence.receivedAtElapsedMillis > nowElapsedMillis) return false
-            return dispatchCompletedAtElapsedMillis <= Long.MAX_VALUE - MAX_SEMANTIC_WINDOW_MILLIS &&
-                evidence.receivedAtElapsedMillis <= dispatchCompletedAtElapsedMillis + MAX_SEMANTIC_WINDOW_MILLIS
+            if (dispatchCompletedAtElapsedMillis > Long.MAX_VALUE - MAX_SEMANTIC_WINDOW_MILLIS) return false
+            val deadline = dispatchCompletedAtElapsedMillis + MAX_SEMANTIC_WINDOW_MILLIS
+            return evidence.eventTimeElapsedMillis <= deadline &&
+                evidence.receivedAtElapsedMillis <= deadline
         }
     }
 
