@@ -1,7 +1,6 @@
 package ai.ritav.app.core.security
 
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PromptInjectionBoundaryTest {
@@ -18,8 +17,8 @@ class PromptInjectionBoundaryTest {
         assertFalse(boundary.canAuthorizeAction(content))
     }
 
-    @Test fun onlyTrustedInputPathIsMarkedAsUserCommand() {
-        val content = UntrustedContent("Open settings", "voice", ContentTrustLevel.USER_COMMAND)
-        assertTrue(boundary.isTrustedCommand(content))
+    @Test fun untrustedContentNeverBecomesActionAuthority() {
+        val content = UntrustedContent("Open settings", "voice", ContentTrustLevel.APP_CONTENT)
+        assertFalse(boundary.canAuthorizeAction(content))
     }
 }
