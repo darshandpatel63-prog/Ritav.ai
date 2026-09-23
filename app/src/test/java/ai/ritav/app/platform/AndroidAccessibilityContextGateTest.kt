@@ -100,6 +100,20 @@ class AndroidAccessibilityContextGateTest {
         assertNull(gate.prepare(snapshot(text = "Password: hunter2"), 1_500L, 1L))
     }
 
+    @Test fun staleObservationCannotReachModelContext() {
+        val gate = AndroidAccessibilityContextGate()
+        gate.arm(request(), "com.example.safe", "android-model", 10_000L, 1_000L, 1L)
+
+        assertNull(gate.prepare(snapshot(observedAt = 2_000L), 4_001L, 1L))
+    }
+
+    @Test fun futureObservationCannotReachModelContext() {
+        val gate = AndroidAccessibilityContextGate()
+        gate.arm(request(), "com.example.safe", "android-model", 10_000L, 1_000L, 1L)
+
+        assertNull(gate.prepare(snapshot(observedAt = 1_501L), 1_500L, 1L))
+    }
+
     @Test fun sessionDurationIsBounded() {
         val gate = AndroidAccessibilityContextGate()
         assertFalse(
