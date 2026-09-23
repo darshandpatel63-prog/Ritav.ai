@@ -146,4 +146,7 @@ internal object AndroidAccessibilityEvidenceBroker {
     private fun isValidPackageName(packageName: String): Boolean =
         packageName.length <= MAX_PACKAGE_NAME_LENGTH &&
             PACKAGE_NAME_REGEX.matches(packageName)
+
+    private val PACKAGE_NAME_REGEX =
+        Regex("""^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$""")
 }
