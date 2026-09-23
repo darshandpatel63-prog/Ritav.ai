@@ -520,3 +520,50 @@ The next chat must first inspect the actual current `main` head and CI, then tre
 Do not restart the trusted-app management layer. Do not invent trusted packages/certificate pins or add speculative banking, UPI, OAuth, payment, backend or external-SDK integrations.
 
 **Next development direction:** continue from the verified trusted-app management checkpoint into the next explicitly justified security layer, only after inspecting the live repository and preserving the existing deterministic security boundary.
+
+## 2026-09-23 target-app foreground observation checkpoint
+
+### CURRENT STOP POINT
+The independent Android target-app foreground observation layer is implemented and exact-head CI verified at `173e3e706deb734fc06ab1ed97d9fb6a89e71cab`. PR #1 is open against `main`.
+
+### COMPLETED
+- Added a bounded Android `UsageStatsManager` observation boundary for `APP_LAUNCH + open`.
+- Retained only exact target package identity, event type and timestamp; UI text, accessibility nodes, class names and event extras are not exposed to the result-verification path.
+- Required observation capability before launch dispatch.
+- Required an exact target-package foreground event after dispatch within a bounded 2-second observation window.
+- Preserved the existing trust, capability, authorization, session, Emergency Stop, sensitive-data and finance controls.
+- Added JVM negative/adversarial tests and managed-device instrumentation coverage.
+- Added the Android `PACKAGE_USAGE_STATS` special-access declaration required by the observation boundary.
+- Kept the production trusted-app registry empty/deny-by-default.
+
+### VERIFIED
+- GitHub Actions Run #317 (`35813576845`) succeeded on exact SHA `173e3e706deb734fc06ab1ed97d9fb6a89e71cab`.
+- JVM/unit tests passed.
+- Android instrumentation-test compilation/APK assembly passed.
+- Managed-device instrumentation passed on `pixel2api30`.
+- Consolidated system review covered the adapter/bridge call path, observation data flow, permission boundary, fail-closed behavior, bounded polling/event processing, negative/adversarial tests, Emergency Stop/authorization preservation, privacy, finance hard-deny and deny-by-default trust state.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in the reviewed layer.
+
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes.
+- Semantic target-app UI/task-result verification; the observer proves only a package-level foreground transition.
+- Real model/context ingestion filtering and screen/OCR/accessibility-to-model filtering.
+- Any real production trusted-app entry; the registry remains intentionally empty.
+- Complete contextual secret classification.
+
+### KNOWN LIMITATIONS
+- `PACKAGE_USAGE_STATS` is a special Android access boundary and is not equivalent to ordinary runtime permission approval; production user enablement is not claimed by managed-device CI.
+- Foreground observation is intentionally minimal and cannot prove that the requested task completed successfully inside the target app.
+- Managed-device CI is not physical-device validation.
+
+### NEXT ACTION
+After this reviewed security layer, merge PR #1 only after the branch remains green and then verify the resulting `main` merge commit with its own matching CI evidence. Do not restart trusted-app management. The next major layer must continue to preserve deterministic authorization and should address semantic result verification only if a real, privacy-preserving producer/consumer path can be established without exposing untrusted UI content as authority.
+
+### EXACT COMMIT SHA
+`173e3e706deb734fc06ab1ed97d9fb6a89e71cab`
+
+### EXACT CI RUN
+Run #317 — `35813576845`
+
