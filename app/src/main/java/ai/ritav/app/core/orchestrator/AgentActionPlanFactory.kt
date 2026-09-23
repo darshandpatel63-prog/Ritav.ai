@@ -14,15 +14,16 @@ import java.util.regex.Pattern
  * its own verification semantics. User intent, authorization, identity/session
  * state and Emergency Stop remain downstream security concerns.
  */
-class AgentActionPlanFactory(
+internal class AgentActionPlanFactory(
     private val registry: AppCapabilityRegistry
 ) {
     fun create(
         proposal: AgentProposal,
+        expectedTaskId: String,
         appId: String,
         sessionId: String? = null
     ): ActionPlan? {
-        if (!isValidProposal(proposal)) return null
+        if (!isValidProposal(proposal) || expectedTaskId != proposal.taskId) return null
         if (!isValidAppId(appId)) return null
         if (proposal.capability == Capability.FINANCIAL_ACTION) return null
 
