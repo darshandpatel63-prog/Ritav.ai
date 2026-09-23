@@ -281,7 +281,7 @@ class ModelRuntimeTest {
                     capability = Capability.APP_LAUNCH,
                     actions = setOf("open"),
                     riskTier = RiskTier.TIER_1_REVERSIBLE,
-                    financial = false
+                    financialCategory = false
                 )
             )
         )
