@@ -604,3 +604,27 @@ The independent Android target-app foreground observation layer and its timestam
 ### NEXT ACTION
 Continue from the merged observation layer. Do not restart trusted-app management. Evaluate semantic result verification only when a real, privacy-preserving producer/consumer path can be established without making untrusted UI content authoritative.
 
+## 2026-09-23 latest security checkpoint — post-dispatch observation timestamp hardening
+
+### CURRENT STOP POINT
+Target-app observation timestamp hardening is merged into `main`. Merge commit: `41711ae54da4fddfc8d5fc77b21c733a4f967a28`.
+
+### COMPLETED
+- The Android launch adapter still performs a fail-closed security-clock preflight before dispatch.
+- After a successful launch dispatch, a fresh clock sample is taken and only that post-dispatch timestamp is passed to the independent foreground observer.
+- Added regression coverage proving observation starts from the post-dispatch timestamp.
+- Existing trust, capability, authorization, session, Emergency Stop, sensitive-data and finance controls remain unchanged.
+
+### VERIFIED
+- Exact implementation/test SHA `0b8e15a58830690ba9fc9b10055e5eaad31f3d35`.
+- GitHub Actions Run #323 (`35822250738`) succeeded.
+- JVM/unit tests, instrumentation-test compilation/APK assembly, and managed-device instrumentation on `pixel2api30` passed.
+- Consolidated affected-path review found no demonstrated CRITICAL/HIGH/MEDIUM bypass.
+
+### NOT VERIFIED
+- Separate post-merge CI evidence for merge commit `41711ae54da4fddfc8d5fc77b21c733a4f967a28`; the connected workflow/status API may not expose push-triggered runs for merge commits.
+- Physical-device testing, signed production release, semantic task verification, native non-Android runtimes, real model/context filtering, and real trusted-app entries.
+
+### NEXT ACTION
+Continue from the merged observation layer. Do not restart trusted-app management. Any future semantic verification work must use a concrete, privacy-preserving, deterministically bounded evidence source and keep untrusted UI/content from becoming authority.
+
