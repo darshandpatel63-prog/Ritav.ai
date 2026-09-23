@@ -1045,3 +1045,56 @@ LOW/INFORMATIONAL operational limitations:
 ### AUDIT GATE
 The completed observation layer now has its required independent-audit checkpoint. Do not restart trusted-app management. Proceed to the next major layer only when a real deterministic semantic-evidence producer/consumer path is identified and reviewed.
 
+
+
+## 2026-09-23 latest verified security checkpoint — semantic task-completion verification
+
+### CURRENT STOP POINT
+Semantic verification is implemented and merged to main through PR #6. The merge commit is `86d70f90c05692d72464056601dc2fb8f165b01a`.
+
+### COMPLETED
+- Central deterministic `SemanticResultVerifier` added below the model/agent layer.
+- Structured evidence contract added with exact type, target, timestamp, bounds and fail-closed validation.
+- Security-owned expected-state mapping centralized in `ExpectedActionStateRegistry`.
+- `ExecutionBridge` now makes the final semantic verification decision and ignores the adapter's Boolean `verified` flag as authority.
+- Android foreground observer now returns concrete package/timestamp evidence which is bound into the semantic verification path.
+- Adversarial coverage added for missing, forged, stale, future, wrong-target/type, mismatched-state, malformed-evidence and clock-regression cases.
+- Existing authorization, identity/session, Emergency Stop, sensitive-data and finance boundaries remain downstream authoritative controls.
+
+### VERIFIED
+- Exact PR #6 head: `faec08d8083150da2fe4ef961fe3562b31edf9af`.
+- GitHub Actions Run #380 (`35830655333`) SUCCESS.
+- JVM tests, instrumentation-test compilation/APK assembly and managed-device instrumentation on `pixel2api30` all passed.
+- Consolidated security review completed across call paths, data flow, policy/authorization binding, evidence freshness, privacy, bounds, failure handling and adversarial misuse.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass identified in the affected path.
+
+### NOT VERIFIED
+- Separate post-merge push-triggered CI run for `86d70f90c05692d72464056601dc2fb8f165b01a` is not exposed by the connected workflow-run API.
+- Physical-device validation.
+- Signed production release validation.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes.
+- Real model/provider runtime integration.
+- Screen/OCR/accessibility-to-model filtering.
+- Complete contextual secret classification.
+- Real production trusted-app entries; registry remains empty/deny-by-default.
+
+### KNOWN LIMITATIONS
+- Current semantic evidence contract covers the only executable production action, `APP_LAUNCH + open`; foreground evidence does not prove arbitrary in-app task completion.
+- `PACKAGE_USAGE_STATS` remains an Android user-granted special-access boundary.
+- Managed-device CI is not physical-device validation.
+- Sensitive-data detection remains pattern-based defense-in-depth.
+
+### NEXT ACTION
+Implement the real model/context runtime boundary on top of the existing `ModelContextBoundary`, without adding a speculative external model SDK or cloud dependency. Then build the explicit screen/OCR/accessibility ingestion filtering layer.
+
+### EXACT VERIFIED PRODUCTION-CODE/TEST SHA
+`faec08d8083150da2fe4ef961fe3562b31edf9af`
+
+### EXACT VERIFIED CI
+Run #380 — `35830655333`
+
+### EXACT MERGE SHA
+`86d70f90c05692d72464056601dc2fb8f165b01a`
+
+### DOCUMENTATION SYNC
+README sync commit: `83d366f39e4c2fd34072e656017f6e02d2ad2713`.
