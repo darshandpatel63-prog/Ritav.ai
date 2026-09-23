@@ -567,3 +567,40 @@ After this reviewed security layer, merge PR #1 only after the branch remains gr
 ### EXACT CI RUN
 Run #317 — `35813576845`
 
+## 2026-09-23 latest verified checkpoint — observation evidence freshness hardening
+
+### CURRENT STOP POINT
+The independent Android target-app foreground observation layer and its timestamp-freshness hardening are merged into `main`. The implementation/test head `f5a22bdb547f97dfabce75dc31bc7a8b1767a351` was exact-head CI verified by Run #321 (`35821727487`).
+
+### COMPLETED
+- Foreground observation remains package-only and bounded.
+- Accepted foreground evidence is now additionally bound to the actual post-dispatch query window and the fixed two-second deadline.
+- Added regression coverage rejecting out-of-window observation timestamps.
+- Existing trust, capability, authorization, session, Emergency Stop, sensitive-data and finance controls remain unchanged.
+- Production trusted-app registry remains empty/deny-by-default.
+
+### VERIFIED
+- Run #321 (`35821727487`) succeeded on exact SHA `f5a22bdb547f97dfabce75dc31bc7a8b1767a351`.
+- JVM/unit tests passed.
+- Android instrumentation-test compilation/APK assembly passed.
+- Managed-device instrumentation passed on `pixel2api30`.
+- Final affected-path review found no demonstrated CRITICAL/HIGH/MEDIUM bypass.
+
+### NOT VERIFIED
+- A separate post-merge CI run for merge commit `6b31f3013b2b044f2f1352ae712638d4ba9db2a5`; the connected workflow-run/status API currently exposes no run for that merge commit.
+- Physical-device testing.
+- Signed production release.
+- Semantic target-app task/UI verification.
+- Native non-Android runtimes.
+- Real model/context and screen/OCR/accessibility filtering.
+- Real production trusted-app entries.
+- Complete contextual secret classification.
+
+### KNOWN LIMITATIONS
+- `PACKAGE_USAGE_STATS` remains a special-access boundary; managed-device test enablement is not end-user production enablement.
+- Foreground observation proves only package-level foreground transition, not task completion.
+- Managed-device CI is not physical-device validation.
+
+### NEXT ACTION
+Continue from the merged observation layer. Do not restart trusted-app management. Evaluate semantic result verification only when a real, privacy-preserving producer/consumer path can be established without making untrusted UI content authoritative.
+
