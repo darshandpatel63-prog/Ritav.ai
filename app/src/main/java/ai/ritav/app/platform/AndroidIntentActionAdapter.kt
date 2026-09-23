@@ -8,6 +8,8 @@ import ai.ritav.app.core.security.AndroidActionAdapter
 import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.ExecutionResult
+import ai.ritav.app.core.security.SemanticVerificationContract
+import ai.ritav.app.core.security.VerificationEvidence
 import ai.ritav.app.core.orchestrator.ExpectedActionStateRegistry
 
 /**
@@ -76,24 +78,35 @@ class AndroidIntentActionAdapter internal constructor(
             .getOrNull()
             ?.takeIf { it >= 0L }
 
-        val independentlyObserved = dispatchCompletedAtMillis?.let {
+        val observation = dispatchCompletedAtMillis?.let {
             runCatching {
                 targetAppResultObserver.observeForegroundAfterDispatch(
                     packageName = plan.appId,
                     dispatchStartedAtMillis = it
                 )
-            }.getOrDefault(false)
-        } ?: false
+            }.getOrNull()
+        }
+
+        val verificationEvidence = observation?.let {
+            VerificationEvidence(
+                evidenceType = SemanticVerificationContract.TARGET_APP_FOREGROUND,
+                subject = it.packageName,
+                observedAtMillis = it.observedAtMillis
+            )
+        }
 
         return ExecutionResult(
             success = true,
-            verified = independentlyObserved,
-            message = if (independentlyObserved) {
+            // Kept for compatibility/diagnostics only. The central bridge does
+            // not trust this flag; it verifies structured evidence independently.
+            verified = verificationEvidence != null,
+            message = if (verificationEvidence != null) {
                 "Android launch dispatched and target package independently observed in the foreground"
             } else {
                 "Android launch dispatched; target-app foreground observation failed"
             },
-            observedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE
+            observedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE,
+            verificationEvidence = verificationEvidence
         )
     }
 
