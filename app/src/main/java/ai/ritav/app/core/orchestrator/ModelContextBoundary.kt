@@ -3,6 +3,7 @@ package ai.ritav.app.core.orchestrator
 import ai.ritav.app.core.security.ContentTrustLevel
 import ai.ritav.app.core.security.PromptInjectionBoundary
 import ai.ritav.app.core.security.SensitiveInformationFirewall
+import ai.ritav.app.core.security.TrustedUserCommand
 import ai.ritav.app.core.security.UntrustedContent
 
 /**
@@ -15,7 +16,7 @@ import ai.ritav.app.core.security.UntrustedContent
  */
 data class PreparedModelContext(
     val taskId: String,
-    val userCommand: UntrustedContent,
+    val userCommand: TrustedUserCommand,
     val context: List<UntrustedContent>
 )
 
@@ -25,14 +26,12 @@ class ModelContextBoundary(
 ) {
     fun prepare(
         taskId: String,
-        userCommand: UntrustedContent,
+        userCommand: TrustedUserCommand,
         context: List<UntrustedContent> = emptyList()
     ): PreparedModelContext? {
         if (taskId.isBlank() || taskId.length > MAX_TASK_ID_LENGTH) return null
         if (context.size > MAX_CONTEXT_ITEMS) return null
-        if (userCommand.trustLevel != ContentTrustLevel.USER_COMMAND) return null
-
-        val safeUserCommand = sanitizeForModel(userCommand) ?: return null
+        val safeUserCommand = sanitizeUserCommand(userCommand) ?: return null
         if (safeUserCommand.text.isBlank()) return null
 
         val safeContext = ArrayList<UntrustedContent>(context.size)
@@ -51,6 +50,21 @@ class ModelContextBoundary(
             userCommand = safeUserCommand,
             context = safeContext.toList()
         )
+    }
+
+    private fun sanitizeUserCommand(command: TrustedUserCommand): TrustedUserCommand? {
+        if (command.source.isBlank() || command.source.length > MAX_SOURCE_LENGTH) return null
+        if (command.text.length > MAX_ITEM_TEXT_LENGTH) return null
+        val sanitizedText = runCatching { command.text.trim() }.getOrNull() ?: return null
+        if (sanitizedText.isBlank() || sanitizedText.length > MAX_ITEM_TEXT_LENGTH) return null
+        val inspection = runCatching {
+            sensitiveInformationFirewall.inspect(sanitizedText)
+        }.getOrNull() ?: return null
+        return if (inspection.allowed) {
+            TrustedUserCommand.create(sanitizedText, command.source)
+        } else {
+            null
+        }
     }
 
     private fun sanitizeForModel(content: UntrustedContent): UntrustedContent? {
