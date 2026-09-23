@@ -4,6 +4,14 @@ import androidx.fragment.app.FragmentActivity
 import ai.ritav.app.platform.AndroidIntentActionAdapter
 import ai.ritav.app.platform.AndroidTrustedAppProvisioningCoordinator
 import ai.ritav.app.platform.AndroidTrustedPackageEvidenceReader
+import ai.ritav.app.platform.AndroidAccessibilityContextGate
+import ai.ritav.app.platform.AndroidAccessibilityModelContextBridge
+import ai.ritav.app.platform.AndroidAccessibilityRuntimeBinding
+import ai.ritav.app.platform.AndroidAccessibilityRuntimeRegistry
+import ai.ritav.app.core.orchestrator.ModelBackedSpecialistAgent
+import ai.ritav.app.core.orchestrator.ModelRuntime
+import ai.ritav.app.core.orchestrator.SecureModelRuntimeGateway
+import ai.ritav.app.core.orchestrator.UnavailableModelRuntime
 
 /**
  * Single Android security/execution composition root.
@@ -13,7 +21,8 @@ import ai.ritav.app.platform.AndroidTrustedPackageEvidenceReader
  * deny-by-default external execution.
  */
 class AndroidExecutionRuntime(
-    activity: FragmentActivity
+    activity: FragmentActivity,
+    modelRuntime: ModelRuntime = UnavailableModelRuntime
 ) {
     val securityState = SecurityRuntimeState(activity.applicationContext)
     private val emergencyStop = securityState.policyEngine.emergencyStopController()
@@ -92,4 +101,62 @@ class AndroidExecutionRuntime(
             authenticationGateway = deviceAuthorization,
             emergencyStop = emergencyStop
         )
+    
+    private val secureModelRuntimeGateway = SecureModelRuntimeGateway(modelRuntime)
+    private val accessibilityModelAgent =
+        ModelBackedSpecialistAgent("android-model", secureModelRuntimeGateway)
+
+    internal val accessibilityContextGate =
+        AndroidAccessibilityContextGate()
+
+    internal val accessibilityContextBridge =
+        AndroidAccessibilityModelContextBridge(
+            modelAgent = accessibilityModelAgent,
+            gate = accessibilityContextGate
+        )
+
+    init {
+        AndroidAccessibilityRuntimeRegistry.install(
+            AndroidAccessibilityRuntimeBinding(
+                gate = accessibilityContextGate,
+                bridge = accessibilityContextBridge,
+                currentStopGeneration = { emergencyStop.generation() }
+            )
+        )
+    }
+
+    internal fun armAccessibilityModelContext(
+        request: ai.ritav.app.core.orchestrator.AgentRequest,
+        packageName: String,
+        durationMillis: Long = DEFAULT_ACCESSIBILITY_SESSION_MILLIS
+    ): Boolean {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now < 0L || durationMillis <= 0L || durationMillis > DEFAULT_ACCESSIBILITY_SESSION_MILLIS) {
+            return false
+        }
+        val expiresAt = now + durationMillis
+        if (expiresAt < now) return false
+        return accessibilityContextGate.arm(
+            request = request,
+            packageName = packageName,
+            agentId = accessibilityModelAgent.id,
+            expiresAtElapsedRealtime = expiresAt,
+            nowElapsedRealtime = now,
+            stopGeneration = emergencyStop.generation()
+        )
+    }
+
+    internal fun disarmAccessibilityModelContext() {
+        accessibilityContextGate.disarm()
+    }
+
+    internal fun closeAccessibilityRuntime() {
+        accessibilityContextGate.disarm()
+        AndroidAccessibilityRuntimeRegistry.clear(accessibilityContextGate)
+    }
+
+    private companion object {
+        const val DEFAULT_ACCESSIBILITY_SESSION_MILLIS = 30_000L
+    }
+
 }
