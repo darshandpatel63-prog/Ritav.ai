@@ -896,3 +896,51 @@ Do not restart or duplicate trusted-app management. Preserve the common determin
 
 ### EXACT VERIFIED CI RUN
 Run #314 — `35694971910`
+
+## 2026-09-23 verified security checkpoint — independent target-app foreground observation
+
+### CURRENT STOP POINT
+Independent Android target-app foreground observation is implemented, integrated, tested and exact-head CI verified at `173e3e706deb734fc06ab1ed97d9fb6a89e71cab`. PR #1 remains open until merge and post-merge main verification.
+
+### COMPLETED
+- Added `AndroidTargetAppForegroundObserver` and a framework-backed `UsageStatsManager` reader with bounded package/event processing.
+- The observation boundary exposes only target package, event type and timestamp.
+- `AndroidIntentActionAdapter` now requires observation availability before dispatch and independently observes the exact target package after dispatch.
+- `ExecutionBridge` refuses to convert adapter `success=true, verified=false` into final success.
+- Added JVM regression/adversarial coverage and managed-device instrumentation.
+- Added `PACKAGE_USAGE_STATS` manifest declaration.
+- Production trusted-app registry remains empty and deny-by-default.
+
+### VERIFIED
+- Run #317 (`35813576845`) succeeded for exact SHA `173e3e706deb734fc06ab1ed97d9fb6a89e71cab`.
+- JVM tests passed.
+- Android debug unit tests passed.
+- Instrumentation-test compilation/APK assembly passed.
+- Managed-device instrumentation passed on `pixel2api30`.
+- Consolidated review covered call paths, data flow, trust boundaries, authorization/session/Emergency Stop preservation, failure behavior, bounds, privacy, permission semantics and adversarial cases.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass identified in this layer.
+
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release.
+- Native non-Android runtimes.
+- Semantic task/UI success inside target apps.
+- Real model/context ingestion and screen/OCR/accessibility filtering.
+- Real production trusted-app entries.
+- Complete contextual secret classification.
+
+### KNOWN LIMITATIONS
+- The Android usage-stat access is a platform special-access boundary; managed-device instrumentation grants it for testing, which does not establish ordinary end-user production enablement.
+- Observation proves only package-level foreground transition, not semantic completion.
+- Production execution remains effectively deny-by-default because the trusted registry is empty.
+- Removal of stale/uninstalled trusted entries still requires fresh installed signing evidence through the existing evidence-backed path.
+
+### NEXT ACTION
+Merge PR #1 after the branch remains green, then verify the resulting main merge commit with matching CI. Keep the production trusted registry empty. Do not add speculative package mappings, banking/UPI integrations, OAuth identities, backend services or external SDKs.
+
+### EXACT COMMIT SHA
+`173e3e706deb734fc06ab1ed97d9fb6a89e71cab`
+
+### EXACT CI RUN
+Run #317 — `35813576845`
+
