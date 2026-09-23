@@ -33,6 +33,35 @@ class AndroidAccessibilityEvidenceBrokerTest {
         }
     }
 
+
+    @Test fun onlyOneSemanticObservationMayBeArmedAtATime() {
+        AndroidAccessibilityEvidenceBroker.setServiceConnected(true)
+        try {
+            assertTrue(AndroidAccessibilityEvidenceBroker.arm("com.example.safe"))
+            assertFalse(AndroidAccessibilityEvidenceBroker.arm("com.example.other"))
+        } finally {
+            AndroidAccessibilityEvidenceBroker.setServiceConnected(false)
+        }
+    }
+
+    @Test fun accessibilityContextRequiresInternalSourcePrefix() {
+        AndroidAccessibilityEvidenceBroker.setServiceConnected(true)
+        try {
+            assertTrue(AndroidAccessibilityEvidenceBroker.arm("com.example.safe"))
+            assertFalse(
+                AndroidAccessibilityEvidenceBroker.publishModelContext(
+                    UntrustedContent(
+                        text = "Settings",
+                        source = "com.example.safe",
+                        trustLevel = ContentTrustLevel.APP_CONTENT
+                    )
+                )
+            )
+        } finally {
+            AndroidAccessibilityEvidenceBroker.setServiceConnected(false)
+        }
+    }
+
     @Test fun sensitiveContextIsDroppedBeforeBrokerRetention() {
         AndroidAccessibilityEvidenceBroker.setServiceConnected(true)
         try {
