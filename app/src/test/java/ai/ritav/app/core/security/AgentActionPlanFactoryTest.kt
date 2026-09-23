@@ -34,26 +34,38 @@ class AgentActionPlanFactoryTest {
     )
 
     @Test fun derivesExactPlanFromRegistryMetadata() {
-        val plan = AgentActionPlanFactory(registry()).create(proposal(), "com.example.safe", "session-1")
+        val plan = AgentActionPlanFactory(registry()).create(proposal(), "task-1", "com.example.safe", "session-1")
         assertNotNull(plan)
         assertEquals(RiskTier.TIER_1_REVERSIBLE, plan!!.riskTier)
         assertEquals("LAUNCH_DISPATCHED", plan.expectedState)
         assertEquals("session-1", plan.sessionId)
     }
 
+    @Test fun rejectsTaskMismatchBeforePlanCreation() {
+        assertNull(
+            AgentActionPlanFactory(registry()).create(
+                proposal(),
+                "different-task",
+                "com.example.safe"
+            )
+        )
+    }
+
     @Test fun rejectsAgentSuppliedRiskThatDoesNotMatchRegistry() {
         val plan = AgentActionPlanFactory(registry()).create(
             proposal(riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE),
+            "task-1",
             "com.example.safe"
         )
         assertNull(plan)
     }
 
     @Test fun rejectsUnregisteredTargetOrAction() {
-        assertNull(AgentActionPlanFactory(registry()).create(proposal(), "com.example.unknown"))
+        assertNull(AgentActionPlanFactory(registry()).create(proposal(), "task-1", "com.example.unknown"))
         assertNull(
             AgentActionPlanFactory(registry()).create(
                 proposal(action = "send"),
+                "task-1",
                 "com.example.safe"
             )
         )
@@ -75,6 +87,7 @@ class AgentActionPlanFactoryTest {
         assertNull(
             AgentActionPlanFactory(financialRegistry).create(
                 proposal(capability = Capability.FINANCIAL_ACTION, action = "pay", riskTier = RiskTier.TIER_4_SENSITIVE_OR_PROHIBITED),
+                "task-1",
                 "com.example.safe"
             )
         )
@@ -95,6 +108,7 @@ class AgentActionPlanFactoryTest {
         assertNull(
             AgentActionPlanFactory(extendedRegistry).create(
                 proposal(capability = Capability.TYPE_TEXT, action = "type", riskTier = RiskTier.TIER_2_CONTENT_MUTATION),
+                "task-1",
                 "com.example.safe"
             )
         )
