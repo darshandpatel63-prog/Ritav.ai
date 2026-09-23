@@ -45,7 +45,11 @@ internal class RitavAccessibilityContextExtractor {
         val childCount = node.childCount.coerceAtMost(MAX_CHILDREN)
         for (index in 0 until childCount) {
             val child = node.getChild(index) ?: continue
-            visit(child, packageName, depth + 1, builder, visited)
+            try {
+                visit(child, packageName, depth + 1, builder, visited)
+            } finally {
+                child.recycle()
+            }
         }
     }
 
