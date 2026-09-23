@@ -84,12 +84,11 @@ class AndroidTargetAppForegroundObserverTest {
             )
         )
 
-        assertFalse(
-            observer(reader, now = 2_000L).observeForegroundAfterDispatch(
-                packageName = "demo.app",
-                dispatchStartedAtMillis = 2_000L
-            )
+        val result = observer(reader, now = 2_000L).observeForegroundAfterDispatch(
+            packageName = "demo.app",
+            dispatchStartedAtMillis = 2_000L
         )
+        assertTrue(result == null)
     }
 
     @Test fun eventOutsideObservationWindowCannotVerifyTarget() {
@@ -105,12 +104,11 @@ class AndroidTargetAppForegroundObserverTest {
             )
         )
 
-        assertFalse(
-            observer(reader, now = 2_000L).observeForegroundAfterDispatch(
-                packageName = "demo.app",
-                dispatchStartedAtMillis = 1_000L
-            )
+        val result = observer(reader, now = 2_000L).observeForegroundAfterDispatch(
+            packageName = "demo.app",
+            dispatchStartedAtMillis = 1_000L
         )
+        assertTrue(result == null)
     }
 
     @Test fun wrongPackageCannotVerifyTarget() {
@@ -126,12 +124,11 @@ class AndroidTargetAppForegroundObserverTest {
             )
         )
 
-        assertFalse(
-            observer(reader).observeForegroundAfterDispatch(
-                packageName = "demo.app",
-                dispatchStartedAtMillis = 1_000L
-            )
+        val result = observer(reader).observeForegroundAfterDispatch(
+            packageName = "demo.app",
+            dispatchStartedAtMillis = 1_000L
         )
+        assertTrue(result == null)
     }
 
     @Test fun nonForegroundEventCannotVerifyTarget() {
@@ -147,26 +144,24 @@ class AndroidTargetAppForegroundObserverTest {
             )
         )
 
-        assertFalse(
-            observer(reader).observeForegroundAfterDispatch(
-                packageName = "demo.app",
-                dispatchStartedAtMillis = 1_000L
-            )
+        val result = observer(reader).observeForegroundAfterDispatch(
+            packageName = "demo.app",
+            dispatchStartedAtMillis = 1_000L
         )
+        assertTrue(result == null)
     }
 
     @Test fun clockRegressionFailsClosed() {
         val reader = FakeReader(listOf(emptyList()))
-        assertFalse(
-            AndroidTargetAppForegroundObserver(
-                eventReader = reader,
-                clock = { 999L },
-                sleeper = { }
-            ).observeForegroundAfterDispatch(
-                packageName = "demo.app",
-                dispatchStartedAtMillis = 1_000L
-            )
+        val result = AndroidTargetAppForegroundObserver(
+            eventReader = reader,
+            clock = { 999L },
+            sleeper = { }
+        ).observeForegroundAfterDispatch(
+            packageName = "demo.app",
+            dispatchStartedAtMillis = 1_000L
         )
+        assertTrue(result == null)
     }
 
     @Test fun oversizedObservationBatchFailsClosed() {
