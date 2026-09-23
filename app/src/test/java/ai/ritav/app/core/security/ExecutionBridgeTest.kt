@@ -6,7 +6,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ExecutionBridgeTest {
-    private class RecordingAdapter : AndroidActionAdapter {
+    private class RecordingAdapter(
+        private val evidenceTimestamp: () -> Long = { System.currentTimeMillis() }
+    ) : AndroidActionAdapter {
         var calls = 0
         override fun execute(plan: ActionPlan): ExecutionResult {
             calls++
@@ -18,7 +20,7 @@ class ExecutionBridgeTest {
                 verificationEvidence = VerificationEvidence(
                     evidenceType = SemanticVerificationContract.TARGET_APP_FOREGROUND,
                     subject = plan.appId,
-                    observedAtMillis = System.currentTimeMillis()
+                    observedAtMillis = evidenceTimestamp()
                 )
             )
         }
@@ -509,7 +511,7 @@ class ExecutionBridgeTest {
 
     @Test fun bridgeAuditTimestampsAreSampledAtEachEmission() {
         val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
-        val adapter = RecordingAdapter()
+        val adapter = RecordingAdapter { 4500L }
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
         val pipeline = pipelineFor(policy, IdentitySessionManager())
