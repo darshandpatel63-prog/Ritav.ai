@@ -49,11 +49,15 @@ class AndroidIntentActionAdapterTest {
         override fun observeForegroundAfterDispatch(
             packageName: String,
             dispatchStartedAtMillis: Long
-        ): Boolean {
+        ): AndroidForegroundObservation? {
             observeCalls++
             lastPackage = packageName
             lastDispatchStartedAtMillis = dispatchStartedAtMillis
-            return observed
+            return if (observed) {
+                AndroidForegroundObservation(packageName, dispatchStartedAtMillis + 500L)
+            } else {
+                null
+            }
         }
     }
 
@@ -201,7 +205,7 @@ class AndroidIntentActionAdapterTest {
             override fun observeForegroundAfterDispatch(
                 packageName: String,
                 dispatchStartedAtMillis: Long
-            ): Boolean = error("observer failure")
+            ): AndroidForegroundObservation? = error("observer failure")
         }
 
         val result = adapter(dispatcher, observer = observer).execute(trustedPlan())
