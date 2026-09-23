@@ -42,6 +42,7 @@ internal class RitavAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         AndroidAccessibilityEvidenceBroker.disarm()
+        restrictToRitavOnly()
     }
 
     override fun onDestroy() {
