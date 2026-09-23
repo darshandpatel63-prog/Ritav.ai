@@ -71,7 +71,7 @@ class ExecutionBridgeTest {
                 Capability.APP_LAUNCH,
                 "open",
                 RiskTier.TIER_2_CONTENT_MUTATION,
-                expectedState = SemanticVerificationContract.TARGET_APP_FOREGROUND.replace("TARGET_APP_FOREGROUND", "LAUNCH_DISPATCHED"),
+                expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE,
                 sessionId = session.id
             ),
             session = session
