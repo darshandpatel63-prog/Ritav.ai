@@ -46,7 +46,7 @@ class RitavAccessibilityService : AccessibilityService() {
                 currentStopGeneration = runtime.currentStopGeneration()
             )
         } finally {
-            runCatching { root.recycle() }
+            // AccessibilityNodeInfo recycling is managed by the framework on modern Android.
         }
     }
 
