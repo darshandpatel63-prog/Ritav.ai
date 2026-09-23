@@ -981,3 +981,39 @@ The independent Android target-app foreground observation layer plus evidence-fr
 ### NEXT ACTION
 No further change to trusted-app management. Continue only with a genuinely supported semantic verification path, with deterministic evidence contracts and untrusted-content isolation.
 
+## 2026-09-23 latest checkpoint — post-dispatch observation timestamp hardening
+
+### CURRENT STOP POINT
+The target-app observation race hardening is merged into `main`. Current merge commit: `41711ae54da4fddfc8d5fc77b21c733a4f967a28`.
+
+### COMPLETED
+- `AndroidIntentActionAdapter` keeps the security-clock availability preflight before launch dispatch.
+- A fresh timestamp is sampled only after successful dispatch, and that timestamp is passed into `observeForegroundAfterDispatch`.
+- Added an adversarial regression test proving the observer receives the post-dispatch timestamp.
+- Existing deterministic trust, capability, authorization, identity-session, Emergency Stop, sensitive-data and finance boundaries are preserved.
+
+### VERIFIED
+- Exact implementation/test SHA: `0b8e15a58830690ba9fc9b10055e5eaad31f3d35`.
+- Run #323 (`35822250738`) SUCCESS.
+- JVM/unit tests, instrumentation compilation/APK assembly, and managed-device instrumentation on `pixel2api30` passed.
+- Consolidated review covered dispatch/observation ordering, clock failure/regression, evidence freshness, data flow and existing security gates.
+- No demonstrated CRITICAL/HIGH/MEDIUM bypass identified.
+
+### NOT VERIFIED
+- Separate CI evidence for merge commit `41711ae54da4fddfc8d5fc77b21c733a4f967a28`.
+- Physical-device testing.
+- Signed release.
+- Semantic target-app result verification.
+- Native non-Android runtimes.
+- Real model/context and screen/OCR/accessibility-to-model filtering.
+- Real production trusted-app entries.
+- Complete contextual secret classification.
+
+### KNOWN LIMITATIONS
+- Foreground observation still proves only package-level foreground transition.
+- `PACKAGE_USAGE_STATS` remains a special app-access boundary.
+- Managed-device verification is not physical-device verification.
+
+### NEXT ACTION
+Continue from current main without restarting trusted-app management. Evaluate semantic verification only when a real deterministic evidence producer/consumer path exists.
+
