@@ -4,6 +4,7 @@ import androidx.fragment.app.FragmentActivity
 import ai.ritav.app.platform.AndroidIntentActionAdapter
 import ai.ritav.app.platform.AndroidTrustedAppProvisioningCoordinator
 import ai.ritav.app.platform.AndroidTrustedPackageEvidenceReader
+import ai.ritav.app.core.orchestrator.AndroidModelContextConsumer
 
 /**
  * Single Android security/execution composition root.
@@ -37,6 +38,9 @@ class AndroidExecutionRuntime(
         identitySessionManager = identitySessionManager,
         auditLog = securityState.auditLog
     )
+
+    /** Single sanctioned ingress from Android app context into agent/model reasoning. */
+    internal val modelContextConsumer: AndroidModelContextConsumer = AndroidModelContextConsumer()
 
     val executionBridge: ExecutionBridge = ExecutionBridge(
         capabilityPolicyGate = CapabilityPolicyGate(capabilityRegistry),
