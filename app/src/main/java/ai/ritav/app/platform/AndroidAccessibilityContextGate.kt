@@ -1,6 +1,8 @@
 package ai.ritav.app.platform
 
+import ai.ritav.app.core.orchestrator.AgentProposal
 import ai.ritav.app.core.orchestrator.AgentRequest
+import ai.ritav.app.core.orchestrator.AgentCapabilityScope
 import ai.ritav.app.core.orchestrator.ModelBackedSpecialistAgent
 import ai.ritav.app.core.orchestrator.ScreenContextSecurityFilter
 import ai.ritav.app.core.orchestrator.ScreenContextSnapshot
@@ -9,13 +11,6 @@ import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.ContentTrustLevel
 import ai.ritav.app.core.security.UntrustedContent
 
-/**
- * In-memory task-scoped accessibility access contract.
- *
- * AccessibilityService may be enabled by the operating system, but this gate
- * keeps content collection disabled unless an explicit bounded task request is
- * armed. A stop-generation change invalidates the request.
- */
 internal class AndroidAccessibilityContextGate(
     private val filter: ScreenContextSecurityFilter = ScreenContextSecurityFilter()
 ) {
@@ -64,10 +59,6 @@ internal class AndroidAccessibilityContextGate(
         armed = null
     }
 
-    /**
-     * Filters before publication. Raw screen text is never retained by this
-     * gate after the method returns.
-     */
     @Synchronized
     fun prepare(
         snapshot: ScreenContextSnapshot,
@@ -119,12 +110,6 @@ internal class AndroidAccessibilityContextGate(
     }
 }
 
-/**
- * Narrow producer-to-model bridge for accessibility content.
- *
- * The bridge consumes only the filtered APP_CONTENT envelope and then enters
- * the existing SecureModelRuntimeGateway through ModelBackedSpecialistAgent.
- */
 internal class AndroidAccessibilityModelContextBridge(
     private val modelAgent: ModelBackedSpecialistAgent,
     private val gate: AndroidAccessibilityContextGate
@@ -133,7 +118,7 @@ internal class AndroidAccessibilityModelContextBridge(
         snapshot: ScreenContextSnapshot,
         nowElapsedRealtime: Long,
         currentStopGeneration: Long
-    ): ai.ritav.app.core.orchestrator.AgentProposal? {
+    ): AgentProposal? {
         val prepared = gate.prepare(snapshot, nowElapsedRealtime, currentStopGeneration)
             ?: return null
 
