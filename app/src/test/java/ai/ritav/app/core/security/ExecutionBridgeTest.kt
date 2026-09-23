@@ -94,7 +94,7 @@ class ExecutionBridgeTest {
     )
 
     @Test fun clockFailureFailsClosedBeforeAdapterExecution() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
@@ -114,7 +114,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun negativeClockFailsClosedBeforeAdapterExecution() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
@@ -138,7 +138,7 @@ class ExecutionBridgeTest {
         val policy = PolicyEngine()
         val bridge = ExecutionBridge(CapabilityPolicyGate(AppCapabilityRegistry()), pipelineFor(policy, IdentitySessionManager()), adapter)
         val result = bridge.execute(
-            ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED"),
+            ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE),
             true
         )
         assertFalse(result.success)
@@ -146,7 +146,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun registeredCapabilityReachesApprovedAdapter() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
@@ -162,7 +162,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun adapterVerificationFlagIsNotTrustedWhenStructuredEvidenceIsValid() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = UnverifiedAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
@@ -202,7 +202,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun wrongRiskRegistrationNeverReachesAdapter() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_2_CONTENT_MUTATION, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val registry = AppCapabilityRegistry(
@@ -227,7 +227,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun sensitiveExecutionIsBlockedAtFinalBoundary() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
@@ -455,7 +455,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun adapterFailureIsContainedAndDoesNotReportSuccess() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = ThrowingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
@@ -471,7 +471,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun emergencyStopBlocksExecution() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
         val stop = EmergencyStopController()
         stop.activate()
@@ -488,7 +488,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun bridgeAndPipelineShareTheSameAuditSinkByDefault() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
@@ -504,7 +504,7 @@ class ExecutionBridgeTest {
     }
 
     @Test fun bridgeAuditTimestampsAreSampledAtEachEmission() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
