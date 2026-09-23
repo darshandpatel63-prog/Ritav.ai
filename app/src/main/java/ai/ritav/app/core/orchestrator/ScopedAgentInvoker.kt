@@ -32,6 +32,7 @@ class ScopedAgentInvoker {
         val proposal = invoke(agent, request) ?: return null
         return AgentActionPlanFactory(registry).create(
             proposal = proposal,
+            expectedTaskId = request.taskId,
             appId = appId,
             sessionId = sessionId
         )
