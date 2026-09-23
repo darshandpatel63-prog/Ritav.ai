@@ -3,6 +3,7 @@ package ai.ritav.app.platform
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
 import ai.ritav.app.core.orchestrator.ExpectedActionStateRegistry
 import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.AndroidActionAdapter
@@ -88,6 +89,9 @@ class AndroidIntentActionAdapter internal constructor(
         val dispatchCompletedAtMillis = runCatching { clock() }
             .getOrNull()
             ?.takeIf { it >= 0L }
+        val dispatchCompletedAtElapsedMillis = runCatching { SystemClock.elapsedRealtime() }
+            .getOrNull()
+            ?.takeIf { it >= 0L }
 
         val foregroundObserved = dispatchCompletedAtMillis?.let {
             runCatching {
@@ -98,9 +102,14 @@ class AndroidIntentActionAdapter internal constructor(
             }.getOrDefault(false)
         } ?: false
 
-        val semanticObserved = runCatching {
-            semanticTaskObserver.observeCompletedAfterDispatch(plan.appId)
-        }.getOrDefault(false)
+        val semanticObserved = dispatchCompletedAtElapsedMillis?.let {
+            runCatching {
+                semanticTaskObserver.observeCompletedAfterDispatch(
+                    packageName = plan.appId,
+                    dispatchCompletedAtElapsedMillis = it
+                )
+            }.getOrDefault(false)
+        } ?: false
         semanticTaskObserver.disarm()
 
         return ExecutionResult(
