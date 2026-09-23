@@ -60,6 +60,26 @@ internal class AndroidAccessibilityContextGate(
     }
 
     @Synchronized
+    internal fun currentTaskFor(
+        packageName: String,
+        nowElapsedRealtime: Long,
+        currentStopGeneration: Long
+    ): String? {
+        val active = armed ?: return null
+        if (nowElapsedRealtime < 0L || currentStopGeneration < 0L) return null
+        if (nowElapsedRealtime >= active.expiresAtElapsedRealtime) {
+            armed = null
+            return null
+        }
+        if (active.stopGeneration != currentStopGeneration) {
+            armed = null
+            return null
+        }
+        return active.request.taskId.takeIf { active.packageName == packageName }
+    }
+
+
+    @Synchronized
     fun prepare(
         snapshot: ScreenContextSnapshot,
         nowElapsedRealtime: Long,
