@@ -498,3 +498,35 @@ Merge PR #1 after final branch-state review, then verify the resulting `main` me
 ### EXACT CI RUN
 Run #317 — `35813576845`
 
+## 2026-09-23 latest handoff checkpoint — observation evidence freshness hardening
+
+### CURRENT STOP POINT
+PR #2 is merged. Current live `main` already contains merge commit `6b31f3013b2b044f2f1352ae712638d4ba9db2a5`; documentation sync is being recorded in follow-up documentation commits.
+
+### COMPLETED
+- Independent target-app foreground observation layer is merged.
+- Evidence freshness is hardened so a qualifying event must fall strictly after dispatch and lie within both the actual observation query window and the bounded two-second deadline.
+- Exact-head implementation/test checkpoint `f5a22bdb547f97dfabce75dc31bc7a8b1767a351` passed Run #321 (`35821727487`).
+- Existing trusted-app management, deterministic authorization, Emergency Stop, sensitive-data and finance controls were preserved.
+
+### VERIFIED
+Run #321 succeeded with JVM/unit tests, instrumentation-test compilation/APK assembly, and managed-device instrumentation on `pixel2api30`.
+
+### NOT VERIFIED
+No separate post-merge CI evidence is currently exposed for merge commit `6b31f3013b2b044f2f1352ae712638d4ba9db2a5`. Physical devices, semantic target-app task success, non-Android runtimes, model/context filtering, and signed production release remain unverified.
+
+### KNOWN LIMITATIONS
+The observer proves only package-level foreground transition. It does not establish that a requested action completed inside the target application. `PACKAGE_USAGE_STATS` remains a platform special-access boundary.
+
+### NEXT ACTION
+Continue from the current main state after documentation sync. Do not restart trusted-app management. The next major layer should be semantic result verification only if a concrete, privacy-preserving and deterministically bounded evidence source exists.
+
+### EXACT VERIFIED IMPLEMENTATION/TEST SHA
+`f5a22bdb547f97dfabce75dc31bc7a8b1767a351`
+
+### EXACT VERIFIED CI
+Run #321 — `35821727487`
+
+### EXACT MERGE COMMIT
+`6b31f3013b2b044f2f1352ae712638d4ba9db2a5`
+
