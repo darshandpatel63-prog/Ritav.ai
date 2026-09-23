@@ -1,5 +1,6 @@
 package ai.ritav.app.core.security
 
+import ai.ritav.app.core.orchestrator.AgentActionPlanFactory
 import ai.ritav.app.core.orchestrator.AgentProposal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
