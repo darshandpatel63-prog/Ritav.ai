@@ -455,3 +455,46 @@ Do not invent package names, certificate pins, banking/UPI mappings, OAuth ident
 
 ### EXACT VERIFIED CI RUN
 Run #314 — `35694971910`
+
+## 2026-09-23 handoff checkpoint — independent target-app foreground observation
+
+### CURRENT STOP POINT
+The next security layer, independent Android target-app foreground observation, is implemented and exact-head CI verified at `173e3e706deb734fc06ab1ed97d9fb6a89e71cab`. PR #1 is open against `main`.
+
+### COMPLETED
+- Added bounded package-only foreground observation through Android `UsageStatsManager`.
+- Kept UI/OCR/accessibility text, node content, class names and event extras outside the observation/result-verification data path.
+- Prevented `APP_LAUNCH + open` dispatch when independent observation is unavailable.
+- Required a matching target-package foreground event after dispatch within a bounded 2-second window.
+- Preserved exact plan binding, trust identity, capability policy, sensitive/finance firewalls, authorization/session checks and Emergency Stop.
+- Added negative/adversarial JVM coverage and managed-device instrumentation coverage.
+- Kept the production trusted-app registry empty/deny-by-default.
+
+### VERIFIED
+- Run #317 (`35813576845`) succeeded on exact SHA `173e3e706deb734fc06ab1ed97d9fb6a89e71cab`.
+- JVM/unit tests, instrumentation-test compilation/APK assembly and managed-device instrumentation on `pixel2api30` passed.
+- Consolidated system-level review found no demonstrated CRITICAL/HIGH/MEDIUM bypass in the affected path.
+
+### NOT VERIFIED
+- Physical-device testing.
+- Signed production release.
+- Native non-Android runtime implementations.
+- Semantic task/UI-result verification inside target apps.
+- Real model/context and screen/OCR/accessibility-to-model filtering.
+- Real production trusted-app entries.
+- Complete contextual secret classification.
+
+### KNOWN LIMITATIONS
+- `PACKAGE_USAGE_STATS` is a special-access boundary; managed-device CI enabled it for test execution, so production end-user enablement remains unverified.
+- Foreground observation proves only that the exact package produced a qualifying foreground event; it does not prove the requested task completed.
+- Managed-device CI is not physical-device validation.
+
+### NEXT ACTION
+Merge PR #1 after final branch-state review, then verify the resulting `main` merge commit with its own exact CI evidence. Do not restart trusted-app management or introduce speculative integrations.
+
+### EXACT COMMIT SHA
+`173e3e706deb734fc06ab1ed97d9fb6a89e71cab`
+
+### EXACT CI RUN
+Run #317 — `35813576845`
+
