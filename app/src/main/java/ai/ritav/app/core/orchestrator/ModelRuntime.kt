@@ -4,6 +4,7 @@ import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.SensitiveInformationFirewall
 import ai.ritav.app.core.security.RiskTier
 import ai.ritav.app.core.security.UntrustedContent
+import java.util.Collections
 
 /**
  * The only request shape exposed to a model runtime.
@@ -23,8 +24,8 @@ data class ModelRuntimeRequest private constructor(
             ModelRuntimeRequest(
                 taskId = request.taskId,
                 userCommand = request.input,
-                context = request.context.toList(),
-                allowedCapabilities = request.scope.allowedCapabilities.toSet()
+                                context = Collections.unmodifiableList(request.context.toList()),
+                allowedCapabilities = Collections.unmodifiableSet(request.scope.allowedCapabilities.toSet())
             )
     }
 }
