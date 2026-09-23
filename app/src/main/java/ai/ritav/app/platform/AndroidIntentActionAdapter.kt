@@ -52,10 +52,12 @@ class AndroidIntentActionAdapter internal constructor(
             return ExecutionResult(false, false, "Independent target-app observation is unavailable")
         }
 
-        val dispatchStartedAtMillis = runCatching { clock() }
+        val clockAvailable = runCatching { clock() }
             .getOrNull()
-            ?.takeIf { it >= 0L }
-            ?: return ExecutionResult(false, false, "Security clock unavailable")
+            ?.takeIf { it >= 0L } != null
+        if (!clockAvailable) {
+            return ExecutionResult(false, false, "Security clock unavailable")
+        }
 
         val dispatched = runCatching {
             dispatcher.dispatchLaunch(plan.appId)
@@ -69,12 +71,18 @@ class AndroidIntentActionAdapter internal constructor(
             )
         }
 
-        val independentlyObserved = runCatching {
-            targetAppResultObserver.observeForegroundAfterDispatch(
-                packageName = plan.appId,
-                dispatchStartedAtMillis = dispatchStartedAtMillis
-            )
-        }.getOrDefault(false)
+        val dispatchCompletedAtMillis = runCatching { clock() }
+            .getOrNull()
+            ?.takeIf { it >= 0L }
+
+        val independentlyObserved = dispatchCompletedAtMillis?.let {
+            runCatching {
+                targetAppResultObserver.observeForegroundAfterDispatch(
+                    packageName = plan.appId,
+                    dispatchStartedAtMillis = it
+                )
+            }.getOrDefault(false)
+        } ?: false
 
         return ExecutionResult(
             success = true,

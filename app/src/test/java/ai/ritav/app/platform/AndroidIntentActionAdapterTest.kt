@@ -162,6 +162,25 @@ class AndroidIntentActionAdapterTest {
         assertEquals(1, observer.observeCalls)
     }
 
+    @Test fun observationUsesTimestampSampledAfterDispatch() {
+        val dispatcher = RecordingDispatcher(true)
+        val observer = FakeTargetAppObserver(observed = true)
+        var clockCalls = 0
+        val result = adapter(
+            dispatcher = dispatcher,
+            observer = observer,
+            clock = {
+                clockCalls += 1
+                if (clockCalls == 1) 1_000L else 2_000L
+            }
+        ).execute(trustedPlan())
+
+        assertTrue(result.success)
+        assertTrue(result.verified)
+        assertEquals(2_000L, observer.lastDispatchStartedAtMillis)
+        assertEquals(2, clockCalls)
+    }
+
     @Test fun successfulDispatchAndIndependentObservationAreVerified() {
         val dispatcher = RecordingDispatcher(true)
         val observer = FakeTargetAppObserver(observed = true)
