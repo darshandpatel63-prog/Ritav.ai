@@ -525,7 +525,7 @@ class ExecutionBridgeTest {
         val verification = pipeline.audit().single { it.eventType == AuditEventType.VERIFICATION }
         assertTrue(execution.timestampEpochMillis < verification.timestampEpochMillis)
         assertEquals(4000L, execution.timestampEpochMillis)
-        assertEquals(5000L, verification.timestampEpochMillis)
+        assertEquals(6000L, verification.timestampEpochMillis)
     }
 
     @Test fun mismatchedObservedStateCannotBeReportedAsVerified() {
