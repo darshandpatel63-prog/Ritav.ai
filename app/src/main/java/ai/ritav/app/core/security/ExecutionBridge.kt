@@ -95,18 +95,22 @@ class ExecutionBridge(
             if (adapterResult.success) "Adapter execution succeeded" else "Adapter execution failed"))
 
         if (!adapterResult.success) {
-            val verification = resultVerifier.verify(
-                expectedSuccess = false,
-                evidence = ActionResultEvidence(
-                    success = adapterResult.success,
-                    observedState = adapterResult.observedState,
-                    errorCode = "ADAPTER_EXECUTION_FAILED"
-                ),
-                expectedState = plan.expectedState
+            auditLog.append(AuditEvent(
+                safeClock(now),
+                plan.sessionId,
+                actionHash,
+                AuditEventType.VERIFICATION,
+                false,
+                false,
+                "Result verification skipped because adapter execution failed"
+            ))
+            return ExecutionResult(
+                success = false,
+                verified = false,
+                message = "Action execution failed",
+                observedState = adapterResult.observedState,
+                verificationEvidence = adapterResult.verificationEvidence
             )
-            auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
-                false, verification.verified, "Result verification failed"))
-            return ExecutionResult(false, false, verification.reason, adapterResult.observedState)
         }
 
         val verificationCheckedAtMillis = runCatching { clock() }
