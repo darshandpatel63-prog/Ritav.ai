@@ -9,7 +9,7 @@ This README is the hand-off guide for future AI/development chats. Continue the 
 - **Current executable implementation: Android + JVM-targeted shared contracts/security only.** Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes are not present in this repository yet.
 - Android application ID: `ai.ritav.app`
 - Branch: `main`
-- Stage: Phase 0 — secure foundation and cross-platform architecture expansion
+- Stage: Security completion — semantic verification merged; real AI/model/context ingestion is the next security layer
 - Hardware floor: 4 GB RAM / 32 GB storage is a compatibility floor, not a universal performance guarantee.
 
 The cross-platform scope is defined by `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md`. It supersedes the earlier Android-only product-scope statement while preserving all existing Android security controls and platform restrictions.
@@ -133,7 +133,7 @@ Android instrumentation coverage exists for encrypted round-trip and ciphertext 
 ## 10. Production execution status
 `ExecutionBridge` is the final deterministic execution boundary and `inputText` passes through `SecurityExecutionPipeline` before adapter execution.
 
-A production Android composition root now exists in `AndroidExecutionRuntime` and is instantiated by `MainActivity`. The current application supplies an empty trusted capability registry, so external action execution remains deny-by-default. `AndroidIntentActionAdapter` implements only `APP_LAUNCH` + `open`, requires a trusted package signing-certificate pin, and reports only `LAUNCH_DISPATCHED`; final target-UI state is not independently observed. Real external-app execution therefore remains disabled until a reviewed allowlist, package visibility, permission/grant path, and platform-specific result observation are deliberately added.
+A production Android composition root now exists in `AndroidExecutionRuntime` and is instantiated by `MainActivity`. The current application supplies an empty trusted capability registry, so external action execution remains deny-by-default. `AndroidIntentActionAdapter` implements only `APP_LAUNCH` + `open`, requires a trusted package signing-certificate pin, and binds launch success to a security-owned semantic verification contract. Current semantic evidence proves only the exact target package produced a qualifying foreground transition after dispatch; it does not prove arbitrary in-app task completion. Real external-app execution therefore remains disabled until the reviewed allowlist, package visibility, permission/grant path, and required platform-specific evidence/verification paths are deliberately enabled.
 
 ## 11. Cross-platform implementation status
 Completed:
@@ -648,3 +648,56 @@ Reviewed lenses:
 ### AUDIT GATE
 This checkpoint satisfies the independent-audit requirement for the completed observation security layer. The next major layer may proceed only with a concrete, privacy-preserving evidence producer/consumer path; no raw UI/content ingestion is assumed.
 
+
+## 2026-09-23 latest security checkpoint — semantic task-completion verification
+
+### CURRENT STOP POINT
+Semantic verification is implemented, integrated into the final `ExecutionBridge`, independently tested and merged to `main` at **`86d70f90c05692d72464056601dc2fb8f165b01a`** through PR #6.
+
+### COMPLETED
+- Added a deterministic, security-owned `SemanticResultVerifier`.
+- Added structured `VerificationEvidence` with bounded type, target and timestamp fields.
+- Centralized the authoritative `ExpectedActionStateRegistry` in the security package.
+- Required exact expected-state agreement with the security-owned action contract.
+- Required exact evidence type and exact target package.
+- Required evidence to be non-future, non-stale and inside a bounded verification window.
+- Removed reliance on the adapter's Boolean `verified` field for final success.
+- Bound the existing Android foreground observer to concrete structured evidence.
+- Preserved the existing policy, capability, authorization, session, Emergency Stop, sensitive-data, finance and trusted-signing controls.
+- Added adversarial regression coverage for missing, forged, stale, future, wrong-target/type, mismatched-state and clock-regression evidence.
+- Managed-device instrumentation now exercises the updated observation contract.
+
+### VERIFIED
+- PR #6 exact head: `faec08d8083150da2fe4ef961fe3562b31edf9af`.
+- GitHub Actions Run #380 (`35830655333`) completed **SUCCESS**.
+- Run #380 passed JVM tests, Android instrumentation-test compilation/APK assembly, and managed-device instrumentation on `pixel2api30`.
+- CI history included intermediate source/test failures; they were corrected and the final exact PR-head run passed.
+- Consolidated review covered call paths, data flow, authorization binding, evidence provenance/target/timing, fail-closed behavior, privacy, resource bounds, race/timestamp behavior and adversarial misuse. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in the reviewed path.
+
+### NOT VERIFIED
+- A separate post-merge push-triggered CI run for merge commit `86d70f90c05692d72464056601dc2fb8f165b01a` is not exposed by the connected workflow-run query.
+- Physical-device validation.
+- Signed production-release validation.
+- Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime implementations.
+- Real model/provider runtime integration.
+- Screen/OCR/accessibility-to-model filtering.
+- Complete contextual secret classification.
+- Any real production trusted-app entry; the registry remains empty/deny-by-default.
+
+### KNOWN LIMITATIONS
+- Current executable semantic evidence is intentionally limited to **APP_LAUNCH + open** and establishes package-level foreground transition, not arbitrary in-app task success.
+- `PACKAGE_USAGE_STATS` remains a user-granted Android special-access boundary.
+- Managed-device CI is not physical-device validation.
+- `SensitiveInformationFirewall` remains pattern-based defense-in-depth rather than a complete contextual secret classifier.
+
+### NEXT ACTION
+Implement the next major security layer: a real model/context runtime boundary built on the existing `ModelContextBoundary`, with no speculative external model SDK or cloud dependency. Then implement explicit screen/OCR/accessibility ingestion filtering before adding broader semantic task adapters.
+
+### EXACT VERIFIED PRODUCTION-CODE/TEST SHA
+`faec08d8083150da2fe4ef961fe3562b31edf9af`
+
+### EXACT VERIFIED CI
+Run #380 — `35830655333`
+
+### EXACT MERGE SHA
+`86d70f90c05692d72464056601dc2fb8f165b01a`
