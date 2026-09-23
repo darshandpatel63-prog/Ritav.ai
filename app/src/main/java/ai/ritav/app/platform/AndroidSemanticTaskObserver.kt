@@ -60,7 +60,8 @@ internal class AndroidAccessibilitySemanticTaskObserver(
 
                 if (now <= deadline && broker.observeSemanticEvidenceAfter(
                         packageName = packageName,
-                        dispatchCompletedAtElapsedMillis = dispatchCompletedAtElapsedMillis
+                        dispatchCompletedAtElapsedMillis = dispatchCompletedAtElapsedMillis,
+                        nowElapsedMillis = now
                     )
                 ) {
                     return true
