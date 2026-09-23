@@ -1,3 +1,4 @@
+import org.junit.Assert.assertEquals
 package ai.ritav.app.platform
 
 import ai.ritav.app.core.orchestrator.AgentCapabilityScope
@@ -5,7 +6,6 @@ import ai.ritav.app.core.orchestrator.AgentRequest
 import ai.ritav.app.core.orchestrator.ScreenContextSnapshot
 import ai.ritav.app.core.orchestrator.ScreenContentSource
 import ai.ritav.app.core.security.Capability
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
