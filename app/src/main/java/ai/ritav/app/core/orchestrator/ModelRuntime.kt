@@ -13,7 +13,7 @@ import java.util.Collections
  * filtered AgentRequest. The raw caller cannot construct a model request with
  * arbitrary content through the public factory.
  */
-data class ModelRuntimeRequest private constructor(
+class ModelRuntimeRequest private constructor(
     val taskId: String,
     val userCommand: String,
     val context: List<UntrustedContent>,
