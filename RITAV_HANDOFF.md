@@ -657,3 +657,52 @@ Run #380 — `35830655333`
 
 ### DOCUMENTATION SYNC
 README sync commit: `83d366f39e4c2fd34072e656017f6e02d2ad2713`.
+
+
+## 2026-09-23 NEW-CHAT HANDOFF — GitHub visibility + active security PRs
+
+### Exact live state checked before handoff
+- Repository: `darshandpatel63-prog/Ritav.ai`
+- Repository visibility at handoff: **PRIVATE**.
+- Current `main` base used by open PRs: `604c82b54e30febfdebfd4ca2623e24168b0a0a7`.
+- Open PR #8: `security/accessibility-model-context-filter`, head `1a69ea838402eb7f935027a54067354023779a6a`, draft. CI Run #393 (`35834141736`) FAILED at `:app:compileDebugKotlin`; managed-device step skipped.
+- Open PR #9: `security/ai-model-runtime-boundary`, head `08682ebb44779b0678af757839e1aeb5b7969d6e`, ready for review. CI Run #394 (`35886599581`) FAILED at `:app:compileDebugKotlin`; managed-device step skipped.
+- Run #393 showed duplicate declarations of `ModelRuntime` and `SecureModelRuntimeGateway` in `ModelRuntime.kt` and `SecureModelRuntimeGateway.kt`. Treat this as an active integration defect; do not merge either PR until repaired and exact-head CI is green.
+
+### GitHub Actions public-repository decision
+GitHub's current documentation says standard GitHub-hosted Actions runners are free in public repositories; private repositories consume the included monthly minute allowance. Thus, changing Ritav.ai from private to public should stop standard public-repository Actions runs from consuming the private monthly minute quota. It does not erase already-used minutes or remove unrelated Actions limits. The 90% / 1800-minute notice is therefore relevant to the private-repository allowance, not a permanent repository execution cap.
+
+Before making the repository public, perform a complete history-aware secret scan. Public visibility exposes all current files and Git history. A targeted search performed in this chat found no obvious common private-key/API-token patterns in the current searchable repository, but that is not proof that history is clean.
+
+The assistant did not change repository visibility. The repository owner should make that Settings change after deciding that the complete history is safe to publish.
+
+### Security work already completed and NOT to restart
+- Deterministic security foundation: risk/policy/capability gates, secure stores, ActionPlan hashing/binding, authorization, identity/session, Emergency Stop, execution pipeline/bridge, sensitive-information firewall, finance firewall, network egress firewall and audit.
+- Trusted-app management: implemented, integrated and previously exact-head CI verified; production trusted registry remains empty/deny-by-default.
+- Android target-app foreground observation: implemented, timestamp-hardened, post-dispatch ordered and independently reviewed.
+- Semantic task-completion verification: implemented for the currently supported `APP_LAUNCH + open` path and merged to main at `86d70f90c05692d72464056601dc2fb8f165b01a`; exact implementation/test SHA `faec08d8083150da2fe4ef961fe3562b31edf9af`; Run #380 (`35830655333`) SUCCESS.
+- `ModelContextBoundary`: implemented as deterministic model/context ingress protection.
+
+### Remaining security completion order
+1. Fix, verify and consolidate-review the real model/context runtime boundary.
+2. Fix, verify and consolidate-review screen/OCR/accessibility-to-model filtering.
+3. Implement/validate native security runtimes for iOS/iPadOS/Windows/macOS/Linux/ChromeOS. Contracts alone do not count as support.
+4. Physical-device/real-host security validation.
+5. Signed production-release validation.
+6. Final full Ritav app integration of the complete security stack.
+7. Final consolidated security audit: call paths, data flow, trust boundaries, authorization, privacy/egress, failure/rollback, races, adversarial misuse, major/minor defects and integration gaps. Do not declare security complete until these are resolved or explicitly documented as non-blocking limitations.
+
+### Development rules for next chat
+- First read `docs/RITAV_COMMON_AI_WORKFLOW.md` and `docs/RITAV_ELITE_SECURITY_ADDENDUM.md`, then `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_HANDOFF.md`, `RITAV_BLUEPRINT.md`, `docs/MASTER_REQUIREMENTS_MATRIX.md`, and `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md`.
+- Inspect live `main`, latest commits, open PRs and exact CI before changing code.
+- Search for responsibility-equivalent code before adding new code.
+- Continuously verify call paths, data flow, security boundaries, failure paths and existing controls.
+- When a major layer is logically complete, perform a consolidated system-level review before marking it complete.
+- Never claim CI/device/release verification without exact evidence.
+- Never invent packages, certificates, OAuth/payment/backend/AI SDK integrations or trusted identities.
+- AI/model/context remains untrusted and never receives authorization authority.
+- External UI/app/document/OCR/accessibility content remains untrusted; filter before model ingestion.
+- Finance/UPI automation remains hard-denied.
+
+### Exact next action
+Start from live `main` and PR #8/#9. Resolve the duplicate model-runtime integration defect in the correct branch/path, then run exact-head CI. Do not merge until CI is green and the consolidated security review passes.
