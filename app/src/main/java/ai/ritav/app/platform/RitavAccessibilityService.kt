@@ -13,8 +13,13 @@ internal class RitavAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         current = this
+        if (!restrictToRitavOnly()) {
+            current = null
+            AndroidAccessibilityEvidenceBroker.setServiceConnected(false)
+            disableSelf()
+            return
+        }
         AndroidAccessibilityEvidenceBroker.setServiceConnected(true)
-        restrictToRitavOnly()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
