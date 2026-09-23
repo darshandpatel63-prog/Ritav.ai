@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Ritav</string>
+    <string name="ritav_accessibility_service_description">Ritav uses an explicitly enabled accessibility service only for requested user-assistance, bounded UI-state verification, and security-filtered app context.</string>
+</resources>
