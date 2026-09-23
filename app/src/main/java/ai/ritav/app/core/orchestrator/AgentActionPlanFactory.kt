@@ -3,6 +3,7 @@ package ai.ritav.app.core.orchestrator
 import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.Capability
+import ai.ritav.app.core.security.ExpectedActionStateRegistry
 import java.util.regex.Pattern
 
 /**
@@ -73,20 +74,4 @@ class AgentActionPlanFactory(
         const val MAX_TEXT_LENGTH = 4096
         val PACKAGE_NAME_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$")
     }
-}
-
-/**
- * Security-owned verification-state mapping. It is deliberately smaller than
- * the capability registry and currently covers only the reviewed executable
- * Android action.
- */
-internal object ExpectedActionStateRegistry {
-    fun expectedStateFor(capability: Capability, action: String): String? =
-        when {
-            capability == Capability.APP_LAUNCH && action == OPEN_ACTION -> LAUNCH_DISPATCHED_STATE
-            else -> null
-        }
-
-    const val OPEN_ACTION = "open"
-    const val LAUNCH_DISPATCHED_STATE = "LAUNCH_DISPATCHED"
 }
