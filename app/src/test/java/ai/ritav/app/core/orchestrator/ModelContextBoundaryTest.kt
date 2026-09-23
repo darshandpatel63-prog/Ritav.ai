@@ -109,7 +109,7 @@ class ModelContextBoundaryTest {
             userCommand = UntrustedContent("open", "user", ContentTrustLevel.USER_COMMAND),
             context = listOf(
                 UntrustedContent("x".repeat(15_000), "a", ContentTrustLevel.APP_CONTENT),
-                UntrustedContent("y".repeat(15_000), "b", ContentTrustLevel.EXTERNAL_CONTENT),
+                UntrustedContent("y".repeat(14_000), "b", ContentTrustLevel.EXTERNAL_CONTENT),
                 UntrustedContent("z".repeat(3_000), "c", ContentTrustLevel.APP_CONTENT)
             )
         )
