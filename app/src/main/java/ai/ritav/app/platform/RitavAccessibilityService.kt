@@ -69,7 +69,13 @@ internal class RitavAccessibilityService : AccessibilityService() {
         }.getOrDefault(false)
 
     private fun isValidPackageName(packageName: String): Boolean =
-        packageName.isNotBlank() && packageName.length <= 256
+        packageName.length <= MAX_PACKAGE_NAME_LENGTH &&
+            PACKAGE_NAME_REGEX.matches(packageName)
+
+    private companion object {
+        const val MAX_PACKAGE_NAME_LENGTH = 256
+        val PACKAGE_NAME_REGEX = Regex("""^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$""")
+    }
 
     companion object {
         @Volatile private var current: RitavAccessibilityService? = null
