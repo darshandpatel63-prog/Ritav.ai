@@ -62,12 +62,13 @@ class AndroidTargetAppForegroundObserverTest {
             )
         )
 
-        assertTrue(
-            observer(reader).observeForegroundAfterDispatch(
-                packageName = "demo.app",
-                dispatchStartedAtMillis = 1_000L
-            )
+        val result = observer(reader).observeForegroundAfterDispatch(
+            packageName = "demo.app",
+            dispatchStartedAtMillis = 1_000L
         )
+        assertTrue(result != null)
+        assertTrue(result!!.packageName == "demo.app")
+        assertTrue(result.observedAtMillis == 1_500L)
     }
 
     @Test fun foregroundEventAtDispatchTimestampIsRejected() {
@@ -209,12 +210,12 @@ class AndroidTargetAppForegroundObserverTest {
             sleeper = { }
         )
 
-        assertTrue(
-            observer.observeForegroundAfterDispatch(
-                packageName = "demo.app",
-                dispatchStartedAtMillis = 1_000L
-            )
+        val result = observer.observeForegroundAfterDispatch(
+            packageName = "demo.app",
+            dispatchStartedAtMillis = 1_000L
         )
+        assertTrue(result != null)
+        assertTrue(result!!.observedAtMillis == 1_600L)
         assertTrue(reader.calls == 2)
     }
 
