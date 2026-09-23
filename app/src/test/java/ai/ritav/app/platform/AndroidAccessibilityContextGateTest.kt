@@ -23,13 +23,14 @@ class AndroidAccessibilityContextGateTest {
     private fun snapshot(
         taskId: String = "task-1",
         packageName: String = "com.example.safe",
-        text: String = "Welcome"
+        text: String = "Welcome",
+        observedAt: Long = 100L
     ) = ScreenContextSnapshot(
         taskId = taskId,
         packageName = packageName,
         source = ScreenContentSource.ACCESSIBILITY,
         text = text,
-        observedAtMillis = 100L
+        observedAtMillis = observedAt
     )
 
     @Test fun readingContentRequiresExplicitScopedCapability() {
