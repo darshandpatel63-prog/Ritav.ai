@@ -8,6 +8,7 @@ import ai.ritav.app.core.security.AndroidActionAdapter
 import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.ExecutionResult
+import ai.ritav.app.core.orchestrator.ExpectedActionStateRegistry
 
 /**
  * Minimal production Android action adapter.
@@ -39,10 +40,10 @@ class AndroidIntentActionAdapter internal constructor(
         if (!plan.isValid()) {
             return ExecutionResult(false, false, "Action plan is malformed")
         }
-        if (plan.capability != Capability.APP_LAUNCH || plan.action != OPEN_ACTION) {
+        if (plan.capability != Capability.APP_LAUNCH || plan.action != ExpectedActionStateRegistry.OPEN_ACTION) {
             return ExecutionResult(false, false, "Android adapter does not support this action")
         }
-        if (plan.expectedState != LAUNCH_DISPATCHED_STATE) {
+        if (plan.expectedState != ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE) {
             return ExecutionResult(false, false, "Launch action requires dispatch-state verification")
         }
         if (!isTrustedPackage(plan.appId)) {
@@ -92,14 +93,10 @@ class AndroidIntentActionAdapter internal constructor(
             } else {
                 "Android launch dispatched; target-app foreground observation failed"
             },
-            observedState = LAUNCH_DISPATCHED_STATE
+            observedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE
         )
     }
 
-    private companion object {
-        const val OPEN_ACTION = "open"
-        const val LAUNCH_DISPATCHED_STATE = "LAUNCH_DISPATCHED"
-    }
 }
 
 /**
