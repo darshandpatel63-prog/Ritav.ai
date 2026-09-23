@@ -1098,3 +1098,34 @@ Run #380 — `35830655333`
 
 ### DOCUMENTATION SYNC
 README sync commit: `83d366f39e4c2fd34072e656017f6e02d2ad2713`.
+
+
+## 2026-09-23 latest handoff/security + GitHub Actions checkpoint
+
+### CURRENT REPOSITORY STATE
+- Live repository visibility is currently **private**.
+- Main base used by the newest open security PRs is `604c82b54e30febfdebfd4ca2623e24168b0a0a7`.
+- Open PR #8: `security/accessibility-model-context-filter`, head `1a69ea838402eb7f935027a54067354023779a6`, draft. It adds deterministic accessibility/OCR-derived context filtering, a task-scoped Android accessibility gate, a concrete bounded AccessibilityService producer, and filtered model-context integration. **CI Run #393 (`35834141736`) FAILED** during `:app:compileDebugKotlin`; managed-device tests were skipped.
+- Open PR #9: `security/ai-model-runtime-boundary`, head `08682ebb44779b0678af757839e1aeb5b7969d6e`, ready for review. It adds the concrete secure model-runtime gateway above `ModelContextBoundary` without provider SDK/network/credentials. **CI Run #394 (`35886599581`) FAILED** during `:app:compileDebugKotlin`; managed-device tests were skipped.
+- Run #393 exposed duplicate `ModelRuntime` / `SecureModelRuntimeGateway` declarations between `ModelRuntime.kt` and `SecureModelRuntimeGateway.kt`. This is a real integration defect and must be fixed before either PR is considered verified/mergeable.
+- Do not claim PR #8 or #9 CI green. Do not merge either until exact-head CI is green and the consolidated security review is completed.
+
+### GITHUB ACTIONS PUBLIC-REPOSITORY DECISION
+GitHub's current documentation states that standard GitHub-hosted Actions runners are free for public repositories, while private repositories consume the plan's included monthly minutes. Therefore converting Ritav.ai to public should stop **standard public-repository Actions runs from consuming the private-repository monthly minute allowance**. The existing 90%/1800-minute notification is an account/billing-cycle usage notification; converting visibility does not retroactively erase past usage, and other GitHub Actions/resource limits still apply.
+
+Before changing visibility, verify that the entire repository history contains no secrets, credentials, signing material, private certificates, tokens or other content that must remain private. Making a repository public exposes the code, issues/PRs and Git history publicly. A targeted current-tree secret search found no obvious matches for common private-key/API-token patterns, but that is **not** a substitute for a complete history-aware secret scan.
+
+The assistant has **not changed repository visibility**. Visibility change must be performed by the repository owner in GitHub Settings after the final history/secrets decision.
+
+### SECURITY ROADMAP REMAINING
+The security completion order remains:
+1. Finish and verify the real model/context runtime boundary.
+2. Finish and verify screen/OCR/accessibility-to-model filtering.
+3. Complete native security runtimes for iOS/iPadOS/Windows/macOS/Linux/ChromeOS with real implementation and platform validation.
+4. Physical-device/real-host security validation.
+5. Signed production-release validation.
+6. Final full Ritav app integration of all security layers.
+7. Consolidated end-to-end security audit covering call paths, data flow, trust boundaries, authorization, privacy/egress, failure/rollback, race conditions and adversarial cases; close all identified major/minor security issues before declaring security complete.
+
+### HANDOFF RULE
+The next development chat must first read the required security workflow documents plus `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_HANDOFF.md`, `RITAV_BLUEPRINT.md`, `docs/MASTER_REQUIREMENTS_MATRIX.md`, and the active cross-platform architecture document, then inspect live `main`, open PRs and exact CI. Do not restart completed trusted-app management, observation hardening or semantic verification. Treat PR #8/#9 as unverified until their exact heads pass CI and receive consolidated review.
