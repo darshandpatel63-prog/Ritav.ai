@@ -57,6 +57,40 @@ class AndroidIntentActionAdapterTest {
         }
     }
 
+    private class FakeSemanticTaskObserver(
+        private val available: Boolean = true,
+        private val armed: Boolean = true,
+        private val observed: Boolean = true
+    ) : AndroidSemanticTaskObserver {
+        var canObserveCalls = 0
+        var armCalls = 0
+        var observeCalls = 0
+        var disarmCalls = 0
+        var lastPackage: String? = null
+
+        override fun canObserve(packageName: String): Boolean {
+            canObserveCalls++
+            lastPackage = packageName
+            return available
+        }
+
+        override fun arm(packageName: String): Boolean {
+            armCalls++
+            lastPackage = packageName
+            return armed
+        }
+
+        override fun observeCompletedAfterDispatch(packageName: String): Boolean {
+            observeCalls++
+            lastPackage = packageName
+            return observed
+        }
+
+        override fun disarm() {
+            disarmCalls++
+        }
+    }
+
     private val certificateBytes = byteArrayOf(1, 2, 3, 4, 5)
     private val certificateSha256 = sha256(certificateBytes)
 
@@ -95,11 +129,13 @@ class AndroidIntentActionAdapterTest {
         dispatcher: RecordingDispatcher,
         trusted: Boolean = true,
         observer: AndroidTargetAppResultObserver = FakeTargetAppObserver(),
+        semanticObserver: AndroidSemanticTaskObserver = FakeSemanticTaskObserver(),
         clock: () -> Long = { 1_000L }
     ) = AndroidIntentActionAdapter(
         dispatcher = dispatcher,
         isTrustedPackage = { trusted },
         targetAppResultObserver = observer,
+        semanticTaskObserver = semanticObserver,
         clock = clock
     )
 
@@ -135,6 +171,31 @@ class AndroidIntentActionAdapterTest {
         assertEquals(0, dispatcher.calls)
     }
 
+    @Test fun unavailableSemanticObservationPreventsDispatch() {
+        val dispatcher = RecordingDispatcher(true)
+        val semantic = FakeSemanticTaskObserver(available = false)
+        val result = adapter(dispatcher, semanticObserver = semantic).execute(trustedPlan())
+
+        assertFalse(result.success)
+        assertFalse(result.verified)
+        assertEquals(0, dispatcher.calls)
+        assertEquals(1, semantic.canObserveCalls)
+        assertEquals(0, semantic.armCalls)
+        assertEquals(0, semantic.observeCalls)
+    }
+
+    @Test fun semanticObservationArmFailurePreventsDispatch() {
+        val dispatcher = RecordingDispatcher(true)
+        val semantic = FakeSemanticTaskObserver(armed = false)
+        val result = adapter(dispatcher, semanticObserver = semantic).execute(trustedPlan())
+
+        assertFalse(result.success)
+        assertFalse(result.verified)
+        assertEquals(0, dispatcher.calls)
+        assertEquals(1, semantic.canObserveCalls)
+        assertEquals(1, semantic.armCalls)
+    }
+
     @Test fun unavailableObservationPreventsDispatch() {
         val dispatcher = RecordingDispatcher(true)
         val observer = FakeTargetAppObserver(available = false)
@@ -145,6 +206,19 @@ class AndroidIntentActionAdapterTest {
         assertEquals(0, dispatcher.calls)
         assertEquals(1, observer.canObserveCalls)
         assertEquals(0, observer.observeCalls)
+    }
+
+    @Test fun semanticObservationFailurePreventsVerifiedSuccess() {
+        val dispatcher = RecordingDispatcher(true)
+        val semantic = FakeSemanticTaskObserver(observed = false)
+        val result = adapter(dispatcher, semanticObserver = semantic).execute(trustedPlan())
+
+        assertTrue(result.success)
+        assertFalse(result.verified)
+        assertEquals(1, dispatcher.calls)
+        assertEquals(1, semantic.armCalls)
+        assertEquals(1, semantic.observeCalls)
+        assertEquals(1, semantic.disarmCalls)
     }
 
     @Test fun successfulDispatchReturnsOnlyDispatchObservationUntilIndependentObservationCompletes() {
@@ -160,6 +234,7 @@ class AndroidIntentActionAdapterTest {
         assertEquals(1_000L, observer.lastDispatchStartedAtMillis)
         assertEquals(1, dispatcher.calls)
         assertEquals(1, observer.observeCalls)
+        assertEquals(1, FakeSemanticTaskObserver().disarmCalls + 0)
     }
 
     @Test fun observationUsesTimestampSampledAfterDispatch() {
