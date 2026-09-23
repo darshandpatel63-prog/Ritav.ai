@@ -94,7 +94,8 @@ class AndroidAccessibilityEvidenceBrokerTest {
             assertFalse(
                 AndroidAccessibilityEvidenceBroker.observeSemanticEvidenceAfter(
                     packageName = "com.example.safe",
-                    dispatchCompletedAtElapsedMillis = 100L
+                    dispatchCompletedAtElapsedMillis = 100L,
+                    nowElapsedMillis = 200L
                 )
             )
             event.recycle()
