@@ -1,7 +1,6 @@
 package ai.ritav.app.core.orchestrator
 
 import ai.ritav.app.core.security.ActionPlan
-import ai.ritav.app.core.security.AgentActionPlanFactory
 import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.Capability
 
