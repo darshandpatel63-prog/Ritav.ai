@@ -24,6 +24,7 @@ internal object AndroidAccessibilityEvidenceBroker {
 
     private const val SOURCE_PREFIX = "android-accessibility:"
     private const val MAX_CONTEXT_LENGTH = 8_192
+    private const val MAX_SEMANTIC_WINDOW_MILLIS = 2_000L
     private const val MAX_PACKAGE_NAME_LENGTH = 256
 
     private val lock = Any()
@@ -78,6 +79,10 @@ internal object AndroidAccessibilityEvidenceBroker {
         val packageName = event.packageName?.toString() ?: return
         if (!isValidPackageName(packageName)) return
 
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            event.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+        ) return
+
         synchronized(lock) {
             if (!serviceConnected || armedPackage != packageName) return
             if (root?.packageName?.toString() != packageName) return
@@ -91,13 +96,20 @@ internal object AndroidAccessibilityEvidenceBroker {
 
     fun observeSemanticEvidenceAfter(
         packageName: String,
-        dispatchCompletedAtElapsedMillis: Long
+        dispatchCompletedAtElapsedMillis: Long,
+        nowElapsedMillis: Long
     ): Boolean {
-        if (!isValidPackageName(packageName) || dispatchCompletedAtElapsedMillis < 0L) return false
+        if (!isValidPackageName(packageName) ||
+            dispatchCompletedAtElapsedMillis < 0L ||
+            nowElapsedMillis < dispatchCompletedAtElapsedMillis
+        ) return false
         synchronized(lock) {
             val evidence = latestSemanticEvidence ?: return false
-            return evidence.packageName == packageName &&
-                evidence.receivedAtElapsedMillis > dispatchCompletedAtElapsedMillis
+            if (evidence.packageName != packageName) return false
+            if (evidence.receivedAtElapsedMillis <= dispatchCompletedAtElapsedMillis) return false
+            if (evidence.receivedAtElapsedMillis > nowElapsedMillis) return false
+            return dispatchCompletedAtElapsedMillis <= Long.MAX_VALUE - MAX_SEMANTIC_WINDOW_MILLIS &&
+                evidence.receivedAtElapsedMillis <= dispatchCompletedAtElapsedMillis + MAX_SEMANTIC_WINDOW_MILLIS
         }
     }
 
