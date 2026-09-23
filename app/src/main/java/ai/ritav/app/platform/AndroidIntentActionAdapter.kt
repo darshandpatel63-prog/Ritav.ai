@@ -10,7 +10,7 @@ import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.ExecutionResult
 import ai.ritav.app.core.security.SemanticVerificationContract
 import ai.ritav.app.core.security.VerificationEvidence
-import ai.ritav.app.core.orchestrator.ExpectedActionStateRegistry
+import ai.ritav.app.core.security.ExpectedActionStateRegistry
 
 /**
  * Minimal production Android action adapter.
