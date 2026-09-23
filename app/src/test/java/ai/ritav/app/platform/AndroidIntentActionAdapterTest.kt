@@ -94,7 +94,7 @@ class AndroidIntentActionAdapterTest {
     private fun adapter(
         dispatcher: RecordingDispatcher,
         trusted: Boolean = true,
-        observer: FakeTargetAppObserver = FakeTargetAppObserver(),
+        observer: AndroidTargetAppResultObserver = FakeTargetAppObserver(),
         clock: () -> Long = { 1_000L }
     ) = AndroidIntentActionAdapter(
         dispatcher = dispatcher,
