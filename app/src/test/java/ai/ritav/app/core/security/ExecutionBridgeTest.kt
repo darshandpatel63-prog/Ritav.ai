@@ -10,7 +10,17 @@ class ExecutionBridgeTest {
         var calls = 0
         override fun execute(plan: ActionPlan): ExecutionResult {
             calls++
-            return ExecutionResult(true, true, "adapter called", observedState = plan.expectedState)
+            return ExecutionResult(
+                true,
+                true,
+                "adapter called",
+                observedState = plan.expectedState,
+                verificationEvidence = VerificationEvidence(
+                    evidenceType = SemanticVerificationContract.TARGET_APP_FOREGROUND,
+                    subject = plan.appId,
+                    observedAtMillis = System.currentTimeMillis()
+                )
+            )
         }
     }
 
@@ -18,7 +28,17 @@ class ExecutionBridgeTest {
         var calls = 0
         override fun execute(plan: ActionPlan): ExecutionResult {
             calls++
-            return ExecutionResult(true, false, "adapter dispatched but did not verify", observedState = plan.expectedState)
+            return ExecutionResult(
+                true,
+                false,
+                "adapter verification flag is false",
+                observedState = plan.expectedState,
+                verificationEvidence = VerificationEvidence(
+                    evidenceType = SemanticVerificationContract.TARGET_APP_FOREGROUND,
+                    subject = plan.appId,
+                    observedAtMillis = System.currentTimeMillis()
+                )
+            )
         }
     }
 
@@ -48,10 +68,10 @@ class ExecutionBridgeTest {
             identityManager = identityManager,
             plan = ActionPlan(
                 "demo.app",
-                Capability.UI_AUTOMATION,
-                "edit",
+                Capability.APP_LAUNCH,
+                "open",
                 RiskTier.TIER_2_CONTENT_MUTATION,
-                expectedState = "EDITED",
+                expectedState = SemanticVerificationContract.TARGET_APP_FOREGROUND.replace("TARGET_APP_FOREGROUND", "LAUNCH_DISPATCHED"),
                 sessionId = session.id
             ),
             session = session
@@ -141,7 +161,7 @@ class ExecutionBridgeTest {
         assertEquals(1, adapter.calls)
     }
 
-    @Test fun adapterDeclaredSuccessWithoutVerificationCannotBecomeFinalSuccess() {
+    @Test fun adapterVerificationFlagIsNotTrustedWhenStructuredEvidenceIsValid() {
         val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "OPENED")
         val adapter = UnverifiedAdapter()
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
@@ -154,9 +174,30 @@ class ExecutionBridgeTest {
 
         val result = bridge.execute(plan, userExplicitlyRequested = true)
 
+        assertTrue(result.success)
+        assertTrue(result.verified)
+        assertEquals(1, adapter.calls)
+    }
+
+    @Test fun missingStructuredEvidenceCannotBecomeFinalSuccess() {
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "LAUNCH_DISPATCHED")
+        val adapter = object : AndroidActionAdapter {
+            override fun execute(plan: ActionPlan) =
+                ExecutionResult(true, true, "missing evidence", observedState = plan.expectedState)
+        }
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter
+        )
+
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+
         assertFalse(result.success)
         assertFalse(result.verified)
-        assertEquals("Required independent result verification was not completed", result.message)
+        assertTrue(result.message.contains("evidence"))
         assertEquals(1, adapter.calls)
     }
 
