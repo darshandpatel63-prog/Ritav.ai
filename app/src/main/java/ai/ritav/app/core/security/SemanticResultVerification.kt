@@ -100,8 +100,8 @@ class SemanticResultVerifier(
         if (verifiedEvidence.subject != plan.appId) {
             return VerificationResult(false, "Semantic evidence target does not match the action target")
         }
-        if (verifiedEvidence.observedAtMillis <= executionStartedAtMillis) {
-            return VerificationResult(false, "Semantic evidence predates or equals action execution start")
+        if (verifiedEvidence.observedAtMillis < executionStartedAtMillis) {
+            return VerificationResult(false, "Semantic evidence predates action execution start")
         }
         if (verifiedEvidence.observedAtMillis > verificationCheckedAtMillis) {
             return VerificationResult(false, "Semantic evidence is from the future")
