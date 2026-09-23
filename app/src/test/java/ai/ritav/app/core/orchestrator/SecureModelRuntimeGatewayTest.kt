@@ -17,7 +17,7 @@ class SecureModelRuntimeGatewayTest {
                 taskId = request.taskId,
                 proposedAction = "open maps",
                 capability = Capability.APP_LAUNCH,
-                riskTier = ai.ritav.app.core.security.RiskTier.TIER_1,
+                riskTier = ai.ritav.app.core.security.RiskTier.TIER_1_REVERSIBLE,
                 rationale = "user requested the app"
             )
         }
@@ -62,7 +62,7 @@ class SecureModelRuntimeGatewayTest {
                 taskId = "other-task",
                 proposedAction = "open maps",
                 capability = Capability.APP_LAUNCH,
-                riskTier = ai.ritav.app.core.security.RiskTier.TIER_1,
+                riskTier = ai.ritav.app.core.security.RiskTier.TIER_1_REVERSIBLE,
                 rationale = "mismatched task"
             )
         }
