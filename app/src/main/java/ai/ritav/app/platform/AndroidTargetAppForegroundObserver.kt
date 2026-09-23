@@ -168,6 +168,8 @@ internal class AndroidTargetAppForegroundObserver(
                 if (events.any { event ->
                         event.packageName == packageName &&
                             event.timestampMillis > dispatchStartedAtMillis &&
+                            event.timestampMillis <= deadline &&
+                            event.timestampMillis < queryEnd &&
                             isForegroundEvent(event.eventType)
                     }
                 ) {
