@@ -1,7 +1,6 @@
 package ai.ritav.app.platform
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 
@@ -24,19 +23,23 @@ internal class RitavAccessibilityService : AccessibilityService() {
         if (!AndroidAccessibilityEvidenceBroker.isArmedFor(packageName)) return
 
         val root = runCatching { rootInActiveWindow }.getOrNull()
-        if (root?.packageName?.toString() != packageName) return
+        if (root == null || root.packageName?.toString() != packageName) return
 
-        val now = SystemClock.elapsedRealtime()
-        AndroidAccessibilityEvidenceBroker.recordSemanticEvent(event, now, root)
+        try {
+            val now = SystemClock.elapsedRealtime()
+            AndroidAccessibilityEvidenceBroker.recordSemanticEvent(event, now, root)
 
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-            event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-        ) {
-            runCatching {
-                RitavAccessibilityContextExtractor().extract(root, packageName)
-            }.getOrNull()?.let { context ->
-                AndroidAccessibilityEvidenceBroker.publishModelContext(context)
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+                event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+            ) {
+                runCatching {
+                    RitavAccessibilityContextExtractor().extract(root, packageName)
+                }.getOrNull()?.let { context ->
+                    AndroidAccessibilityEvidenceBroker.publishModelContext(context)
+                }
             }
+        } finally {
+            root.recycle()
         }
     }
 
