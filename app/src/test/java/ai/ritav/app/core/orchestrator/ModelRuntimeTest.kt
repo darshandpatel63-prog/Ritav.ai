@@ -264,4 +264,40 @@ class ModelRuntimeTest {
         )
         assertTrue(runtime.lastRequest?.context?.single()?.text?.contains("USER_COMMAND") == true)
     }
+    @Test fun modelProposalMustStillPassScopedInvokerAndRegistryBeforePlan() {
+        val runtime = RecordingRuntime(draft())
+        val agent = ModelBackedSpecialistAgent(
+            id = "model-agent",
+            gateway = SecureModelRuntimeGateway(runtime)
+        )
+        val request = request()!!
+        val invoker = ScopedAgentInvoker()
+        val registry = AppCapabilityRegistry(
+            listOf(
+                AppCapability(
+                    packageName = "com.example.safe",
+                    capabilities = setOf(Capability.APP_LAUNCH),
+                    allowedActions = mapOf(Capability.APP_LAUNCH to setOf("open")),
+                    riskTier = RiskTier.TIER_1_REVERSIBLE,
+                    financial = false
+                )
+            )
+        )
+
+        val proposal = invoker.invoke(agent, request)
+        assertNotNull(proposal)
+
+        val plan = invoker.invokeAsActionPlan(
+            agent = agent,
+            request = request,
+            appId = "com.example.safe",
+            registry = registry
+        )
+
+        assertNotNull(plan)
+        assertEquals(Capability.APP_LAUNCH, plan?.capability)
+        assertEquals("open", plan?.action)
+        assertEquals(RiskTier.TIER_1_REVERSIBLE, plan?.riskTier)
+    }
+
 }
