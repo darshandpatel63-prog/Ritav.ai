@@ -37,7 +37,12 @@ internal class AndroidAccessibilitySemanticTaskObserver(
         if (!canObserve(packageName)) return false
         val service = RitavAccessibilityService.currentService() ?: return false
         if (!broker.arm(packageName)) return false
-        return runCatching { service.restrictToPackage(packageName) }.getOrDefault(false)
+        val restricted = runCatching { service.restrictToPackage(packageName) }.getOrDefault(false)
+        if (!restricted) {
+            broker.disarm()
+            service.restrictToRitavOnly()
+        }
+        return restricted
     }
 
     override fun observeCompletedAfterDispatch(
@@ -48,22 +53,26 @@ internal class AndroidAccessibilitySemanticTaskObserver(
         if (dispatchCompletedAtElapsedMillis > Long.MAX_VALUE - MAX_WAIT_MILLIS) return false
         val deadline = dispatchCompletedAtElapsedMillis + MAX_WAIT_MILLIS
 
-        repeat(MAX_POLL_ATTEMPTS) { attempt ->
-            val now = safeNow() ?: return false
-            if (now < dispatchCompletedAtElapsedMillis) return false
+        return try {
+            repeat(MAX_POLL_ATTEMPTS) { attempt ->
+                val now = safeNow() ?: return false
+                if (now < dispatchCompletedAtElapsedMillis) return false
 
-            if (now <= deadline && broker.observeSemanticEvidenceAfter(
-                    packageName = packageName,
-                    dispatchCompletedAtElapsedMillis = dispatchCompletedAtElapsedMillis
-                )
-            ) {
-                return true
+                if (now <= deadline && broker.observeSemanticEvidenceAfter(
+                        packageName = packageName,
+                        dispatchCompletedAtElapsedMillis = dispatchCompletedAtElapsedMillis
+                    )
+                ) {
+                    return true
+                }
+
+                if (now >= deadline || attempt == MAX_POLL_ATTEMPTS - 1) return false
+                if (!runCatching { sleeper(POLL_INTERVAL_MILLIS) }.isSuccess) return false
             }
-
-            if (now >= deadline || attempt == MAX_POLL_ATTEMPTS - 1) return false
-            if (!runCatching { sleeper(POLL_INTERVAL_MILLIS) }.isSuccess) return false
+            false
+        } finally {
+            disarm()
         }
-        return false
     }
 
     override fun disarm() {
