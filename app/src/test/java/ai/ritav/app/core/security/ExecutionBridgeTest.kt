@@ -180,10 +180,14 @@ class ExecutionBridgeTest {
     }
 
     @Test fun missingStructuredEvidenceCannotBecomeFinalSuccess() {
-        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = "LAUNCH_DISPATCHED")
+        val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = object : AndroidActionAdapter {
-            override fun execute(plan: ActionPlan) =
-                ExecutionResult(true, true, "missing evidence", observedState = plan.expectedState)
+            var calls = 0
+
+            override fun execute(plan: ActionPlan): ExecutionResult {
+                calls++
+                return ExecutionResult(true, true, "missing evidence", observedState = plan.expectedState)
+            }
         }
         val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
         val policy = PolicyEngine(permissions)
