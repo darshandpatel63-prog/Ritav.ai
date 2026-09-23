@@ -170,15 +170,18 @@ internal class AndroidTargetAppForegroundObserver(
                     return null
                 }
 
-                if (events.any { event ->
-                        event.packageName == packageName &&
-                            event.timestampMillis > dispatchStartedAtMillis &&
-                            event.timestampMillis <= deadline &&
-                            event.timestampMillis < queryEnd &&
-                            isForegroundEvent(event.eventType)
-                    }
-                ) {
-                    return AndroidForegroundObservation(packageName = packageName, observedAtMillis = eventTimestamp)
+                val matchingEvent = events.firstOrNull { event ->
+                    event.packageName == packageName &&
+                        event.timestampMillis > dispatchStartedAtMillis &&
+                        event.timestampMillis <= deadline &&
+                        event.timestampMillis < queryEnd &&
+                        isForegroundEvent(event.eventType)
+                }
+                if (matchingEvent != null) {
+                    return AndroidForegroundObservation(
+                        packageName = packageName,
+                        observedAtMillis = matchingEvent.timestampMillis
+                    )
                 }
             }
 
