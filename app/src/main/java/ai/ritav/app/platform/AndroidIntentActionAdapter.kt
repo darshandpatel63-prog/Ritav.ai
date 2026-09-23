@@ -3,24 +3,26 @@ package ai.ritav.app.platform
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import ai.ritav.app.core.orchestrator.ExpectedActionStateRegistry
 import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.AndroidActionAdapter
 import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.ExecutionResult
-import ai.ritav.app.core.orchestrator.ExpectedActionStateRegistry
 
 /**
  * Minimal production Android action adapter.
  *
- * It deliberately exposes only APP_LAUNCH + "open" and requires independent
- * target-app foreground observation after launch dispatch. The common security
- * boundary remains authoritative.
+ * It deliberately exposes only APP_LAUNCH + "open" and requires both
+ * package-level post-launch evidence and a separately enabled accessibility
+ * semantic UI signal. The common deterministic security boundary remains
+ * authoritative.
  */
 class AndroidIntentActionAdapter internal constructor(
     private val dispatcher: AndroidAppLaunchDispatcher,
     private val isTrustedPackage: (String) -> Boolean,
     private val targetAppResultObserver: AndroidTargetAppResultObserver,
+    private val semanticTaskObserver: AndroidSemanticTaskObserver,
     private val clock: () -> Long = System::currentTimeMillis
 ) : AndroidActionAdapter {
 
@@ -33,14 +35,17 @@ class AndroidIntentActionAdapter internal constructor(
             registry = registry,
             certificateReader = ContextAndroidPackageSigningCertificateReader(context.applicationContext)
         )::isTrusted,
-        targetAppResultObserver = AndroidTargetAppForegroundObserver(context.applicationContext)
+        targetAppResultObserver = AndroidTargetAppForegroundObserver(context.applicationContext),
+        semanticTaskObserver = AndroidAccessibilitySemanticTaskObserver(context.applicationContext)
     )
 
     override fun execute(plan: ActionPlan): ExecutionResult {
         if (!plan.isValid()) {
             return ExecutionResult(false, false, "Action plan is malformed")
         }
-        if (plan.capability != Capability.APP_LAUNCH || plan.action != ExpectedActionStateRegistry.OPEN_ACTION) {
+        if (plan.capability != Capability.APP_LAUNCH ||
+            plan.action != ExpectedActionStateRegistry.OPEN_ACTION
+        ) {
             return ExecutionResult(false, false, "Android adapter does not support this action")
         }
         if (plan.expectedState != ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE) {
@@ -52,11 +57,18 @@ class AndroidIntentActionAdapter internal constructor(
         if (!runCatching { targetAppResultObserver.canObserve(plan.appId) }.getOrDefault(false)) {
             return ExecutionResult(false, false, "Independent target-app observation is unavailable")
         }
+        if (!runCatching { semanticTaskObserver.canObserve(plan.appId) }.getOrDefault(false)) {
+            return ExecutionResult(false, false, "Semantic target-app observation is unavailable")
+        }
+        if (!runCatching { semanticTaskObserver.arm(plan.appId) }.getOrDefault(false)) {
+            return ExecutionResult(false, false, "Semantic target-app observation could not be armed")
+        }
 
         val clockAvailable = runCatching { clock() }
             .getOrNull()
             ?.takeIf { it >= 0L } != null
         if (!clockAvailable) {
+            semanticTaskObserver.disarm()
             return ExecutionResult(false, false, "Security clock unavailable")
         }
 
@@ -65,6 +77,7 @@ class AndroidIntentActionAdapter internal constructor(
         }.getOrDefault(false)
 
         if (!dispatched) {
+            semanticTaskObserver.disarm()
             return ExecutionResult(
                 success = false,
                 verified = false,
@@ -76,7 +89,7 @@ class AndroidIntentActionAdapter internal constructor(
             .getOrNull()
             ?.takeIf { it >= 0L }
 
-        val independentlyObserved = dispatchCompletedAtMillis?.let {
+        val foregroundObserved = dispatchCompletedAtMillis?.let {
             runCatching {
                 targetAppResultObserver.observeForegroundAfterDispatch(
                     packageName = plan.appId,
@@ -85,18 +98,24 @@ class AndroidIntentActionAdapter internal constructor(
             }.getOrDefault(false)
         } ?: false
 
+        val semanticObserved = runCatching {
+            semanticTaskObserver.observeCompletedAfterDispatch(plan.appId)
+        }.getOrDefault(false)
+        semanticTaskObserver.disarm()
+
         return ExecutionResult(
             success = true,
-            verified = independentlyObserved,
-            message = if (independentlyObserved) {
-                "Android launch dispatched and target package independently observed in the foreground"
-            } else {
+            verified = foregroundObserved && semanticObserved,
+            message = if (foregroundObserved && semanticObserved) {
+                "Android launch dispatched; target package foreground and semantic UI evidence verified"
+            } else if (!foregroundObserved) {
                 "Android launch dispatched; target-app foreground observation failed"
+            } else {
+                "Android launch dispatched; semantic target-app verification failed"
             },
             observedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE
         )
     }
-
 }
 
 /**
