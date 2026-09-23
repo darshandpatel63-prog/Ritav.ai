@@ -91,6 +91,27 @@ class AndroidTargetAppForegroundObserverTest {
         )
     }
 
+    @Test fun eventOutsideObservationWindowCannotVerifyTarget() {
+        val reader = FakeReader(
+            listOf(
+                listOf(
+                    AndroidUsageEventSnapshot(
+                        packageName = "demo.app",
+                        eventType = foregroundEventType(),
+                        timestampMillis = 2_500L
+                    )
+                )
+            )
+        )
+
+        assertFalse(
+            observer(reader, now = 2_000L).observeForegroundAfterDispatch(
+                packageName = "demo.app",
+                dispatchStartedAtMillis = 1_000L
+            )
+        )
+    }
+
     @Test fun wrongPackageCannotVerifyTarget() {
         val reader = FakeReader(
             listOf(
