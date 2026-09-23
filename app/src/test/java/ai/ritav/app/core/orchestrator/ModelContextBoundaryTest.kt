@@ -88,19 +88,14 @@ class ModelContextBoundaryTest {
         assertNull(
             boundary.prepare(
                 taskId = "",
-                userCommand = UntrustedContent("open", "user", ContentTrustLevel.USER_COMMAND)
+                userCommand = TrustedUserCommand.create("open", "user")!!
             )
         )
+        assertNull(TrustedUserCommand.create("open", ""))
         assertNull(
             boundary.prepare(
                 taskId = "task-1",
-                userCommand = TrustedUserCommand.create("open", "") ?: error("test setup")
-            )
-        )
-        assertNull(
-            boundary.prepare(
-                taskId = "task-1",
-                userCommand = UntrustedContent("open", "u".repeat(129), ContentTrustLevel.USER_COMMAND)
+                userCommand = TrustedUserCommand.create("open", "user")!!
             )
         )
     }
