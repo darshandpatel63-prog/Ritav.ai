@@ -43,6 +43,8 @@ internal fun PermissionCenter(
     pendingTrustedRemovalPlan: ActionPlan?,
     onDismissTrustedRemoval: () -> Unit,
     onApproveTrustedRemoval: () -> Unit,
+    onOpenUsageAccessSettings: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
     onAuthenticate: () -> Unit,
     onEmergencyStop: () -> Unit,
     onResume: () -> Unit,
@@ -66,6 +68,28 @@ internal fun PermissionCenter(
                 "Authenticate before approving protected capability access."
             }
         )
+
+        if (!stopped) {
+            Text(
+                "Cross-app security access",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                "Ritav uses explicit Android special-access settings for target-app observation. " +
+                    "Accessibility access is user-enabled and is used only while a requested observation is armed."
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(onClick = onOpenUsageAccessSettings) {
+                    Text("Usage Access")
+                }
+                TextButton(onClick = onOpenAccessibilitySettings) {
+                    Text("Accessibility")
+                }
+            }
+        }
 
         if (identitySession == null && !stopped) {
             Button(onClick = onAuthenticate) {
