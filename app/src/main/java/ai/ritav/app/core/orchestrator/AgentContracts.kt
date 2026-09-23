@@ -2,7 +2,8 @@ package ai.ritav.app.core.orchestrator
 
 import ai.ritav.app.core.security.Capability
 import ai.ritav.app.core.security.RiskTier
-import ai.ritav.app.core.security.SensitiveInformationFirewall
+import ai.ritav.app.core.security.ContentTrustLevel
+import ai.ritav.app.core.security.UntrustedContent
 
 data class AgentCapabilityScope(
     val allowedCapabilities: Set<Capability>
@@ -11,31 +12,53 @@ data class AgentCapabilityScope(
 class AgentRequest private constructor(
     val taskId: String,
     val input: String,
-    val scope: AgentCapabilityScope
+    val scope: AgentCapabilityScope,
+    /** Security-filtered context with provenance preserved for model reasoning. */
+    val context: List<UntrustedContent>
 ) {
     companion object {
-        private val sensitiveFirewall = SensitiveInformationFirewall()
-
         /**
-         * Creates an agent request only after deterministic security checks.
-         * Sensitive or uninspectable input is rejected so it cannot reach an agent.
-         * Financial execution is never a valid agent capability, even if a caller
-         * attempts to place it into the scoped capability set.
+         * Legacy/simple ingress: the supplied string is explicitly represented as
+         * the single trusted user command and still passes the same model-context
+         * security boundary as richer context.
          */
         fun create(
             taskId: String,
             input: String,
             scope: AgentCapabilityScope
-        ): AgentRequest? {
-            if (taskId.isBlank() || taskId.length > MAX_TASK_ID_LENGTH) return null
-            if (Capability.FINANCIAL_ACTION in scope.allowedCapabilities) return null
-            val inspected = sensitiveFirewall.inspect(input)
-            if (!inspected.allowed) return null
-            val safeScope = AgentCapabilityScope(scope.allowedCapabilities.toSet())
-            return AgentRequest(taskId, inspected.redactedText, safeScope)
-        }
+        ): AgentRequest? = createFromContext(
+            taskId = taskId,
+            userCommand = UntrustedContent(input, "direct-user-input", ContentTrustLevel.USER_COMMAND),
+            context = emptyList(),
+            scope = scope
+        )
 
-        private const val MAX_TASK_ID_LENGTH = 256
+        /**
+         * Primary model/agent ingress. Security filtering happens before the
+         * request becomes visible to any SpecialistAgent.
+         */
+        fun createFromContext(
+            taskId: String,
+            userCommand: UntrustedContent,
+            context: List<UntrustedContent>,
+            scope: AgentCapabilityScope
+        ): AgentRequest? {
+            if (Capability.FINANCIAL_ACTION in scope.allowedCapabilities) return null
+
+            val prepared = ModelContextBoundary().prepare(
+                taskId = taskId,
+                userCommand = userCommand,
+                context = context
+            ) ?: return null
+
+            val safeScope = AgentCapabilityScope(scope.allowedCapabilities.toSet())
+            return AgentRequest(
+                taskId = prepared.taskId,
+                input = prepared.userCommand.text,
+                scope = safeScope,
+                context = prepared.context
+            )
+        }
     }
 }
 
