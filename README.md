@@ -628,3 +628,23 @@ Target-app observation timestamp hardening is merged into `main`. Merge commit: 
 ### NEXT ACTION
 Continue from the merged observation layer. Do not restart trusted-app management. Any future semantic verification work must use a concrete, privacy-preserving, deterministically bounded evidence source and keep untrusted UI/content from becoming authority.
 
+## 2026-09-23 independent audit checkpoint — target-app observation layer
+
+### AUDIT RESULT
+A fresh repository-level review of the completed target-app foreground observation path found no demonstrated CRITICAL/HIGH/MEDIUM security bypass.
+
+Reviewed lenses:
+- Security/authorization: execution remains behind existing deterministic trust, capability, authorization, identity-session and Emergency Stop controls.
+- Privacy: only package/event/timestamp evidence crosses the observation boundary; UI content, accessibility nodes and event extras are excluded.
+- Platform integration: `PACKAGE_USAGE_STATS` is a special Android access that users must grant through Settings; failure is handled fail-closed. citeturn658278search0
+- Adversarial/race: wrong package, wrong event type, dispatch-time events, out-of-window timestamps, clock regression/failure, observation-source failure, query/event bounds and post-dispatch timestamp ordering are covered.
+- Resource bounds: event inspection, polling interval and observation deadline are bounded.
+
+### AUDIT LIMITATIONS / OPEN ITEMS
+- No production user-facing Usage Access settings flow has been implemented; without the special access, cross-app observation fails closed. Android documents that declaring `PACKAGE_USAGE_STATS` does not itself grant usage access; the user must enable it in Settings. citeturn658278search0
+- AccessibilityService is the realistic candidate for future richer UI-state evidence, but Android requires the user to explicitly enable such a service in device settings, and window-content access is an explicit service capability. citeturn366553search0
+- Screen capture is not being added speculatively; MediaProjection requires user consent for capture sessions, and Android 14+ requires consent for each capture session. citeturn366553search3turn366553search1
+
+### AUDIT GATE
+This checkpoint satisfies the independent-audit requirement for the completed observation security layer. The next major layer may proceed only with a concrete, privacy-preserving evidence producer/consumer path; no raw UI/content ingestion is assumed.
+
