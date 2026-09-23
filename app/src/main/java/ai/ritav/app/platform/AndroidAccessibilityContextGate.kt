@@ -1,6 +1,6 @@
 package ai.ritav.app.platform
 
-import ai.ritav.app.core.orchestrator.AgentCapabilityScope
+import ai.ritav.app.core.orchestrator.AgentRequest
 import ai.ritav.app.core.orchestrator.ModelBackedSpecialistAgent
 import ai.ritav.app.core.orchestrator.ScreenContextSecurityFilter
 import ai.ritav.app.core.orchestrator.ScreenContextSnapshot
@@ -20,7 +20,7 @@ internal class AndroidAccessibilityContextGate(
     private val filter: ScreenContextSecurityFilter = ScreenContextSecurityFilter()
 ) {
     private data class ArmedRequest(
-        val request: ai.ritav.app.core.orchestrator.AgentRequest,
+        val request: AgentRequest,
         val packageName: String,
         val agentId: String,
         val allowedCapabilities: Set<Capability>,
@@ -33,7 +33,7 @@ internal class AndroidAccessibilityContextGate(
 
     @Synchronized
     fun arm(
-        request: ai.ritav.app.core.orchestrator.AgentRequest,
+        request: AgentRequest,
         packageName: String,
         agentId: String,
         expiresAtElapsedRealtime: Long,
@@ -90,9 +90,8 @@ internal class AndroidAccessibilityContextGate(
         val filtered = filter.filter(snapshot) ?: return null
 
         return PreparedAccessibilityContext(
-            taskId = active.request.taskId,
+            request = active.request,
             agentId = active.agentId,
-            allowedCapabilities = active.allowedCapabilities,
             context = UntrustedContent(
                 text = filtered.text,
                 source = filtered.source.name.lowercase() + ":" + filtered.packageName,
@@ -106,20 +105,10 @@ internal class AndroidAccessibilityContextGate(
             packageName.matches(PACKAGE_NAME_REGEX)
 
     internal data class PreparedAccessibilityContext(
-        val taskId: String,
+        val request: AgentRequest,
         val agentId: String,
-        val allowedCapabilities: Set<Capability>,
         val context: UntrustedContent
     )
-
-    @Synchronized
-    internal fun activeRequestForPreparedContext(
-        prepared: PreparedAccessibilityContext
-    ): ai.ritav.app.core.orchestrator.AgentRequest? =
-        armed?.takeIf { it.taskIdMatches(prepared.taskId, prepared.agentId) }?.request
-
-    private fun ArmedRequest.taskIdMatches(taskId: String, agentId: String): Boolean =
-        request.taskId == taskId && this.agentId == agentId
 
     private companion object {
         const val MAX_TASK_ID_LENGTH = 256
@@ -148,18 +137,15 @@ internal class AndroidAccessibilityModelContextBridge(
         val prepared = gate.prepare(snapshot, nowElapsedRealtime, currentStopGeneration)
             ?: return null
 
-        val activeRequest = gate.activeRequestForPreparedContext(prepared)
-            ?: return null
-
-        val mergedRequest = ai.ritav.app.core.orchestrator.AgentRequest.createFromContext(
-            taskId = activeRequest.taskId,
+        val mergedRequest = AgentRequest.createFromContext(
+            taskId = prepared.request.taskId,
             userCommand = UntrustedContent(
-                text = activeRequest.input,
+                text = prepared.request.input,
                 source = "filtered-user-command",
                 trustLevel = ContentTrustLevel.USER_COMMAND
             ),
-            context = activeRequest.context + prepared.context,
-            scope = AgentCapabilityScope(prepared.allowedCapabilities)
+            context = prepared.request.context + prepared.context,
+            scope = prepared.request.scope
         ) ?: return null
 
         return modelAgent.propose(mergedRequest)?.takeIf { it.agentId == prepared.agentId }
