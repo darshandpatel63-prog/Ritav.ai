@@ -80,7 +80,10 @@ class AndroidIntentActionAdapterTest {
             return armed
         }
 
-        override fun observeCompletedAfterDispatch(packageName: String): Boolean {
+        override fun observeCompletedAfterDispatch(
+            packageName: String,
+            dispatchCompletedAtElapsedMillis: Long
+        ): Boolean {
             observeCalls++
             lastPackage = packageName
             return observed
