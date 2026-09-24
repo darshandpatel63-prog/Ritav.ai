@@ -711,3 +711,41 @@ GitHub currently documents standard GitHub-hosted Actions as free for public rep
 
 For continuation, read `RITAV_HANDOFF.md` and `RITAV_PROJECT_STATE.md` for the exact security roadmap, CI failures, open PR heads, verification evidence and new-chat procedure. Do not restart completed trusted-app, observation or semantic-verification layers.
 \n\n## 2026-09-24 latest verified security + native-platform checkpoint\n\n### CURRENT LIVE MAIN\n- Current live `main` HEAD: `23dce7f926b260e86c0693044547214f5d43e8bc`.\n- PR #9 (model runtime context boundary) is merged at `0596c3bb5d0e1696db3e1f80772c40f74022a9ae`.\n- PR #8 (screen/accessibility-to-model filtering) is merged at `bba3b170eb5062fbf543ad75243e603400c86d44`.\n- Superseded legacy PR #5 was closed and must not be revived.\n- There are currently no open pull requests.\n\n### MODEL + SCREEN/ACCESSIBILITY SECURITY LAYER\n- `ModelRuntimeRequest`, `ModelRuntime`, `SecureModelRuntimeGateway`, `ModelOutputBoundary`, `ModelBackedSpecialistAgent` and fail-closed `UnavailableModelRuntime` are now the single authoritative model-runtime path.\n- PR #9 exact verified head `909ce31d58eaa3bcadb319c438c80e814826cac4` passed Android unit-test workflow Run #396 (`35889670261`).\n- Accessibility/OCR-derived context now passes through deterministic provenance, prompt-injection and sensitive-data filtering, task/package/capability/expiry/stop-generation binding, bounded producer traversal, and bounded freshness checks before reaching the secure model gateway.\n- PR #8 exact verified head `f0fb544fe3747c65a87efa52960b32cc14a57ff2` passed Android unit-test workflow Run #402 (`35891089251`).\n- Consolidated security review and a fresh independent audit covered call paths, data flow, privacy, authorization, Emergency Stop, failure handling, races, freshness, resource bounds and output authority. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified.\n- The actual model provider remains intentionally unavailable; `UnavailableModelRuntime` keeps production model execution fail-closed until a concrete local provider/runtime is reviewed.\n- Accessibility arming remains an explicit security-controlled path; no speculative user-facing activation or provider integration was added.\n\n### FIRST IOS/IPADOS NATIVE RUNTIME SLICE\nPR #10 is merged at the current main HEAD and adds the first concrete Apple-platform runtime slice in `:core`:\n- `iosArm64` and `iosSimulatorArm64` Kotlin Multiplatform targets.\n- UIKit-backed `IosRitavPlatformAdapter` reporting real OS/version and phone/tablet facts.\n- Security-sensitive capabilities remain explicitly unavailable until concrete native secure-storage/authentication/automation/network/model implementations exist.\n- iOS simulator-target CI runs on a macOS GitHub-hosted runner. GitHub documents `macos-latest` as an arm64 macOS runner; public repositories may use standard GitHub-hosted runners without consuming the included private-repository minutes. citeturn544978search3\n\n### EXACT IOS/ANDROID VERIFICATION\n- PR #10 exact head: `7fc2d60cde2d284444794adea24a32b8f3f7f1cf`.\n- iOS platform workflow Run #3 (`35954665084`) SUCCESS; the iOS simulator-target test step completed successfully on macOS 26.6.2 / Xcode 26.6.\n- Android regression workflow Run #406 (`35954664995`) SUCCESS on the same PR head.\n- No post-merge push-triggered CI result is claimed for merge commit `23dce7f926b260e86c0693044547214f5d43e8bc` because the connected workflow-run API did not expose one at this checkpoint.\n\n### PLATFORM SUPPORT STATUS\nThe iOS/iPadOS slice is **not** a claim of product support. Full Apple support still requires concrete native security primitives, runtime integration, UI/runtime packaging, required permissions/consent boundaries, device/simulator validation, signed packaging and platform-specific security review. The same non-claim rule remains in force for Windows, macOS, Linux and ChromeOS.\n\n### NEXT SECURITY DIRECTION\nContinue the native-platform phase from this verified checkpoint. For iOS/iPadOS, the next concrete security work should be native secure storage and device-authentication primitives behind platform-neutral interfaces, followed by platform-specific authorization integration and packaging evidence. Do not add speculative cloud/SDK/network integrations.\n\n### VERIFICATION RULE\nPost-merge CI is not considered green until an exact merge-commit workflow result is available. Physical-device and signed-production evidence remain unverified.\n
+
+## 2026-09-24 latest verified security + native-platform checkpoint
+
+### CURRENT LIVE MAIN
+- Current live `main` HEAD after PR #11 merge: `87e62985d37af6341d3f2febb32cff67d77a9b06`.
+- PR #9 merged: `0596c3bb5d0e1696db3e1f80772c40f74022a9ae`.
+- PR #8 merged: `bba3b170eb5062fbf543ad75243e603400c86d44`.
+- PR #10 merged: `23dce7f926b260e86c0693044547214f5d43e8bc`.
+- PR #11 (iOS secure storage + device authentication primitives) merged at `87e62985d37af6341d3f2febb32cff67d77a9b06`.
+- No open pull requests remain.
+- Repository visibility is currently **public**.
+
+### IOS/IPADOS SECURITY PRIMITIVES — COMPLETED LAYER
+PR #11 adds native security primitives behind platform-neutral contracts:
+- bounded iOS/iPadOS Keychain-backed local storage using `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`;
+- bounded, OS-owned LocalAuthentication execution with single-delivery callback protection;
+- no authorization-token issuance, no execution authority, no network/provider/cloud integration;
+- explicit bounds and fail-closed behavior for invalid inputs and unavailable authentication.
+
+### EXACT VERIFICATION
+- PR #11 exact head: `59b9f84fadfc46cb476369e52f61052ad3a4fbec`.
+- iOS simulator-target workflow Run #58 (`35978140468`): **SUCCESS**.
+- Android unit-test workflow Run #461 (`35978140591`): **SUCCESS**.
+- The hosted simulator did not successfully execute the native Keychain round-trip/overwrite integration operations, so those tests are explicitly opt-in with `RITAV_ENABLE_KEYCHAIN_INTEGRATION_TESTS=1`; they are **not** claimed as passed.
+- Physical-device Keychain validation and signed-production validation remain unverified.
+- No separate post-merge workflow result is claimed for merge commit `87e62985d37af6341d3f2febb32cff67d77a9b06` because the connected workflow-run API did not expose one at this checkpoint.
+
+### CONSOLIDATED SECURITY REVIEW
+The completed PR #11 layer was reviewed across call paths, data flow, native trust boundaries, privacy/egress, authorization separation, fail-closed behavior, bounded inputs, callback/race behavior and integration impact. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this layer.
+
+### PLATFORM SUPPORT STATUS
+This is a native Apple security-runtime slice, **not** a claim of full iOS/iPadOS product support. Product support still requires platform-specific authorization/session integration, native UI/runtime packaging, required permission/consent boundaries, physical-device validation, signed packaging and platform-specific production review. Windows, macOS, Linux and ChromeOS remain subject to the same non-claim rule.
+
+### NEXT SECURITY DIRECTION
+Continue iOS/iPadOS native security integration incrementally: bind the new secure-storage/device-auth primitives into the deterministic authorization/session path, add platform-specific adversarial tests, and then proceed to the next native platform. Do not add speculative cloud, network or provider SDK integrations.
+
+### VERIFICATION RULE
+Post-merge CI is not considered green until an exact merge-commit workflow result is available. Physical-device and signed-production evidence remain unverified.
