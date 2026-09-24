@@ -1,13 +1,12 @@
 package ai.ritav.core.security.windows
 
 import ai.ritav.core.security.PlatformSecureLocalStore
-import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
-import platform.posix.EOF
 import platform.posix.fclose
 import platform.posix.fopen
 import platform.posix.fread
@@ -59,9 +58,10 @@ class WindowsSecureLocalStore(
         val temp = target + ".tmp"
 
         writeFile(temp, protected)
+        remove(target)
         if (rename(temp, target) != 0) {
             remove(temp)
-            error("Windows secure local atomic replace failed")
+            error("Windows secure local replace failed")
         }
     }
 
@@ -209,11 +209,12 @@ class WindowsSecureLocalStore(
     }
 
     private fun ensureDirectory(path: String) {
-        if (mkdir(path, 0x1C0) != 0) {
-            // Existing directories are acceptable; inability to use the path is
-            // detected by the first actual read/write operation.
-            val probe = readFile(path)
-            if (probe != null) error("Windows secure local path is not a directory")
+        val normalized = path.replace('\\', '/').trimEnd('/')
+        val parts = normalized.split('/').filter { it.isNotEmpty() }
+        var current = if (normalized.startsWith('/')) "/" else ""
+        for (part in parts) {
+            current = if (current.isEmpty() || current == "/") current + part else current + "/" + part
+            mkdir(current, 0x1C0)
         }
     }
 
