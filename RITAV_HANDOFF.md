@@ -747,3 +747,46 @@ Reviewed call paths, native security/data boundaries, authorization separation, 
 
 ### NEXT ACTION
 Bind the new iOS/iPadOS secure-storage and device-auth primitives into the deterministic authorization/session path, add platform-specific adversarial tests, and then continue to the next native platform. Do not add speculative cloud/network/provider SDK integrations.
+
+
+## 2026-09-24 CURRENT HANDOFF — iOS deterministic authentication/session integration merged
+
+### EXACT LIVE STATE
+- Repository: `darshandpatel63-prog/Ritav.ai`.
+- Repository visibility: **public**.
+- PR #12 merged at `cf2a9aeac26d70e7bda953e5a3b1f985a38e8bd7`.
+- PR #12 exact final head: `f37744013bf1ccc708e8eb496e586e2361ff981b`.
+- No open pull requests remain.
+
+### WORK COMPLETED
+- Added `PlatformSecuritySession` and `PlatformSecuritySessionService` in common core.
+- Added `IosSecuritySessionRuntime` composing the existing iOS Keychain and LocalAuthentication implementations into the platform-neutral session path.
+- Authentication state is short-lived, secure-store generation-bound, opaque/non-copyable, and deterministically invalidated by generation rotation.
+- Fail-closed paths include malformed/oversized auth input, unavailable/failed OS authentication, secure-store failures, malformed persisted generation, timestamp overflow/invalid time, and prompt-time generation races.
+- Added common adversarial tests plus an iOS wiring/fail-closed test.
+
+### VERIFICATION EVIDENCE
+- Exact final PR head: `f37744013bf1ccc708e8eb496e586e2361ff981b`.
+- Android Run #470 (`35980592666`) SUCCESS.
+- iOS Run #67 (`35980592673`) SUCCESS.
+- Earlier failures were fixed and re-verified: Android Run #468 caught Kotlin UUID opt-in; iOS Run #66 caught Foundation `timeIntervalSince1970` interop/import; both defects were removed before the final head.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed the full local call path, data flow, OS-auth boundary, secure-store boundary, authorization separation, privacy/egress implications, resource bounds, storage failures and concurrency/invalidation races. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this layer.
+
+### NOT VERIFIED / NOT CLAIMED
+- Physical Apple-device validation.
+- Signed Apple production packaging.
+- Full iOS/iPadOS application/runtime support.
+- Hosted-simulator Keychain round-trip/overwrite integration as a passing test; those operations remain explicitly opt-in because the hosted simulator did not complete them reliably.
+- Post-merge CI on merge commit `cf2a9aeac26d70e7bda953e5a3b1f985a38e8bd7` until an exact merge-commit workflow result is exposed.
+
+### GLOBAL LIMITATIONS THAT REMAIN
+- Real production model/provider runtime remains unavailable and fail-closed.
+- Trusted-app registry remains empty/deny-by-default.
+- Sensitive-information detection remains pattern-based defense-in-depth, not complete contextual classification.
+- Non-Android native runtimes other than the current iOS/iPadOS security/runtime slices are not implemented.
+- Physical-device/real-host and signed-production validation remain outstanding.
+
+### NEXT ACTION
+Proceed incrementally with the next concrete native-platform security/runtime package. For iOS/iPadOS, only add further authorization/application integration when a real runtime and platform permission model exists; otherwise move to the next native platform. Preserve the deterministic authorization boundary and do not add speculative cloud/provider integrations.
