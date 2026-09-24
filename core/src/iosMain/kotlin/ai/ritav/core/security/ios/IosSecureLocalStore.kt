@@ -15,6 +15,8 @@ import platform.CoreFoundation.CFDictionaryCreateMutable
 import platform.CoreFoundation.CFDictionaryRef
 import platform.CoreFoundation.CFRelease
 import platform.CoreFoundation.CFStringCreateWithCString
+import platform.CoreFoundation.kCFTypeDictionaryKeyCallBacks
+import platform.CoreFoundation.kCFTypeDictionaryValueCallBacks
 import platform.CoreFoundation.CFTypeRefVar
 import platform.CoreFoundation.kCFStringEncodingUTF8
 import platform.Foundation.NSData
@@ -151,7 +153,7 @@ class IosSecureLocalStore(
         returnData: Boolean = false,
         matchLimitOne: Boolean = false
     ): CFDictionaryRef {
-        val dictionary = CFDictionaryCreateMutable(null, 0, null, null)
+        val dictionary = CFDictionaryCreateMutable(null, 0, kCFTypeDictionaryKeyCallBacks.ptr, kCFTypeDictionaryValueCallBacks.ptr)
             ?: error("iOS secure local dictionary creation failed")
 
         fun addString(key: platform.CoreFoundation.CFTypeRef, value: String) {
