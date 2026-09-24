@@ -6,7 +6,6 @@ import kotlinx.cinterop.usePinned
 import platform.CoreFoundation.kCFBooleanTrue
 import platform.Foundation.NSData
 import platform.CoreFoundation.CFDictionaryRef
-import platform.CoreFoundation.CFTypeRefVar
 import platform.Foundation.NSString
 import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.create
@@ -26,7 +25,6 @@ import platform.Security.kSecValueData
 import platform.Security.errSecItemNotFound
 import platform.Security.errSecSuccess
 
-@OptIn(ExperimentalForeignApi::class)
 internal const val MAX_IOS_KEYCHAIN_VALUE_BYTES = 131_072
 internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
 
@@ -38,6 +36,7 @@ internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
  * through the device backup/restore path. No raw secrets are logged or
  * returned through errors.
  */
+@OptIn(ExperimentalForeignApi::class)
 class IosSecureLocalStore(
     private val service: String = DEFAULT_SERVICE
 ) {
