@@ -14,8 +14,8 @@ import ai.ritav.core.security.PlatformSecuritySessionService
 class IosSecuritySessionRuntime(
     service: String = DEFAULT_SERVICE
 ) {
-    val secureStore: PlatformSecureLocalStore = IosSecureLocalStore(service)
-    val deviceAuthenticator: PlatformDeviceAuthenticator = IosDeviceAuthenticationRuntime()
+    internal val secureStore: PlatformSecureLocalStore = IosSecureLocalStore(service)
+    internal val deviceAuthenticator: PlatformDeviceAuthenticator = IosDeviceAuthenticationRuntime()
     val sessionService = PlatformSecuritySessionService(
         secureStore = secureStore,
         deviceAuthenticator = deviceAuthenticator,
