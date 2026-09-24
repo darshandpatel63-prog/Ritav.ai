@@ -3,7 +3,6 @@ package ai.ritav.core.security.ios
 import ai.ritav.core.security.PlatformSecureLocalStore
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.addressOf
@@ -156,38 +155,39 @@ class IosSecureLocalStore(
             ?: error("iOS secure local dictionary creation failed")
 
         fun addString(key: platform.CoreFoundation.CFTypeRef, value: String) {
-            val cfValue = CFStringCreateWithCString(null, value.cstr.ptr, kCFStringEncodingUTF8)
+            val cfValue = CFStringCreateWithCString(null, value, kCFStringEncodingUTF8)
                 ?: error("iOS secure local string creation failed")
             CFDictionaryAddValue(dictionary, key, cfValue)
             CFRelease(cfValue)
         }
 
-        CFDictionaryAddValue(dictionary, kSecClass, kSecClassGenericPassword)
-        addString(kSecAttrService, service)
-        addString(kSecAttrAccount, name)
+        CFDictionaryAddValue(dictionary, kSecClass!!, kSecClassGenericPassword!!)
+        addString(kSecAttrService!!, service)
+        addString(kSecAttrAccount!!, name)
 
         if (valueBytes != null) {
-            val cfData = valueBytes.usePinned { pinned ->
+            val unsignedBytes = UByteArray(valueBytes.size) { index -> valueBytes[index].toUByte() }
+            val cfData = unsignedBytes.usePinned { pinned ->
                 CFDataCreate(null, pinned.addressOf(0), valueBytes.size.toLong())
             } ?: error("iOS secure local data creation failed")
-            CFDictionaryAddValue(dictionary, kSecValueData, cfData)
+            CFDictionaryAddValue(dictionary, kSecValueData!!, cfData!!)
             CFRelease(cfData)
         }
 
         if (includeAccessible) {
             CFDictionaryAddValue(
                 dictionary,
-                kSecAttrAccessible,
-                kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+                kSecAttrAccessible!!,
+                kSecAttrAccessibleWhenUnlockedThisDeviceOnly!!
             )
         }
 
         if (returnData) {
-            CFDictionaryAddValue(dictionary, kSecReturnData, platform.CoreFoundation.kCFBooleanTrue)
+            CFDictionaryAddValue(dictionary, kSecReturnData!!, platform.CoreFoundation.kCFBooleanTrue!!)
         }
 
         if (matchLimitOne) {
-            CFDictionaryAddValue(dictionary, kSecMatchLimit, kSecMatchLimitOne)
+            CFDictionaryAddValue(dictionary, kSecMatchLimit!!, kSecMatchLimitOne!!)
         }
 
         return dictionary
