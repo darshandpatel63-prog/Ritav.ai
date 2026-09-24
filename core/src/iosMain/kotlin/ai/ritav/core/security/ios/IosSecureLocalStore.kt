@@ -137,6 +137,7 @@ class IosSecureLocalStore(
         val status = SecItemDelete(query)
         CFRelease(query)
 
+        println("IOS_KEYCHAIN_DELETE_STATUS=$status")
         check(status == errSecSuccess || status == errSecItemNotFound) {
             "iOS secure local delete failed"
         }
