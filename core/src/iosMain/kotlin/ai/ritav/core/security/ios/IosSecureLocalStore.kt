@@ -1,7 +1,6 @@
 package ai.ritav.core.security.ios
 
 import kotlinx.cinterop.BetaInteropApi
-import kotlinx.cinterop.CFBridgingRelease
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
@@ -9,6 +8,7 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
+import platform.CoreFoundation.CFBridgingRelease
 import platform.CoreFoundation.CFDictionaryRef
 import platform.CoreFoundation.CFTypeRefVar
 import platform.Foundation.NSData
