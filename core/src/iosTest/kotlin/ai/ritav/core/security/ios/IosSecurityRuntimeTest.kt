@@ -60,6 +60,19 @@ class IosSecureLocalStoreTest {
 
 class IosDeviceAuthenticationRuntimeTest {
     @Test
+    fun oversizedAuthenticationReasonFailsClosed() {
+        val runtime = IosDeviceAuthenticationRuntime()
+        var called = false
+
+        runtime.authenticate("x".repeat(513)) {
+            called = true
+            assertEquals(false, it)
+        }
+
+        assertTrue(called)
+    }
+
+    @Test
     fun authenticationAvailabilityIsOSReported() {
         val runtime = IosDeviceAuthenticationRuntime()
         // Simulator/device capability varies; only require a deterministic Boolean path.
