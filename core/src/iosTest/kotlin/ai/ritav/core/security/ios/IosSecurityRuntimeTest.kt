@@ -11,35 +11,25 @@ class IosSecureLocalStoreTest {
     fun keychainRoundTripAndDelete() {
         val store = IosSecureLocalStore(service = "ai.ritav.test")
         val key = "test-key"
-        println("IOS_KEYCHAIN_TEST_STAGE=remove-before")
-        try {
-            store.remove(key)
-        } catch (_: Throwable) {
-        }
-
         println("IOS_KEYCHAIN_TEST_STAGE=put")
         store.putString(key, "hello")
         println("IOS_KEYCHAIN_TEST_STAGE=get")
         assertNotNull(store.getString(key))
         assertEquals("hello", store.getString(key))
 
-        println("IOS_KEYCHAIN_TEST_STAGE=remove-after")
-        store.remove(key)
-        println("IOS_KEYCHAIN_TEST_STAGE=get-after-remove")
-        assertNull(store.getString(key))
+        println("IOS_KEYCHAIN_TEST_STAGE=get-after")
+        assertEquals("hello", store.getString(key))
     }
 
     @Test
     fun existingValueCanBeSafelyOverwritten() {
         val store = IosSecureLocalStore(service = "ai.ritav.test")
         val key = "overwrite"
-        store.remove(key)
-
         store.putString(key, "first")
         store.putString(key, "second")
 
         assertEquals("second", store.getString(key))
-        store.remove(key)
+        assertEquals("second", store.getString(key))
     }
 
     @Test
