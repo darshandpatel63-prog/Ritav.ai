@@ -321,4 +321,11 @@ class MainActivity : FragmentActivity() {
             it.isActive(System.currentTimeMillis())
         }
     }
+
+    override fun onDestroy() {
+        if (::executionRuntime.isInitialized) {
+            executionRuntime.closeAccessibilityRuntime()
+        }
+        super.onDestroy()
+    }
 }
