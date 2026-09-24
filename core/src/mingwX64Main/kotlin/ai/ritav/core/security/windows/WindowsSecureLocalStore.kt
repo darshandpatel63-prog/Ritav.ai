@@ -1,23 +1,31 @@
 package ai.ritav.core.security.windows
 
 import ai.ritav.core.security.PlatformSecureLocalStore
+import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.alloc
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.ptr
+import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
+import platform.posix.EOF
+import platform.posix.fclose
+import platform.posix.fopen
+import platform.posix.fread
+import platform.posix.fwrite
 import platform.posix.getenv
+import platform.posix.mkdir
+import platform.posix.remove
+import platform.posix.rename
 import platform.windows.CRYPTPROTECT_UI_FORBIDDEN
 import platform.windows.CryptProtectData
 import platform.windows.CryptUnprotectData
 import platform.windows.DATA_BLOB
 import platform.windows.GetLastError
 import platform.windows.LocalFree
-import java.io.File
 
 internal const val MAX_WINDOWS_SECURE_VALUE_BYTES = 131_072
 internal const val MAX_WINDOWS_SECURE_KEY_LENGTH = 128
+private const val MAX_WINDOWS_SECURE_BLOB_BYTES = MAX_WINDOWS_SECURE_VALUE_BYTES * 2
 
 /**
  * Windows DPAPI-backed local store.
@@ -31,8 +39,13 @@ internal const val MAX_WINDOWS_SECURE_KEY_LENGTH = 128
  */
 @OptIn(ExperimentalForeignApi::class)
 class WindowsSecureLocalStore(
-    private val rootDirectory: File = defaultRootDirectory()
+    private val rootDirectory: String = defaultRootDirectory()
 ) : PlatformSecureLocalStore {
+
+    init {
+        require(rootDirectory.isNotBlank() && rootDirectory.length <= 1024)
+        ensureDirectory(rootDirectory)
+    }
 
     override fun putString(name: String, value: String) {
         validateName(name)
@@ -43,11 +56,11 @@ class WindowsSecureLocalStore(
 
         val protected = protect(plaintext)
         val target = fileFor(name)
-        val temp = File(target.parentFile, target.name + ".tmp")
+        val temp = target + ".tmp"
 
-        temp.writeBytes(protected)
-        if (!temp.renameTo(target)) {
-            temp.delete()
+        writeFile(temp, protected)
+        if (rename(temp, target) != 0) {
+            remove(temp)
             error("Windows secure local atomic replace failed")
         }
     }
@@ -55,26 +68,28 @@ class WindowsSecureLocalStore(
     override fun getString(name: String): String? {
         validateName(name)
         val target = fileFor(name)
-        if (!target.exists()) return null
-
-        val protected = target.readBytes()
-        require(protected.size <= MAX_WINDOWS_SECURE_VALUE_BYTES * 2) {
+        val protected = readFile(target) ?: return null
+        require(protected.size <= MAX_WINDOWS_SECURE_BLOB_BYTES) {
             "Windows secure blob is too large"
         }
-
         return unprotect(protected).decodeToString()
     }
 
     override fun remove(name: String) {
         validateName(name)
         val target = fileFor(name)
-        if (!target.exists()) return
-        check(target.delete()) { "Windows secure local delete failed" }
+        if (remove(target) != 0) {
+            // POSIX remove returns non-zero for a missing path as well; verify
+            // existence through a read so failure is not silently ignored.
+            if (readFile(target) != null) {
+                error("Windows secure local delete failed")
+            }
+        }
     }
 
     private fun protect(plaintext: ByteArray): ByteArray = memScoped {
-        val input = alloc<DATA_BLOB>()
-        val output = alloc<DATA_BLOB>()
+        val input = kotlinx.cinterop.alloc<DATA_BLOB>()
+        val output = kotlinx.cinterop.alloc<DATA_BLOB>()
 
         plaintext.usePinned { pinned ->
             input.cbData = plaintext.size.toUInt()
@@ -93,7 +108,7 @@ class WindowsSecureLocalStore(
         }
 
         try {
-            require(output.cbData.toLong() <= MAX_WINDOWS_SECURE_VALUE_BYTES * 2L) {
+            require(output.cbData.toLong() <= MAX_WINDOWS_SECURE_BLOB_BYTES.toLong()) {
                 "Windows DPAPI output is too large"
             }
             output.copyBytes()
@@ -103,8 +118,8 @@ class WindowsSecureLocalStore(
     }
 
     private fun unprotect(protectedBytes: ByteArray): ByteArray = memScoped {
-        val input = alloc<DATA_BLOB>()
-        val output = alloc<DATA_BLOB>()
+        val input = kotlinx.cinterop.alloc<DATA_BLOB>()
+        val output = kotlinx.cinterop.alloc<DATA_BLOB>()
 
         protectedBytes.usePinned { pinned ->
             input.cbData = protectedBytes.size.toUInt()
@@ -123,7 +138,7 @@ class WindowsSecureLocalStore(
         }
 
         try {
-            require(output.cbData.toLong() <= MAX_WINDOWS_SECURE_VALUE_BYTES) {
+            require(output.cbData.toLong() <= MAX_WINDOWS_SECURE_VALUE_BYTES.toLong()) {
                 "Windows DPAPI plaintext is too large"
             }
             output.copyBytes()
@@ -132,15 +147,77 @@ class WindowsSecureLocalStore(
         }
     }
 
-    private fun fileFor(name: String): File {
-        val directory = rootDirectory
-        if (!directory.exists()) {
-            check(directory.mkdirs() || directory.exists()) {
-                "Windows secure local directory creation failed"
+    private fun writeFile(path: String, bytes: ByteArray) {
+        val mode = "wb"
+        memScoped {
+            path.encodeToByteArray().usePinned { pathPinned ->
+                val file = fopen(pathPinned.addressOf(0), mode)
+                    ?: error("Windows secure local open-for-write failed")
+                try {
+                    if (bytes.isNotEmpty()) {
+                        bytes.usePinned { bytesPinned ->
+                            val written = fwrite(
+                                bytesPinned.addressOf(0),
+                                1u,
+                                bytes.size.toULong(),
+                                file
+                            )
+                            check(written == bytes.size.toULong()) {
+                                "Windows secure local write failed"
+                            }
+                        }
+                    }
+                } finally {
+                    check(fclose(file) == 0) {
+                        "Windows secure local close failed"
+                    }
+                }
             }
         }
-        return File(directory, encodeFileName(name))
     }
+
+    private fun readFile(path: String): ByteArray? {
+        memScoped {
+            path.encodeToByteArray().usePinned { pathPinned ->
+                val file = fopen(pathPinned.addressOf(0), "rb") ?: return null
+                try {
+                    val result = ArrayList<Byte>(MAX_WINDOWS_SECURE_BLOB_BYTES)
+                    val buffer = ByteArray(4096)
+                    while (true) {
+                        val count = buffer.usePinned { pinned ->
+                            fread(
+                                pinned.addressOf(0),
+                                1u,
+                                buffer.size.toULong(),
+                                file
+                            ).toInt()
+                        }
+                        if (count == 0) break
+                        result.addAll(buffer.take(count))
+                        require(result.size <= MAX_WINDOWS_SECURE_BLOB_BYTES) {
+                            "Windows secure blob is too large"
+                        }
+                    }
+                    return result.toByteArray()
+                } finally {
+                    check(fclose(file) == 0) {
+                        "Windows secure local close failed"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun ensureDirectory(path: String) {
+        if (mkdir(path, 0x1C0) != 0) {
+            // Existing directories are acceptable; inability to use the path is
+            // detected by the first actual read/write operation.
+            val probe = readFile(path)
+            if (probe != null) error("Windows secure local path is not a directory")
+        }
+    }
+
+    private fun fileFor(name: String): String = rootDirectory + "/" + encodeFileName(name)
 
     private fun validateName(name: String) {
         require(name.isNotBlank() && name.length <= MAX_WINDOWS_SECURE_KEY_LENGTH)
@@ -164,11 +241,11 @@ class WindowsSecureLocalStore(
     }
 
     private companion object {
-        fun defaultRootDirectory(): File {
+        fun defaultRootDirectory(): String {
             val localAppData = getenv("LOCALAPPDATA")?.toKString()
                 ?: error("Windows LOCALAPPDATA is unavailable")
             require(localAppData.isNotBlank() && localAppData.length <= 512)
-            return File(localAppData, "Ritav.ai/secure-state-v1")
+            return localAppData + "/Ritav.ai/secure-state-v1"
         }
     }
 }
