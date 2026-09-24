@@ -1,12 +1,12 @@
 package ai.ritav.core.security.ios
 
-import kotlinx.cinterop.CFDictionary
-import kotlinx.cinterop.CFTypeRefVar
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
 import platform.CoreFoundation.kCFBooleanTrue
 import platform.Foundation.NSData
+import platform.CoreFoundation.CFDictionaryRef
+import platform.CoreFoundation.CFTypeRefVar
 import platform.Foundation.NSString
 import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.create
