@@ -66,10 +66,7 @@ class IosSecureLocalStore(
         }
 
         val lookup = buildKeychainQuery(name)
-        val update = buildKeychainQuery(
-            name = name,
-            valueBytes = bytes
-        )
+        val update = buildUpdateAttributes(bytes)
 
         val updateStatus = SecItemUpdate(lookup.dictionary, update.dictionary)
         lookup.release()
@@ -144,6 +141,21 @@ class IosSecureLocalStore(
 
     private fun validateName(name: String) {
         require(name.isNotBlank() && name.length <= MAX_IOS_KEYCHAIN_KEY_LENGTH)
+    }
+
+    private fun buildUpdateAttributes(valueBytes: ByteArray): KeychainQuery {
+        val dictionary = CFDictionaryCreateMutable(null, 0, null, null)
+            ?: error("iOS secure local update dictionary creation failed")
+        val unsignedBytes = UByteArray(valueBytes.size) { index -> valueBytes[index].toUByte() }
+        val cfData = if (unsignedBytes.isEmpty()) {
+            CFDataCreate(null, null, 0)
+        } else {
+            unsignedBytes.usePinned { pinned ->
+                CFDataCreate(null, pinned.addressOf(0), valueBytes.size.toLong())
+            }
+        } ?: error("iOS secure local update data creation failed")
+        CFDictionaryAddValue(dictionary, kSecValueData!!, cfData)
+        return KeychainQuery(dictionary, listOf(cfData))
     }
 
     private fun buildKeychainQuery(
