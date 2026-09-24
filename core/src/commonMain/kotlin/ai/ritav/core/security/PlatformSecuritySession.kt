@@ -153,22 +153,39 @@ class PlatformSecuritySessionService(
     }
 
     private fun readOrInitializeGeneration(): String? {
-        val current = readGeneration()
-        if (current != null) return current
-
-        val created = newGeneration()
-        return created.takeIf(::persistGeneration)
+        return when (val state = readGenerationState()) {
+            GenerationRead.Missing -> {
+                val created = newGeneration()
+                created.takeIf(::persistGeneration)
+            }
+            is GenerationRead.Present -> state.value
+            GenerationRead.Invalid -> null
+        }
     }
 
     private fun readGeneration(): String? {
-        val result = runCatching { secureStore.getString(SECURITY_GENERATION_STORAGE_KEY) }
-        if (result.isFailure) return null
-
-        val value = result.getOrNull() ?: return null
-        if (value.isBlank() || value.length > MAX_PLATFORM_SECURITY_GENERATION_LENGTH) {
-            return null
+        return when (val state = readGenerationState()) {
+            is GenerationRead.Present -> state.value
+            GenerationRead.Missing,
+            GenerationRead.Invalid -> null
         }
-        return value
+    }
+
+    private fun readGenerationState(): GenerationRead {
+        val result = runCatching { secureStore.getString(SECURITY_GENERATION_STORAGE_KEY) }
+        if (result.isFailure) return GenerationRead.Invalid
+
+        val value = result.getOrNull() ?: return GenerationRead.Missing
+        if (value.isBlank() || value.length > MAX_PLATFORM_SECURITY_GENERATION_LENGTH) {
+            return GenerationRead.Invalid
+        }
+        return GenerationRead.Present(value)
+    }
+
+    private sealed interface GenerationRead {
+        data object Missing : GenerationRead
+        data object Invalid : GenerationRead
+        data class Present(val value: String) : GenerationRead
     }
 
     private fun persistGeneration(value: String): Boolean {
