@@ -2,8 +2,6 @@ package ai.ritav.core.security.ios
 
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
 import platform.CoreFoundation.kCFBooleanTrue
 import platform.Foundation.NSData
@@ -28,7 +26,6 @@ import platform.Security.kSecValueData
 import platform.Security.errSecItemNotFound
 import platform.Security.errSecSuccess
 
-@OptIn(ExperimentalForeignApi::class)
 @OptIn(ExperimentalForeignApi::class)
 internal const val MAX_IOS_KEYCHAIN_VALUE_BYTES = 131_072
 internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
@@ -70,30 +67,28 @@ class IosSecureLocalStore(
         query[kSecReturnData] = kCFBooleanTrue
         query[kSecMatchLimit] = kSecMatchLimitOne
 
-        return memScoped {
-            val result = null
-            val status = SecItemCopyMatching(query as CFDictionaryRef, result.ptr)
-            when (status) {
+        var result: AnyObject? = null
+        val status = SecItemCopyMatching(query as CFDictionaryRef, &result)
+        return when (status) {
                 errSecItemNotFound -> null
-                errSecSuccess -> {
-                    val data = result as? NSData ?: return@memScoped null
-                    require(data.length.toLong() <= MAX_IOS_KEYCHAIN_VALUE_BYTES)
-                    NSString.create(data, NSUTF8StringEncoding)?.toString()
-                }
-                else -> error("iOS secure local read failed")
+            errSecSuccess -> {
+                val data = result as? NSData ?: return null
+                require(data.length.toLong() <= MAX_IOS_KEYCHAIN_VALUE_BYTES)
+                NSString.create(data, NSUTF8StringEncoding)?.toString()
             }
+            else -> error("iOS secure local read failed")
         }
     }
 
     fun remove(name: String) {
         validateName(name)
-        check(SecItemDelete(itemQuery(name) as CFDictionary) == errSecSuccess ||
+        check(SecItemDelete(itemQuery(name) as CFDictionaryRef) == errSecSuccess ||
             SecItemCopyMatching(
                 itemQuery(name).toMutableMap<Any?, Any?>()
                     .apply {
                         this[kSecReturnData] = kCFBooleanTrue
                         this[kSecMatchLimit] = kSecMatchLimitOne
-                    } as CFDictionary,
+                    } as CFDictionaryRef,
                 null
             ) == errSecItemNotFound
         ) {
