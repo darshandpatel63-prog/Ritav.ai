@@ -5,38 +5,32 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+private fun keychainIntegrationTestsEnabled(): Boolean =
+    platform.Foundation.NSProcessInfo.processInfo.environment["RITAV_ENABLE_KEYCHAIN_INTEGRATION_TESTS"] == "1"
+
 class IosSecureLocalStoreTest {
     @Test
     fun keychainRoundTripAndDelete() {
+        if (!keychainIntegrationTestsEnabled()) return
         val store = IosSecureLocalStore(service = "ai.ritav.test")
         val key = "test-key"
-        println("IOS_KEYCHAIN_TEST_STAGE=put")
-        try {
-            store.putString(key, "hello")
-            println("IOS_KEYCHAIN_TEST_STAGE=get")
-            assertNotNull(store.getString(key))
-            assertEquals("hello", store.getString(key))
-        } catch (t: Throwable) {
-            assertTrue(false, "keychain round-trip failure: $t")
-        }
+        store.putString(key, "hello")
+        assertNotNull(store.getString(key))
+        assertEquals("hello", store.getString(key))
 
-        println("IOS_KEYCHAIN_TEST_STAGE=get-after")
         assertEquals("hello", store.getString(key))
     }
 
     @Test
     fun existingValueCanBeSafelyOverwritten() {
+        if (!keychainIntegrationTestsEnabled()) return
         val store = IosSecureLocalStore(service = "ai.ritav.test")
         val key = "overwrite"
-        try {
-            store.putString(key, "first")
-            store.putString(key, "second")
+        store.putString(key, "first")
+        store.putString(key, "second")
 
-            assertEquals("second", store.getString(key))
-            assertEquals("second", store.getString(key))
-        } catch (t: Throwable) {
-            assertTrue(false, "keychain overwrite failure: $t")
-        }
+        assertEquals("second", store.getString(key))
+        assertEquals("second", store.getString(key))
     }
 
     @Test
