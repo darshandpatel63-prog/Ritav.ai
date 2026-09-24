@@ -101,7 +101,7 @@ class IosSecureLocalStore(
             when (status) {
                 errSecItemNotFound -> null
                 errSecSuccess -> {
-                    val data = CFBridgingRelease(result.value) as? NSData ?: return@memScoped null
+                    val data = result.value as? NSData ?: return@memScoped null
                     require(data.length.toLong() <= MAX_IOS_KEYCHAIN_VALUE_BYTES)
 
                     ByteArray(data.length.toInt()).also { bytes ->
@@ -136,7 +136,7 @@ class IosSecureLocalStore(
     private fun buildQuery(
         account: String,
         extras: Array<out Pair<Any?, Any?>> = emptyArray()
-    ): NSDictionary {
+    ): Map<Any?, *> {
         val keys = mutableListOf<Any?>(
             kSecClass,
             kSecAttrService,
