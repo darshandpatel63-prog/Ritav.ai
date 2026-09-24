@@ -66,7 +66,7 @@ class IosSecureLocalStore(
         query[kSecReturnData] = kCFBooleanTrue
         query[kSecMatchLimit] = kSecMatchLimitOne
 
-        var result: AnyObject? = null
+        var result: CFTypeRef? = null
         val status = SecItemCopyMatching(query as CFDictionaryRef, &result)
         return when (status) {
                 errSecItemNotFound -> null
