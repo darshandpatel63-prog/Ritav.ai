@@ -212,8 +212,11 @@ class WindowsSecureLocalStore(
         val normalized = path.replace('\\', '/').trimEnd('/')
         val parts = normalized.split('/').filter { it.isNotEmpty() }
         var current = if (normalized.startsWith('/')) "/" else ""
-        for (part in parts) {
+        for ((index, part) in parts.withIndex()) {
             current = if (current.isEmpty() || current == "/") current + part else current + "/" + part
+            // A Windows drive prefix such as "C:" is not itself a directory
+            // path and must not be passed to mkdir.
+            if (index == 0 && part.endsWith(":")) continue
             mkdir(current, 0x1C0)
         }
     }
