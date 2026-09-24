@@ -8,7 +8,6 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
-import platform.CoreFoundation.CFBridgingRelease
 import platform.CoreFoundation.CFDictionaryRef
 import platform.CoreFoundation.CFTypeRefVar
 import platform.Foundation.NSData
@@ -74,12 +73,12 @@ class IosSecureLocalStore(
                 kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
             )
         )
-        val existing = SecItemDelete(buildQuery(account = name))
+        val existing = SecItemDelete(buildQuery(account = name) as Any? as CFDictionaryRef)
         check(existing == errSecSuccess || existing == errSecItemNotFound) {
             "iOS secure local replacement preparation failed"
         }
 
-        val status = SecItemAdd(query, null)
+        val status = SecItemAdd(query as Any? as CFDictionaryRef, null)
         check(status == errSecSuccess) {
             "iOS secure local write failed"
         }
@@ -97,7 +96,7 @@ class IosSecureLocalStore(
 
         return memScoped {
             val result = alloc<CFTypeRefVar>()
-            val status = SecItemCopyMatching(query, result.ptr)
+            val status = SecItemCopyMatching(query as Any? as CFDictionaryRef, result.ptr)
 
             when (status) {
                 errSecItemNotFound -> null
@@ -124,7 +123,7 @@ class IosSecureLocalStore(
 
     fun remove(name: String) {
         validateName(name)
-        val status = SecItemDelete(buildQuery(account = name))
+        val status = SecItemDelete(buildQuery(account = name) as Any? as CFDictionaryRef)
         check(status == errSecSuccess || status == errSecItemNotFound) {
             "iOS secure local delete failed"
         }
@@ -137,7 +136,7 @@ class IosSecureLocalStore(
     private fun buildQuery(
         account: String,
         extras: Array<out Pair<Any?, Any?>> = emptyArray()
-    ): CFDictionaryRef {
+    ): NSDictionary {
         val keys = mutableListOf<Any?>(
             kSecClass,
             kSecAttrService,
@@ -155,7 +154,7 @@ class IosSecureLocalStore(
         return NSDictionary.dictionaryWithObjects(
             objects = values,
             forKeys = keys
-        ) as CFDictionaryRef
+        )
     }
 
     private companion object {
