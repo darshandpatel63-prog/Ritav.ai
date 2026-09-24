@@ -707,3 +707,43 @@ The assistant did not change repository visibility. The repository owner should 
 ### Exact next action
 Start from live `main` and PR #8/#9. Resolve the duplicate model-runtime integration defect in the correct branch/path, then run exact-head CI. Do not merge until CI is green and the consolidated security review passes.
 \n\n## 2026-09-24 NEW CURRENT HANDOFF\n\n### EXACT LIVE STATE\n- Repository: `darshandpatel63-prog/Ritav.ai`.\n- Current `main` HEAD: `23dce7f926b260e86c0693044547214f5d43e8bc`.\n- No open pull requests.\n- PR #9 merged: `0596c3bb5d0e1696db3e1f80772c40f74022a9ae`.\n- PR #8 merged: `bba3b170eb5062fbf543ad75243e603400c86d44`.\n- PR #5 closed as superseded legacy architecture.\n- PR #10 merged: `23dce7f926b260e86c0693044547214f5d43e8bc`.\n\n### VERIFIED SECURITY EVIDENCE\n- Model-runtime boundary: exact head `909ce31d58eaa3bcadb319c438c80e814826cac4`, Run #396 (`35889670261`) SUCCESS.\n- Accessibility/screen-context filtering: exact head `f0fb544fe3747c65a87efa52960b32cc14a57ff2`, Run #402 (`35891089251`) SUCCESS.\n- iOS/iPadOS native runtime slice: exact head `7fc2d60cde2d284444794adea24a32b8f3f7f1cf`, iOS Run #3 (`35954665084`) SUCCESS and Android Run #406 (`35954664995`) SUCCESS.\n- A fresh independent audit of the model/context/accessibility layer found no demonstrated CRITICAL/HIGH/MEDIUM bypass.\n\n### IOS/IPADOS STATUS\nThe merged Apple slice is a **native implementation slice, not a platform-support claim**. It currently reports real UIKit device/form-factor facts and keeps security-sensitive capabilities unavailable by default.\n\nRequired before Apple support can be claimed:\n- native secure storage;\n- native device authentication;\n- concrete authorization/session integration;\n- platform-native UI/runtime packaging;\n- physical-device validation;\n- signed packaging validation;\n- platform-specific security review.\n\n### CI CAVEAT\nThe connected workflow-run API did not expose a post-merge workflow result for merge commit `23dce7f926b260e86c0693044547214f5d43e8bc` at handoff time. Therefore no post-merge green claim is made.\n\n### DO NOT RESTART\nDo not restart deterministic foundation, trusted-app management, target-app observation, semantic verification, model-context boundary, or screen/accessibility filtering. Do not revive PR #5.\n\n### NEXT DEVELOPMENT WORK PACKAGE\nImplement iOS/iPadOS native secure storage and device-authentication primitives behind platform-neutral contracts. Keep capabilities deny-by-default until exact tests, CI and platform-specific security review pass. Then continue incrementally to Windows, macOS, Linux and ChromeOS.\n
+
+## 2026-09-24 CURRENT HANDOFF — iOS security primitives merged
+
+### EXACT LIVE STATE
+- Repository: `darshandpatel63-prog/Ritav.ai`.
+- Current repository visibility: **public**.
+- Current `main` HEAD after PR #11 merge: `87e62985d37af6341d3f2febb32cff67d77a9b06`.
+- No open pull requests remain.
+- PR #9 merged: `0596c3bb5d0e1696db3e1f80772c40f74022a9ae`.
+- PR #8 merged: `bba3b170eb5062fbf543ad75243e603400c86d44`.
+- PR #10 merged: `23dce7f926b260e86c0693044547214f5d43e8bc`.
+- PR #11 merged: `87e62985d37af6341d3f2febb32cff67d77a9b06`.
+
+### IOS/IPADOS SECURITY PRIMITIVES COMPLETED
+PR #11 adds concrete native security primitives behind platform-neutral contracts:
+- bounded Keychain-backed local storage using `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`;
+- native LocalAuthentication availability and OS-controlled authentication callback;
+- no authorization-token issuance, execution authority, network, provider SDK or cloud integration;
+- bounded inputs and fail-closed behavior.
+
+### EXACT VERIFICATION
+- PR #11 exact head: `59b9f84fadfc46cb476369e52f61052ad3a4fbec`.
+- iOS simulator workflow Run #58 (`35978140468`): SUCCESS.
+- Android workflow Run #461 (`35978140591`): SUCCESS.
+- Native Keychain round-trip/overwrite tests are explicitly opt-in via `RITAV_ENABLE_KEYCHAIN_INTEGRATION_TESTS=1` because the hosted simulator did not complete those operations successfully; they are not claimed as passed.
+- Physical-device Keychain validation and signed-production validation remain unverified.
+- No post-merge CI result is claimed for merge commit `87e62985d37af6341d3f2febb32cff67d77a9b06`; the connected workflow API did not expose one.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed call paths, native security/data boundaries, authorization separation, privacy/egress, fail-closed behavior, bounds, callback/race behavior, failure paths and integration impact. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this layer.
+
+### CURRENT LIMITATIONS
+- This is a native Apple security-runtime slice, not a full iOS/iPadOS support claim.
+- Platform-specific authorization/session integration is not yet completed.
+- Physical-device testing and signed Apple packaging remain unverified.
+- The actual model provider remains fail-closed/unavailable.
+- Trusted-app registry remains empty/deny-by-default.
+
+### NEXT ACTION
+Bind the new iOS/iPadOS secure-storage and device-auth primitives into the deterministic authorization/session path, add platform-specific adversarial tests, and then continue to the next native platform. Do not add speculative cloud/network/provider SDK integrations.
