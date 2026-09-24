@@ -16,9 +16,6 @@ import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthentication
  * It only asks LocalAuthentication for an OS-owned authentication result.
  */
 class IosDeviceAuthenticationRuntime : PlatformDeviceAuthenticator {
-    private companion object {
-        const val MAX_AUTH_REASON_LENGTH = 512
-    }
     override fun isDeviceAuthenticationAvailable(): Boolean {
         val context = LAContext()
         return context.canEvaluatePolicy(
@@ -65,6 +62,6 @@ class IosDeviceAuthenticationRuntime : PlatformDeviceAuthenticator {
     }
 
     private companion object {
-        const val MAX_REASON_LENGTH = 512
+        const val MAX_AUTH_REASON_LENGTH = 512
     }
 }
