@@ -12,6 +12,9 @@ import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
 import platform.CoreFoundation.CFTypeRefVar
 import platform.Foundation.NSData
+import platform.CoreFoundation.CFBridgingRetain
+import platform.CoreFoundation.CFRelease
+import platform.CoreFoundation.CFDictionaryRef
 import platform.Foundation.NSDictionary
 import platform.Foundation.create
 import platform.Foundation.dictionaryWithObjects
@@ -75,10 +78,14 @@ class IosSecureLocalStore(
             objects = listOf(data),
             forKeys = listOf(kSecValueData)
         )
-        val updateStatus = SecItemUpdate(
-            lookupQuery,
-            updateAttributes
-        )
+        val lookupRef = CFBridgingRetain(lookupQuery) as CFDictionaryRef
+        val updateRef = CFBridgingRetain(updateAttributes) as CFDictionaryRef
+        val updateStatus = try {
+            SecItemUpdate(lookupRef, updateRef)
+        } finally {
+            CFRelease(lookupRef)
+            CFRelease(updateRef)
+        }
 
         when (updateStatus) {
             errSecSuccess -> Unit
@@ -88,7 +95,13 @@ class IosSecureLocalStore(
                     kSecValueData to data,
                     kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
                 )
-                check(SecItemAdd(addQuery, null) == errSecSuccess) {
+                val addRef = CFBridgingRetain(addQuery) as CFDictionaryRef
+                val addStatus = try {
+                    SecItemAdd(addRef, null)
+                } finally {
+                    CFRelease(addRef)
+                }
+                check(addStatus == errSecSuccess) {
                     "iOS secure local write failed"
                 }
             }
@@ -106,7 +119,12 @@ class IosSecureLocalStore(
         )
         return memScoped {
             val result = alloc<CFTypeRefVar>()
-            val status = SecItemCopyMatching(query, result.ptr)
+            val queryRef = CFBridgingRetain(query) as CFDictionaryRef
+            val status = try {
+                SecItemCopyMatching(queryRef, result.ptr)
+            } finally {
+                CFRelease(queryRef)
+            }
 
             when (status) {
                 errSecItemNotFound -> null
@@ -135,7 +153,12 @@ class IosSecureLocalStore(
         validateName(name)
 
         val query = buildKeychainQuery(name)
-        val status = SecItemDelete(query)
+        val queryRef = CFBridgingRetain(query) as CFDictionaryRef
+        val status = try {
+            SecItemDelete(queryRef)
+        } finally {
+            CFRelease(queryRef)
+        }
 
         check(status == errSecSuccess || status == errSecItemNotFound) {
             "iOS secure local delete failed"
