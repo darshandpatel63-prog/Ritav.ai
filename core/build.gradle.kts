@@ -4,22 +4,9 @@ plugins {
 
 kotlin {
     jvm()
-    iosArm64 {
-        compilations.getByName("main") {
-            cinterops {
-                val ritavKeychain by creating {
-                    definitionFile.set(project.file("src/nativeInterop/cinterop/ritav_keychain.def"))
-                header(project.file("src/nativeInterop/cinterop/ritav_keychain.h").absolutePath)
-                }
-            }
-        }
-    }
-    iosSimulatorArm64 {
-        compilations.getByName("main") {
-            cinterops {
-                val ritavKeychain by creating {
-                    definitionFile.set(project.file("src/nativeInterop/cinterop/ritav_keychain.def"))
-                }
+    iosArm64()
+    iosSimulatorArm64()
+
             }
         }
     }
