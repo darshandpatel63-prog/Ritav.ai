@@ -21,7 +21,6 @@ import platform.CoreFoundation.CFTypeRefVar
 import platform.CoreFoundation.kCFBooleanTrue
 import platform.CoreFoundation.kCFStringEncodingUTF8
 import platform.Foundation.NSData
-import platform.Foundation.NSLog
 import platform.Security.SecItemAdd
 import platform.Security.SecItemCopyMatching
 import platform.Security.SecItemDelete
@@ -70,7 +69,6 @@ class IosSecureLocalStore(
         val update = buildUpdateAttributes(bytes)
 
         val updateStatus = SecItemUpdate(lookup.dictionary, update.dictionary)
-        NSLog("IOS_KEYCHAIN_UPDATE_STATUS=%d", updateStatus)
         lookup.release()
         update.release()
 
@@ -83,7 +81,6 @@ class IosSecureLocalStore(
                     includeAccessible = true
                 )
                 val addStatus = SecItemAdd(add.dictionary, null)
-                NSLog("IOS_KEYCHAIN_ADD_STATUS=%d", addStatus)
                 add.release()
                 check(addStatus == errSecSuccess) {
                     "iOS secure local write failed: status=$addStatus"
@@ -105,7 +102,6 @@ class IosSecureLocalStore(
         return memScoped {
             val result = alloc<CFTypeRefVar>()
             val status = SecItemCopyMatching(query.dictionary, result.ptr)
-            NSLog("IOS_KEYCHAIN_GET_STATUS=%d", status)
             query.release()
 
             when (status) {
