@@ -119,8 +119,8 @@ class WindowsSecureLocalStore(
     }
 
     private fun unprotect(protectedBytes: ByteArray): ByteArray = memScoped {
-        val input = kotlinx.cinterop.alloc<DATA_BLOB>()
-        val output = kotlinx.cinterop.alloc<DATA_BLOB>()
+        val input = alloc<DATA_BLOB>()
+        val output = alloc<DATA_BLOB>()
 
         protectedBytes.usePinned { pinned ->
             input.cbData = protectedBytes.size.toUInt()
@@ -242,7 +242,7 @@ class WindowsSecureLocalStore(
         if (size == 0) return ByteArray(0)
         val source = pbData ?: error("Windows DPAPI returned null data")
         return ByteArray(size) { index ->
-            source[index].toInt().and(0xff).toByte()
+            (source[index].toInt() and 0xff).toByte()
         }
     }
 
