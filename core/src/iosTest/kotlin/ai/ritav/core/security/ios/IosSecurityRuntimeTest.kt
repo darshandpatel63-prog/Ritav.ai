@@ -1,8 +1,10 @@
 package ai.ritav.core.security.ios
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class IosSecureLocalStoreTest {
     @Test
@@ -16,7 +18,7 @@ class IosSecureLocalStoreTest {
 
         store.putString(key, "hello")
         assertNotNull(store.getString(key))
-        assert(store.getString(key) == "hello")
+        assertEquals("hello", store.getString(key))
 
         store.remove(key)
         assertNull(store.getString(key))
@@ -34,7 +36,7 @@ class IosSecureLocalStoreTest {
         } catch (_: IllegalArgumentException) {
             rejected = true
         }
-        assert(rejected)
+        assertTrue(rejected)
     }
 }
 
@@ -44,6 +46,6 @@ class IosDeviceAuthenticationRuntimeTest {
         val runtime = IosDeviceAuthenticationRuntime()
         // Simulator/device capability varies; only require a deterministic Boolean path.
         val available = runtime.isDeviceAuthenticationAvailable()
-        assert(available == true || available == false)
+        assertTrue(available || !available)
     }
 }
