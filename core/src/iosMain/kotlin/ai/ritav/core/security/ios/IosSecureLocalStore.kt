@@ -68,8 +68,7 @@ class IosSecureLocalStore(
         val lookup = buildKeychainQuery(name)
         val update = buildKeychainQuery(
             name = name,
-            valueBytes = bytes,
-            includeAccessible = true
+            valueBytes = bytes
         )
 
         val updateStatus = SecItemUpdate(lookup.dictionary, update.dictionary)
