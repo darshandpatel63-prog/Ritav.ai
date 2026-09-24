@@ -1,6 +1,7 @@
 package ai.ritav.core.security.ios
 
 import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.CFBridgingRelease
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
@@ -101,7 +102,7 @@ class IosSecureLocalStore(
             when (status) {
                 errSecItemNotFound -> null
                 errSecSuccess -> {
-                    val data = result.value as? NSData ?: return@memScoped null
+                    val data = CFBridgingRelease(result.value) as? NSData ?: return@memScoped null
                     require(data.length.toLong() <= MAX_IOS_KEYCHAIN_VALUE_BYTES)
 
                     ByteArray(data.length.toInt()).also { bytes ->
