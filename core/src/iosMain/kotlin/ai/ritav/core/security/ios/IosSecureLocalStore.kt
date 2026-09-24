@@ -1,23 +1,24 @@
 package ai.ritav.core.security.ios
 
 import ai.ritav.core.security.PlatformSecureLocalStore
-
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.alloc
+import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.alloc
+import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
-import platform.CoreFoundation.CFTypeRefVar
-import platform.Foundation.NSData
-import platform.CoreFoundation.CFBridgingRetain
-import platform.CoreFoundation.CFRelease
+import platform.CoreFoundation.CFDataCreate
+import platform.CoreFoundation.CFDictionaryAddValue
+import platform.CoreFoundation.CFDictionaryCreateMutable
 import platform.CoreFoundation.CFDictionaryRef
-import platform.Foundation.NSDictionary
-import platform.Foundation.create
-import platform.Foundation.dictionaryWithObjects
+import platform.CoreFoundation.CFRelease
+import platform.CoreFoundation.CFStringCreateWithCString
+import platform.CoreFoundation.CFTypeRefVar
+import platform.CoreFoundation.kCFStringEncodingUTF8
+import platform.Foundation.NSData
 import platform.Security.SecItemAdd
 import platform.Security.SecItemCopyMatching
 import platform.Security.SecItemDelete
@@ -41,66 +42,48 @@ internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
 /**
  * Bounded Keychain-backed store for iOS/iPadOS security state.
  *
- * Items are restricted to the current device and are available while the
- * device is unlocked. The implementation follows the repository's proven
- * Kotlin/Native Security-framework bridging pattern.
+ * Uses CoreFoundation dictionaries directly at the Security.framework boundary.
+ * This avoids relying on toll-free NSDictionary/CFDictionary casts in Kotlin/Native.
  */
-@Suppress("CAST_NEVER_SUCCEEDS")
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 class IosSecureLocalStore(
     private val service: String = DEFAULT_SERVICE
 ) : PlatformSecureLocalStore {
+
     init {
         require(service.isNotBlank() && service.length <= MAX_IOS_KEYCHAIN_KEY_LENGTH)
     }
 
     override fun putString(name: String, value: String) {
         validateName(name)
-
         val bytes = value.encodeToByteArray()
         require(bytes.size <= MAX_IOS_KEYCHAIN_VALUE_BYTES) {
             "iOS secure value is too large"
         }
 
-        val data = if (bytes.isEmpty()) {
-            NSData.create(bytes = null, length = 0uL)
-        } else {
-            bytes.usePinned { pinned ->
-                NSData.create(
-                    bytes = pinned.addressOf(0),
-                    length = bytes.size.toULong()
-                )
-            }
-        }
-
         val lookupQuery = buildKeychainQuery(name)
-        val updateAttributes = NSDictionary.dictionaryWithObjects(
-            objects = listOf(data),
-            forKeys = listOf(kSecValueData)
+        val updateAttributes = buildKeychainQuery(
+            name = name,
+            valueBytes = bytes,
+            includeAccessible = true
         )
-        val lookupRef = CFBridgingRetain(lookupQuery) as CFDictionaryRef
-        val updateRef = CFBridgingRetain(updateAttributes) as CFDictionaryRef
-        val updateStatus = try {
-            SecItemUpdate(lookupRef, updateRef)
-        } finally {
-            CFRelease(lookupRef)
-            CFRelease(updateRef)
-        }
+
+        val lookupRef = lookupQuery
+        val updateRef = updateAttributes
+        val updateStatus = SecItemUpdate(lookupRef, updateRef)
+        CFRelease(lookupRef)
+        CFRelease(updateRef)
 
         when (updateStatus) {
             errSecSuccess -> Unit
             errSecItemNotFound -> {
                 val addQuery = buildKeychainQuery(
-                    name,
-                    kSecValueData to data,
-                    kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+                    name = name,
+                    valueBytes = bytes,
+                    includeAccessible = true
                 )
-                val addRef = CFBridgingRetain(addQuery) as CFDictionaryRef
-                val addStatus = try {
-                    SecItemAdd(addRef, null)
-                } finally {
-                    CFRelease(addRef)
-                }
+                val addStatus = SecItemAdd(addQuery, null)
+                CFRelease(addQuery)
                 check(addStatus == errSecSuccess) {
                     "iOS secure local write failed"
                 }
@@ -113,18 +96,15 @@ class IosSecureLocalStore(
         validateName(name)
 
         val query = buildKeychainQuery(
-            name,
-            kSecReturnData to true,
-            kSecMatchLimit to kSecMatchLimitOne
+            name = name,
+            returnData = true,
+            matchLimitOne = true
         )
+
         return memScoped {
             val result = alloc<CFTypeRefVar>()
-            val queryRef = CFBridgingRetain(query) as CFDictionaryRef
-            val status = try {
-                SecItemCopyMatching(queryRef, result.ptr)
-            } finally {
-                CFRelease(queryRef)
-            }
+            val status = SecItemCopyMatching(query, result.ptr)
+            CFRelease(query)
 
             when (status) {
                 errSecItemNotFound -> null
@@ -153,12 +133,8 @@ class IosSecureLocalStore(
         validateName(name)
 
         val query = buildKeychainQuery(name)
-        val queryRef = CFBridgingRetain(query) as CFDictionaryRef
-        val status = try {
-            SecItemDelete(queryRef)
-        } finally {
-            CFRelease(queryRef)
-        }
+        val status = SecItemDelete(query)
+        CFRelease(query)
 
         check(status == errSecSuccess || status == errSecItemNotFound) {
             "iOS secure local delete failed"
@@ -170,29 +146,51 @@ class IosSecureLocalStore(
     }
 
     private fun buildKeychainQuery(
-        account: String,
-        vararg extras: Pair<Any?, Any?>
-    ): NSDictionary {
-        val keys = mutableListOf<Any?>(
-            kSecClass,
-            kSecAttrService,
-            kSecAttrAccount
-        )
-        val values = mutableListOf<Any?>(
-            kSecClassGenericPassword,
-            service,
-            account
-        )
+        name: String,
+        valueBytes: ByteArray? = null,
+        includeAccessible: Boolean = false,
+        returnData: Boolean = false,
+        matchLimitOne: Boolean = false
+    ): CFDictionaryRef {
+        val dictionary = CFDictionaryCreateMutable(null, 0, null, null)
+            ?: error("iOS secure local dictionary creation failed")
 
-        extras.forEach { (key, value) ->
-            keys.add(key)
-            values.add(value)
+        fun addString(key: platform.CoreFoundation.CFTypeRef, value: String) {
+            val cfValue = CFStringCreateWithCString(null, value.cstr.ptr, kCFStringEncodingUTF8)
+                ?: error("iOS secure local string creation failed")
+            CFDictionaryAddValue(dictionary, key, cfValue)
+            CFRelease(cfValue)
         }
 
-        return NSDictionary.dictionaryWithObjects(
-            objects = values,
-            forKeys = keys
-        )
+        CFDictionaryAddValue(dictionary, kSecClass, kSecClassGenericPassword)
+        addString(kSecAttrService, service)
+        addString(kSecAttrAccount, name)
+
+        if (valueBytes != null) {
+            val cfData = valueBytes.usePinned { pinned ->
+                CFDataCreate(null, pinned.addressOf(0), valueBytes.size.toLong())
+            } ?: error("iOS secure local data creation failed")
+            CFDictionaryAddValue(dictionary, kSecValueData, cfData)
+            CFRelease(cfData)
+        }
+
+        if (includeAccessible) {
+            CFDictionaryAddValue(
+                dictionary,
+                kSecAttrAccessible,
+                kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            )
+        }
+
+        if (returnData) {
+            CFDictionaryAddValue(dictionary, kSecReturnData, platform.CoreFoundation.kCFBooleanTrue)
+        }
+
+        if (matchLimitOne) {
+            CFDictionaryAddValue(dictionary, kSecMatchLimit, kSecMatchLimitOne)
+        }
+
+        return dictionary
     }
 
     private companion object {
