@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
 package ai.ritav.core.security
 
 import kotlin.uuid.Uuid
