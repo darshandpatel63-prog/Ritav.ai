@@ -1130,3 +1130,43 @@ The security completion order remains:
 ### HANDOFF RULE
 The next development chat must first read the required security workflow documents plus `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_HANDOFF.md`, `RITAV_BLUEPRINT.md`, `docs/MASTER_REQUIREMENTS_MATRIX.md`, and the active cross-platform architecture document, then inspect live `main`, open PRs and exact CI. Do not restart completed trusted-app management, observation hardening or semantic verification. Treat PR #8/#9 as unverified until their exact heads pass CI and receive consolidated review.
 \n\n## 2026-09-24 verified checkpoint — model/context security completion + first Apple runtime slice\n\n### LIVE MAIN\nCurrent `main` HEAD: `23dce7f926b260e86c0693044547214f5d43e8bc`. No open pull requests remain.\n\n### COMPLETED SINCE PREVIOUS HANDOFF\n- PR #9 merged: `0596c3bb5d0e1696db3e1f80772c40f74022a9ae`. The duplicate model-runtime gateway defect was removed, the existing authoritative `ModelRuntime.kt` responsibility was preserved, and exact-head Run #396 (`35889670261`) passed.\n- PR #8 merged: `bba3b170eb5062fbf543ad75243e603400c86d44`. Exact PR-head Run #402 (`35891089251`) passed after package-regex and context-freshness hardening.\n- Independent security review of the merged model/context/accessibility path found no demonstrated CRITICAL/HIGH/MEDIUM bypass.\n- Legacy overlapping PR #5 was closed as superseded.\n- PR #10 merged: `23dce7f926b260e86c0693044547214f5d43e8bc`. It adds the first concrete iOS/iPadOS native KMP runtime slice without enabling any security-sensitive capability.\n\n### IOS/IPADOS RUNTIME SLICE\nImplemented:\n- `iosArm64` and `iosSimulatorArm64` targets in `:core`.\n- `IosRitavPlatformAdapter` reads UIKit device OS/version and interface idiom.\n- Conservative capability reporting: secure storage, device authentication, voice input, screen capture, accessibility automation, background execution, notifications, local model runtime and network access all remain unavailable until each concrete capability has a reviewed implementation.\n- iOS simulator-target CI workflow on macOS.\n\nVerified:\n- PR #10 exact head `7fc2d60cde2d284444794adea24a32b8f3f7f1cf`.\n- iOS workflow Run #3 (`35954665084`) SUCCESS.\n- Android workflow Run #406 (`35954664995`) SUCCESS.\n\nNot verified / not claimed:\n- Apple physical-device testing.\n- Signed Apple packaging.\n- iOS/iPadOS secure-storage implementation.\n- iOS/iPadOS device-authentication implementation.\n- iOS/iPadOS UI/runtime packaging.\n- iOS/iPadOS product support as a whole.\n- Post-merge CI for `23dce7f926b260e86c0693044547214f5d43e8bc`; connected workflow API did not expose it at this checkpoint.\n\n### CURRENT SECURITY LIMITATIONS\n- Actual model provider remains `UnavailableModelRuntime`; model execution is fail-closed by design.\n- Accessibility model-context path is security-wired but activation remains explicitly armed by a trusted request; no speculative user-visible arming flow was added.\n- Sensitive information detection remains pattern-based defense-in-depth, not complete contextual classification.\n- Trusted-app registry remains intentionally empty/deny-by-default.\n- Physical-device and signed-production validation remain unverified.\n\n### NEXT ACTION\nContinue native platform security implementation incrementally. The next iOS/iPadOS work package is concrete native secure storage + device authentication behind platform-neutral interfaces, with exact CI and platform-specific adversarial tests before enabling any capability.\n
+
+## 2026-09-24 CURRENT HANDOFF — iOS security primitives merged
+
+### EXACT LIVE STATE
+- Repository: `darshandpatel63-prog/Ritav.ai`.
+- Current repository visibility: **public**.
+- Current `main` HEAD after PR #11 merge: `87e62985d37af6341d3f2febb32cff67d77a9b06`.
+- No open pull requests remain.
+- PR #9 merged: `0596c3bb5d0e1696db3e1f80772c40f74022a9ae`.
+- PR #8 merged: `bba3b170eb5062fbf543ad75243e603400c86d44`.
+- PR #10 merged: `23dce7f926b260e86c0693044547214f5d43e8bc`.
+- PR #11 merged: `87e62985d37af6341d3f2febb32cff67d77a9b06`.
+
+### IOS/IPADOS SECURITY PRIMITIVES COMPLETED
+PR #11 adds concrete native security primitives behind platform-neutral contracts:
+- bounded Keychain-backed local storage using `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`;
+- native LocalAuthentication availability and OS-controlled authentication callback;
+- no authorization-token issuance, execution authority, network, provider SDK or cloud integration;
+- bounded inputs and fail-closed behavior.
+
+### EXACT VERIFICATION
+- PR #11 exact head: `59b9f84fadfc46cb476369e52f61052ad3a4fbec`.
+- iOS simulator workflow Run #58 (`35978140468`): SUCCESS.
+- Android workflow Run #461 (`35978140591`): SUCCESS.
+- Native Keychain round-trip/overwrite tests are explicitly opt-in via `RITAV_ENABLE_KEYCHAIN_INTEGRATION_TESTS=1` because the hosted simulator did not complete those operations successfully; they are not claimed as passed.
+- Physical-device Keychain validation and signed-production validation remain unverified.
+- No post-merge CI result is claimed for merge commit `87e62985d37af6341d3f2febb32cff67d77a9b06`; the connected workflow API did not expose one.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed call paths, native security/data boundaries, authorization separation, privacy/egress, fail-closed behavior, bounds, callback/race behavior, failure paths and integration impact. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this layer.
+
+### CURRENT LIMITATIONS
+- This is a native Apple security-runtime slice, not a full iOS/iPadOS support claim.
+- Platform-specific authorization/session integration is not yet completed.
+- Physical-device testing and signed Apple packaging remain unverified.
+- The actual model provider remains fail-closed/unavailable.
+- Trusted-app registry remains empty/deny-by-default.
+
+### NEXT ACTION
+Bind the new iOS/iPadOS secure-storage and device-auth primitives into the deterministic authorization/session path, add platform-specific adversarial tests, and then continue to the next native platform. Do not add speculative cloud/network/provider SDK integrations.
