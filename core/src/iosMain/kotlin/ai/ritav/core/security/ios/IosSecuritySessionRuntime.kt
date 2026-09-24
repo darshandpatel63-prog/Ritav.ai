@@ -3,6 +3,8 @@ package ai.ritav.core.security.ios
 import ai.ritav.core.security.PlatformDeviceAuthenticator
 import ai.ritav.core.security.PlatformSecureLocalStore
 import ai.ritav.core.security.PlatformSecuritySessionService
+import platform.Foundation.NSDate
+import platform.Foundation.timeIntervalSince1970
 
 /**
  * Native iOS/iPadOS security-session composition.
@@ -20,7 +22,7 @@ class IosSecuritySessionRuntime(
         secureStore = secureStore,
         deviceAuthenticator = deviceAuthenticator,
         nowEpochMillis = {
-            platform.Foundation.NSDate().timeIntervalSince1970.toLong() * 1000L
+            NSDate().timeIntervalSince1970.toLong() * 1000L
         }
     )
 
