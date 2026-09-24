@@ -10,7 +10,6 @@ import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
-import platform.CoreFoundation.CFDictionaryRef
 import platform.CoreFoundation.CFTypeRefVar
 import platform.Foundation.NSData
 import platform.Foundation.NSDictionary
@@ -77,8 +76,8 @@ class IosSecureLocalStore(
             forKeys = listOf(kSecValueData)
         )
         val updateStatus = SecItemUpdate(
-            lookupQuery as CFDictionaryRef,
-            updateAttributes as CFDictionaryRef
+            lookupQuery,
+            updateAttributes
         )
 
         when (updateStatus) {
@@ -89,7 +88,7 @@ class IosSecureLocalStore(
                     kSecValueData to data,
                     kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
                 )
-                check(SecItemAdd(addQuery as CFDictionaryRef, null) == errSecSuccess) {
+                check(SecItemAdd(addQuery, null) == errSecSuccess) {
                     "iOS secure local write failed"
                 }
             }
@@ -105,11 +104,9 @@ class IosSecureLocalStore(
             kSecReturnData to true,
             kSecMatchLimit to kSecMatchLimitOne
         )
-        val cfQuery = query as CFDictionaryRef
-
         return memScoped {
             val result = alloc<CFTypeRefVar>()
-            val status = SecItemCopyMatching(cfQuery, result.ptr)
+            val status = SecItemCopyMatching(query, result.ptr)
 
             when (status) {
                 errSecItemNotFound -> null
@@ -138,8 +135,7 @@ class IosSecureLocalStore(
         validateName(name)
 
         val query = buildKeychainQuery(name)
-        val cfQuery = query as CFDictionaryRef
-        val status = SecItemDelete(cfQuery)
+        val status = SecItemDelete(query)
 
         check(status == errSecSuccess || status == errSecItemNotFound) {
             "iOS secure local delete failed"
@@ -153,7 +149,7 @@ class IosSecureLocalStore(
     private fun buildKeychainQuery(
         account: String,
         vararg extras: Pair<Any?, Any?>
-    ): Map<Any?, *> {
+    ): NSDictionary {
         val keys = mutableListOf<Any?>(
             kSecClass,
             kSecAttrService,
