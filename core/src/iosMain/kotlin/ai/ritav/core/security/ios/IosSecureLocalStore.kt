@@ -3,9 +3,9 @@ package ai.ritav.core.security.ios
 import ai.ritav.core.security.PlatformSecureLocalStore
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
@@ -15,9 +15,10 @@ import platform.CoreFoundation.CFDictionaryCreateMutable
 import platform.CoreFoundation.CFDictionaryRef
 import platform.CoreFoundation.CFRelease
 import platform.CoreFoundation.CFStringCreateWithCString
-import platform.CoreFoundation.kCFTypeDictionaryKeyCallBacks
-import platform.CoreFoundation.kCFTypeDictionaryValueCallBacks
+import platform.CoreFoundation.CFStringRef
+import platform.CoreFoundation.CFTypeRef
 import platform.CoreFoundation.CFTypeRefVar
+import platform.CoreFoundation.kCFBooleanTrue
 import platform.CoreFoundation.kCFStringEncodingUTF8
 import platform.Foundation.NSData
 import platform.Security.SecItemAdd
@@ -43,8 +44,10 @@ internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
 /**
  * Bounded Keychain-backed store for iOS/iPadOS security state.
  *
- * Uses CoreFoundation dictionaries directly at the Security.framework boundary.
- * This avoids relying on toll-free NSDictionary/CFDictionary casts in Kotlin/Native.
+ * Security.framework receives CoreFoundation dictionaries whose temporary
+ * CFString/CFData values remain owned until the corresponding Security call
+ * completes. This avoids unsafe NSDictionary/CFDictionary casts and avoids
+ * dangling values when using a non-retaining CFDictionary.
  */
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 class IosSecureLocalStore(
@@ -62,34 +65,32 @@ class IosSecureLocalStore(
             "iOS secure value is too large"
         }
 
-        val lookupQuery = buildKeychainQuery(name)
-        val updateAttributes = buildKeychainQuery(
+        val lookup = buildKeychainQuery(name)
+        val update = buildKeychainQuery(
             name = name,
             valueBytes = bytes,
             includeAccessible = true
         )
 
-        val lookupRef = lookupQuery
-        val updateRef = updateAttributes
-        val updateStatus = SecItemUpdate(lookupRef, updateRef)
-        CFRelease(lookupRef)
-        CFRelease(updateRef)
+        val updateStatus = SecItemUpdate(lookup.dictionary, update.dictionary)
+        lookup.release()
+        update.release()
 
         when (updateStatus) {
             errSecSuccess -> Unit
             errSecItemNotFound -> {
-                val addQuery = buildKeychainQuery(
+                val add = buildKeychainQuery(
                     name = name,
                     valueBytes = bytes,
                     includeAccessible = true
                 )
-                val addStatus = SecItemAdd(addQuery, null)
-                CFRelease(addQuery)
+                val addStatus = SecItemAdd(add.dictionary, null)
+                add.release()
                 check(addStatus == errSecSuccess) {
-                    "iOS secure local write failed"
+                    "iOS secure local write failed: status=$addStatus"
                 }
             }
-            else -> error("iOS secure local update failed")
+            else -> error("iOS secure local update failed: status=$updateStatus")
         }
     }
 
@@ -104,8 +105,8 @@ class IosSecureLocalStore(
 
         return memScoped {
             val result = alloc<CFTypeRefVar>()
-            val status = SecItemCopyMatching(query, result.ptr)
-            CFRelease(query)
+            val status = SecItemCopyMatching(query.dictionary, result.ptr)
+            query.release()
 
             when (status) {
                 errSecItemNotFound -> null
@@ -125,7 +126,7 @@ class IosSecureLocalStore(
                         }
                     }.decodeToString()
                 }
-                else -> error("iOS secure local read failed")
+                else -> error("iOS secure local read failed: status=$status")
             }
         }
     }
@@ -134,8 +135,8 @@ class IosSecureLocalStore(
         validateName(name)
 
         val query = buildKeychainQuery(name)
-        val status = SecItemDelete(query)
-        CFRelease(query)
+        val status = SecItemDelete(query.dictionary)
+        query.release()
 
         check(status == errSecSuccess || status == errSecItemNotFound) {
             "iOS secure local delete failed: status=$status"
@@ -152,15 +153,16 @@ class IosSecureLocalStore(
         includeAccessible: Boolean = false,
         returnData: Boolean = false,
         matchLimitOne: Boolean = false
-    ): CFDictionaryRef {
-        val dictionary = CFDictionaryCreateMutable(null, 0, kCFTypeDictionaryKeyCallBacks.ptr, kCFTypeDictionaryValueCallBacks.ptr)
+    ): KeychainQuery {
+        val dictionary = CFDictionaryCreateMutable(null, 0, null, null)
             ?: error("iOS secure local dictionary creation failed")
+        val ownedValues = mutableListOf<CFTypeRef>()
 
-        fun addString(key: platform.CoreFoundation.CFTypeRef, value: String) {
+        fun addString(key: CFStringRef, value: String) {
             val cfValue = CFStringCreateWithCString(null, value, kCFStringEncodingUTF8)
                 ?: error("iOS secure local string creation failed")
             CFDictionaryAddValue(dictionary, key, cfValue)
-            CFRelease(cfValue)
+            ownedValues += cfValue
         }
 
         CFDictionaryAddValue(dictionary, kSecClass!!, kSecClassGenericPassword!!)
@@ -169,11 +171,15 @@ class IosSecureLocalStore(
 
         if (valueBytes != null) {
             val unsignedBytes = UByteArray(valueBytes.size) { index -> valueBytes[index].toUByte() }
-            val cfData = unsignedBytes.usePinned { pinned ->
-                CFDataCreate(null, pinned.addressOf(0), valueBytes.size.toLong())
+            val cfData = if (unsignedBytes.isEmpty()) {
+                CFDataCreate(null, null, 0)
+            } else {
+                unsignedBytes.usePinned { pinned ->
+                    CFDataCreate(null, pinned.addressOf(0), valueBytes.size.toLong())
+                }
             } ?: error("iOS secure local data creation failed")
-            CFDictionaryAddValue(dictionary, kSecValueData!!, cfData!!)
-            CFRelease(cfData)
+            CFDictionaryAddValue(dictionary, kSecValueData!!, cfData)
+            ownedValues += cfData
         }
 
         if (includeAccessible) {
@@ -185,14 +191,24 @@ class IosSecureLocalStore(
         }
 
         if (returnData) {
-            CFDictionaryAddValue(dictionary, kSecReturnData!!, platform.CoreFoundation.kCFBooleanTrue!!)
+            CFDictionaryAddValue(dictionary, kSecReturnData!!, kCFBooleanTrue!!)
         }
 
         if (matchLimitOne) {
             CFDictionaryAddValue(dictionary, kSecMatchLimit!!, kSecMatchLimitOne!!)
         }
 
-        return dictionary
+        return KeychainQuery(dictionary, ownedValues)
+    }
+
+    private class KeychainQuery(
+        val dictionary: CFDictionaryRef,
+        private val ownedValues: List<CFTypeRef>
+    ) {
+        fun release() {
+            ownedValues.forEach(CFRelease)
+            CFRelease(dictionary)
+        }
     }
 
     private companion object {
