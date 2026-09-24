@@ -63,4 +63,8 @@ class IosDeviceAuthenticationRuntime : PlatformDeviceAuthenticator {
             deliver(success)
         }
     }
+
+    private companion object {
+        const val MAX_REASON_LENGTH = 512
+    }
 }
