@@ -70,10 +70,9 @@ class IosSecureLocalStore(
         }
 
         val lookupQuery = buildKeychainQuery(name)
-        val updateAttributes = buildKeychainQuery(
-            name,
-            kSecValueData to data,
-            kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        val updateAttributes = NSDictionary.dictionaryWithObjects(
+            objects = listOf(data),
+            forKeys = listOf(kSecValueData)
         )
         val updateStatus = SecItemUpdate(
             lookupQuery as CFDictionaryRef,
