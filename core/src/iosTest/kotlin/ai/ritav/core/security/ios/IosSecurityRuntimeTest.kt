@@ -11,10 +11,14 @@ class IosSecureLocalStoreTest {
         val store = IosSecureLocalStore(service = "ai.ritav.test")
         val key = "test-key"
         println("IOS_KEYCHAIN_TEST_STAGE=put")
-        store.putString(key, "hello")
-        println("IOS_KEYCHAIN_TEST_STAGE=get")
-        assertNotNull(store.getString(key))
-        assertEquals("hello", store.getString(key))
+        try {
+            store.putString(key, "hello")
+            println("IOS_KEYCHAIN_TEST_STAGE=get")
+            assertNotNull(store.getString(key))
+            assertEquals("hello", store.getString(key))
+        } catch (t: Throwable) {
+            assertTrue(false, "keychain round-trip failure: $t")
+        }
 
         println("IOS_KEYCHAIN_TEST_STAGE=get-after")
         assertEquals("hello", store.getString(key))
@@ -24,11 +28,15 @@ class IosSecureLocalStoreTest {
     fun existingValueCanBeSafelyOverwritten() {
         val store = IosSecureLocalStore(service = "ai.ritav.test")
         val key = "overwrite"
-        store.putString(key, "first")
-        store.putString(key, "second")
+        try {
+            store.putString(key, "first")
+            store.putString(key, "second")
 
-        assertEquals("second", store.getString(key))
-        assertEquals("second", store.getString(key))
+            assertEquals("second", store.getString(key))
+            assertEquals("second", store.getString(key))
+        } catch (t: Throwable) {
+            assertTrue(false, "keychain overwrite failure: $t")
+        }
     }
 
     @Test
