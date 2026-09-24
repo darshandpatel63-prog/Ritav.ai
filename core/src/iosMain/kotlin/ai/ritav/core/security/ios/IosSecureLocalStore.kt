@@ -29,6 +29,7 @@ import platform.Security.errSecItemNotFound
 import platform.Security.errSecSuccess
 
 @OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class)
 internal const val MAX_IOS_KEYCHAIN_VALUE_BYTES = 131_072
 internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
 
@@ -52,12 +53,12 @@ class IosSecureLocalStore(
         val data = requireUtf8(value)
 
         val query = itemQuery(name).toMutableMap<Any?, Any?>()
-        SecItemDelete(query as CFDictionary)
+        SecItemDelete(query as CFDictionaryRef)
 
         query[kSecValueData] = data
         query[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
 
-        check(SecItemAdd(query as CFDictionary, null) == errSecSuccess) {
+        check(SecItemAdd(query as CFDictionaryRef, null) == errSecSuccess) {
             "iOS secure local write failed"
         }
     }
@@ -70,12 +71,12 @@ class IosSecureLocalStore(
         query[kSecMatchLimit] = kSecMatchLimitOne
 
         return memScoped {
-            val result = alloc<CFTypeRefVar>()
-            val status = SecItemCopyMatching(query as CFDictionary, result.ptr)
+            val result = null
+            val status = SecItemCopyMatching(query as CFDictionaryRef, result.ptr)
             when (status) {
                 errSecItemNotFound -> null
                 errSecSuccess -> {
-                    val data = result.value as? NSData ?: return@memScoped null
+                    val data = result as? NSData ?: return@memScoped null
                     require(data.length.toLong() <= MAX_IOS_KEYCHAIN_VALUE_BYTES)
                     NSString.create(data, NSUTF8StringEncoding)?.toString()
                 }
