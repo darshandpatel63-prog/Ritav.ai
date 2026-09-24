@@ -749,3 +749,42 @@ Continue iOS/iPadOS native security integration incrementally: bind the new secu
 
 ### VERIFICATION RULE
 Post-merge CI is not considered green until an exact merge-commit workflow result is available. Physical-device and signed-production evidence remain unverified.
+
+
+## 2026-09-24 CURRENT HANDOFF — iOS deterministic authentication/session integration merged
+
+This is the latest checkpoint and supersedes earlier historical status sections where they conflict.
+
+### LIVE MAIN
+- PR #12 is merged.
+- Merge commit: `cf2a9aeac26d70e7bda953e5a3b1f985a38e8bd7`.
+- PR #12 exact final head before merge: `f37744013bf1ccc708e8eb496e586e2361ff981b`.
+- No open pull requests remain at this checkpoint.
+
+### COMPLETED
+- Added platform-neutral `PlatformSecuritySession` / `PlatformSecuritySessionService` in `core`.
+- Bound iOS/iPadOS Keychain storage and LocalAuthentication into that deterministic session path through `IosSecuritySessionRuntime`.
+- Session state is opaque/non-copyable, short-lived (30 seconds), generation-bound to secure storage, and invalidated by generation rotation.
+- Authentication fails closed on malformed input, unavailable/failed OS authentication, secure-store read/write failure, malformed persisted generation, and generation changes during the authentication prompt.
+- Common adversarial tests cover expiry, invalidation, malformed state/input, storage failure and prompt-time races.
+- Raw iOS secure-store/authenticator dependencies remain internal to the composition runtime.
+
+### EXACT VERIFICATION
+- Android workflow Run #470 (`35980592666`) — SUCCESS; JVM tests, instrumentation-test compilation/APK assembly, and managed-device instrumentation all passed on the exact PR head.
+- iOS workflow Run #67 (`35980592673`) — SUCCESS; iOS simulator-target tests passed on the exact PR head.
+- An earlier Android exact-head run exposed the missing Kotlin UUID opt-in; an earlier iOS exact-head run exposed the missing Foundation time-interval import. Both defects were corrected before the final green head.
+
+### SECURITY REVIEW
+A consolidated review covered call paths, data flow, trust boundaries, authorization separation, privacy/egress, failure paths, resource bounds and authentication races. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this layer.
+
+### LIMITATIONS / NON-CLAIMS
+- This completes the iOS/iPadOS secure-storage + device-authentication **security-session primitive**, not full iOS/iPadOS product support.
+- Physical Apple-device validation remains unverified.
+- Signed Apple production packaging remains unverified.
+- Hosted simulator Keychain round-trip/overwrite integration remains explicitly opt-in because those operations did not complete reliably in the hosted simulator; they are not claimed as passed.
+- The real model provider remains unavailable/fail-closed.
+- Trusted-app registry remains empty/deny-by-default.
+- No post-merge CI result is claimed for `cf2a9aeac26d70e7bda953e5a3b1f985a38e8bd7` until an exact merge-commit workflow result is exposed.
+
+### NEXT SECURITY DIRECTION
+Continue native-platform work incrementally. The next iOS/iPadOS step is full platform-specific authorization/application integration only where a concrete runtime exists; otherwise proceed to the next native platform. Do not add speculative cloud/network/provider SDK integrations. Preserve Android's completed security layers and do not duplicate responsibilities already implemented.
