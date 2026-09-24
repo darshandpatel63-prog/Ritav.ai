@@ -13,11 +13,11 @@ private const val SECURITY_GENERATION_STORAGE_KEY = "ritav_platform_security_gen
  * The session is not an authorization token. It is bound to a generation stored
  * in the platform secure store and is invalidated whenever that generation changes.
  */
-data class PlatformSecuritySession internal constructor(
+class PlatformSecuritySession internal constructor(
     val id: String,
-    val generation: String,
-    val issuedAtEpochMillis: Long,
-    val expiresAtEpochMillis: Long
+    internal val generation: String,
+    internal val issuedAtEpochMillis: Long,
+    internal val expiresAtEpochMillis: Long
 )
 
 /**
