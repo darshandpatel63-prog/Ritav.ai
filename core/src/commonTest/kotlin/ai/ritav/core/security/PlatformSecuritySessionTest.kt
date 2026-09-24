@@ -111,7 +111,7 @@ class PlatformSecuritySessionTest {
 
     @Test
     fun secureStoreWriteFailureFailsClosedAfterAuthentication() {
-        val store = FakeSecureStore(failWrites = true)
+        val store = FakeSecureStore(failWrites = true, initialGeneration = "existing-generation")
         val authenticator = FakeAuthenticator(available = true, result = true)
         val service = PlatformSecuritySessionService(store, authenticator) { 3_750L }
 
