@@ -1,5 +1,7 @@
 package ai.ritav.core.security.ios
 
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
@@ -26,6 +28,7 @@ import platform.Security.kSecValueData
 import platform.Security.errSecItemNotFound
 import platform.Security.errSecSuccess
 
+@OptIn(ExperimentalForeignApi::class)
 internal const val MAX_IOS_KEYCHAIN_VALUE_BYTES = 131_072
 internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
 
