@@ -3,6 +3,7 @@ package ai.ritav.core.security.windows
 import ai.ritav.core.security.PlatformSecureLocalStore
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKString
@@ -58,9 +59,9 @@ class WindowsSecureLocalStore(
         val temp = target + ".tmp"
 
         writeFile(temp, protected)
-        remove(target)
+        platform.posix.remove(target)
         if (rename(temp, target) != 0) {
-            remove(temp)
+            platform.posix.remove(temp)
             error("Windows secure local replace failed")
         }
     }
@@ -78,7 +79,7 @@ class WindowsSecureLocalStore(
     override fun remove(name: String) {
         validateName(name)
         val target = fileFor(name)
-        if (remove(target) != 0) {
+        if (platform.posix.remove(target) != 0) {
             // POSIX remove returns non-zero for a missing path as well; verify
             // existence through a read so failure is not silently ignored.
             if (readFile(target) != null) {
@@ -88,8 +89,8 @@ class WindowsSecureLocalStore(
     }
 
     private fun protect(plaintext: ByteArray): ByteArray = memScoped {
-        val input = kotlinx.cinterop.alloc<DATA_BLOB>()
-        val output = kotlinx.cinterop.alloc<DATA_BLOB>()
+        val input = alloc<DATA_BLOB>()
+        val output = alloc<DATA_BLOB>()
 
         plaintext.usePinned { pinned ->
             input.cbData = plaintext.size.toUInt()
@@ -150,8 +151,7 @@ class WindowsSecureLocalStore(
     private fun writeFile(path: String, bytes: ByteArray) {
         val mode = "wb"
         memScoped {
-            path.encodeToByteArray().usePinned { pathPinned ->
-                val file = fopen(pathPinned.addressOf(0), mode)
+            val file = fopen(path, mode)
                     ?: error("Windows secure local open-for-write failed")
                 try {
                     if (bytes.isNotEmpty()) {
@@ -172,15 +172,13 @@ class WindowsSecureLocalStore(
                         "Windows secure local close failed"
                     }
                 }
-            }
         }
     }
 
     private fun readFile(path: String): ByteArray? {
         memScoped {
-            path.encodeToByteArray().usePinned { pathPinned ->
-                val file = fopen(pathPinned.addressOf(0), "rb") ?: return null
-                try {
+            val file = fopen(path, "rb") ?: return null
+            try {
                     val result = ArrayList<Byte>(MAX_WINDOWS_SECURE_BLOB_BYTES)
                     val buffer = ByteArray(4096)
                     while (true) {
@@ -199,10 +197,9 @@ class WindowsSecureLocalStore(
                         }
                     }
                     return result.toByteArray()
-                } finally {
-                    check(fclose(file) == 0) {
-                        "Windows secure local close failed"
-                    }
+            } finally {
+                check(fclose(file) == 0) {
+                    "Windows secure local close failed"
                 }
             }
         }
@@ -217,7 +214,10 @@ class WindowsSecureLocalStore(
             // A Windows drive prefix such as "C:" is not itself a directory
             // path and must not be passed to mkdir.
             if (index == 0 && part.endsWith(":")) continue
-            mkdir(current, 0x1C0)
+            if (mkdir(current) != 0) {
+                // The directory may already exist; verify by attempting to create
+                // the next level. A later file operation will fail closed otherwise.
+            }
         }
     }
 
@@ -232,7 +232,9 @@ class WindowsSecureLocalStore(
 
     private fun encodeFileName(name: String): String =
         name.encodeToByteArray().joinToString("") { byte ->
-            "%02x".format(byte.toInt() and 0xff)
+            val value = byte.toInt() and 0xff
+            "0123456789abcdef"[value ushr 4].toString() +
+                "0123456789abcdef"[value and 0x0f].toString()
         } + ".bin"
 
     private fun DATA_BLOB.copyBytes(): ByteArray {
