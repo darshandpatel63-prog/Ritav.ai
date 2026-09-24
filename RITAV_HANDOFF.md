@@ -790,3 +790,12 @@ Reviewed the full local call path, data flow, OS-auth boundary, secure-store bou
 
 ### NEXT ACTION
 Proceed incrementally with the next concrete native-platform security/runtime package. For iOS/iPadOS, only add further authorization/application integration when a real runtime and platform permission model exists; otherwise move to the next native platform. Preserve the deterministic authorization boundary and do not add speculative cloud/provider integrations.
+
+
+## 2026-09-24 POST-MERGE CI VERIFIED — PR #12
+
+The merged security/session layer has now completed post-merge push-triggered CI on merge commit `cf2a9aeac26d70e7bda953e5a3b1f985a38e8bd7`:
+- Android Run #471 (`35981238676`) — SUCCESS; JVM tests, instrumentation-test compilation/APK assembly, and managed-device instrumentation passed.
+- iOS Run #68 (`35981238745`) — SUCCESS; iOS simulator-target tests passed.
+
+This closes the exact CI verification loop for the PR #12 merge. Physical Apple-device testing, signed Apple production packaging, hosted-simulator Keychain round-trip/overwrite success, and full iOS/iPadOS product support remain unverified/not claimed.
