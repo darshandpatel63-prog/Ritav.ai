@@ -1,5 +1,7 @@
 package ai.ritav.core.security.ios
 
+import ai.ritav.core.security.PlatformDeviceAuthenticator
+
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSLock
 import platform.Foundation.NSError
@@ -13,11 +15,11 @@ import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthentication
  * This does not issue authorization tokens and has no execution authority.
  * It only asks LocalAuthentication for an OS-owned authentication result.
  */
-class IosDeviceAuthenticationRuntime {
+class IosDeviceAuthenticationRuntime : PlatformDeviceAuthenticator {
     private companion object {
         const val MAX_AUTH_REASON_LENGTH = 512
     }
-    fun isDeviceAuthenticationAvailable(): Boolean {
+    override fun isDeviceAuthenticationAvailable(): Boolean {
         val context = LAContext()
         return context.canEvaluatePolicy(
             LAPolicyDeviceOwnerAuthentication,
@@ -25,7 +27,7 @@ class IosDeviceAuthenticationRuntime {
         )
     }
 
-    fun authenticate(
+    override fun authenticate(
         reason: String,
         callback: (success: Boolean) -> Unit
     ) {
