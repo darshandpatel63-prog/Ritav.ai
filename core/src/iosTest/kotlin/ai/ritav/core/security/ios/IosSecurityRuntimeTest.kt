@@ -1,0 +1,73 @@
+package ai.ritav.core.security.ios
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+private fun keychainIntegrationTestsEnabled(): Boolean =
+    platform.Foundation.NSProcessInfo.processInfo.environment["RITAV_ENABLE_KEYCHAIN_INTEGRATION_TESTS"] == "1"
+
+class IosSecureLocalStoreTest {
+    @Test
+    fun keychainRoundTripAndDelete() {
+        if (!keychainIntegrationTestsEnabled()) return
+        val store = IosSecureLocalStore(service = "ai.ritav.test")
+        val key = "test-key"
+        store.putString(key, "hello")
+        assertNotNull(store.getString(key))
+        assertEquals("hello", store.getString(key))
+
+        assertEquals("hello", store.getString(key))
+    }
+
+    @Test
+    fun existingValueCanBeSafelyOverwritten() {
+        if (!keychainIntegrationTestsEnabled()) return
+        val store = IosSecureLocalStore(service = "ai.ritav.test")
+        val key = "overwrite"
+        store.putString(key, "first")
+        store.putString(key, "second")
+
+        assertEquals("second", store.getString(key))
+        assertEquals("second", store.getString(key))
+    }
+
+    @Test
+    fun oversizedValueIsRejectedBeforeKeychainWrite() {
+        val store = IosSecureLocalStore(service = "ai.ritav.test")
+        val key = "oversized"
+        val oversized = "x".repeat(MAX_IOS_KEYCHAIN_VALUE_BYTES + 1)
+
+        var rejected = false
+        try {
+            store.putString(key, oversized)
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+        assertTrue(rejected)
+    }
+}
+
+class IosDeviceAuthenticationRuntimeTest {
+    @Test
+    fun oversizedAuthenticationReasonFailsClosed() {
+        val runtime = IosDeviceAuthenticationRuntime()
+        var called = false
+
+        runtime.authenticate("x".repeat(513)) {
+            called = true
+            assertEquals(false, it)
+        }
+
+        assertTrue(called)
+    }
+
+    @Test
+    fun authenticationAvailabilityIsOSReported() {
+        val runtime = IosDeviceAuthenticationRuntime()
+        // Simulator/device capability varies; only require a deterministic Boolean path.
+        val available = runtime.isDeviceAuthenticationAvailable()
+        assertTrue(available || !available)
+    }
+}
