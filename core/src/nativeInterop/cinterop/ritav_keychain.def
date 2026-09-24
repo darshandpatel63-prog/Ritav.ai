@@ -1,0 +1,4 @@
+headers = ritav_keychain.h
+package = ai.ritav.core.security.ios.keychain
+compilerOpts = -fmodules
+linkerOpts = -framework Security -framework Foundation
