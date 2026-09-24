@@ -30,6 +30,19 @@ class IosSecureLocalStoreTest {
     }
 
     @Test
+    fun existingValueCanBeSafelyOverwritten() {
+        val store = IosSecureLocalStore(service = "ai.ritav.test")
+        val key = "overwrite"
+        store.remove(key)
+
+        store.putString(key, "first")
+        store.putString(key, "second")
+
+        assertEquals("second", store.getString(key))
+        store.remove(key)
+    }
+
+    @Test
     fun oversizedValueIsRejectedBeforeKeychainWrite() {
         val store = IosSecureLocalStore(service = "ai.ritav.test")
         val key = "oversized"
