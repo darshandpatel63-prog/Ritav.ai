@@ -96,6 +96,33 @@ class PlatformSecuritySessionTest {
     }
 
     @Test
+    fun malformedStoredGenerationFailsClosedWithoutReplacement() {
+        val store = FakeSecureStore(initialGeneration = "")
+        val authenticator = FakeAuthenticator(available = true, result = true)
+        val service = PlatformSecuritySessionService(store, authenticator) { 3_500L }
+
+        var session: PlatformSecuritySession? = null
+        service.authenticate("Authorize protected Ritav action") { session = it }
+
+        assertNull(session)
+        assertEquals(0, authenticator.authenticateCalls)
+        assertEquals("", store.peekGeneration())
+    }
+
+    @Test
+    fun secureStoreWriteFailureFailsClosedAfterAuthentication() {
+        val store = FakeSecureStore(failWrites = true)
+        val authenticator = FakeAuthenticator(available = true, result = true)
+        val service = PlatformSecuritySessionService(store, authenticator) { 3_750L }
+
+        var session: PlatformSecuritySession? = null
+        service.authenticate("Authorize protected Ritav action") { session = it }
+
+        assertNull(session)
+        assertEquals(1, authenticator.authenticateCalls)
+    }
+
+    @Test
     fun generationChangeDuringAuthenticationInvalidatesTheAttempt() {
         val store = FakeSecureStore()
         lateinit var service: PlatformSecuritySessionService
@@ -113,11 +140,20 @@ class PlatformSecuritySessionTest {
     }
 
     private class FakeSecureStore(
-        private val failReads: Boolean = false
+        private val failReads: Boolean = false,
+        private val failWrites: Boolean = false,
+        initialGeneration: String? = null
     ) : PlatformSecureLocalStore {
         private val values = mutableMapOf<String, String>()
 
+        init {
+            if (initialGeneration != null) {
+                values["ritav_platform_security_generation_v1"] = initialGeneration
+            }
+        }
+
         override fun putString(name: String, value: String) {
+            if (failWrites) error("secure store unavailable")
             values[name] = value
         }
 
@@ -129,6 +165,8 @@ class PlatformSecuritySessionTest {
         override fun remove(name: String) {
             values.remove(name)
         }
+
+        fun peekGeneration(): String? = values["ritav_platform_security_generation_v1"]
     }
 
     private class FakeAuthenticator(
