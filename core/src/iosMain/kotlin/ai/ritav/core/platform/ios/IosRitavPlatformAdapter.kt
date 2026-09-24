@@ -5,9 +5,7 @@ import ai.ritav.core.platform.PlatformCapabilities
 import ai.ritav.core.platform.RitavFormFactor
 import ai.ritav.core.platform.RitavPlatform
 import ai.ritav.core.platform.RitavPlatformAdapter
-import platform.UIKit.UIDevice
-import platform.UIKit.UIUserInterfaceIdiom.UIUserInterfaceIdiomPad
-import platform.UIKit.UIUserInterfaceIdiom.UIUserInterfaceIdiomPhone
+import platform.UIKit.*
 
 /**
  * Conservative native iOS/iPadOS platform adapter.
