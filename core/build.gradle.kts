@@ -6,6 +6,7 @@ kotlin {
     jvm()
     iosArm64()
     iosSimulatorArm64()
+    mingwX64()
 
     sourceSets {
         commonMain.dependencies {
