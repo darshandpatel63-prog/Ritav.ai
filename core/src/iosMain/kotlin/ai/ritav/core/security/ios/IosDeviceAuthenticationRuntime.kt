@@ -1,10 +1,12 @@
 package ai.ritav.core.security.ios
 
+import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSLock
+import platform.Foundation.NSError
 import platform.LocalAuthentication.LAContext
 import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthentication
-import platform.darwin.NSError
 
+@OptIn(ExperimentalForeignApi::class)
 /**
  * Native iOS/iPadOS device-authentication primitive.
  *
