@@ -36,8 +36,9 @@ internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
 /**
  * Bounded Keychain-backed store for iOS/iPadOS security state.
  *
- * Items use kSecAttrAccessibleWhenUnlockedThisDeviceOnly, keeping them tied
- * to the current device and unavailable while the device is locked.
+ * Items are restricted to the current device and are available while the
+ * device is unlocked. The implementation follows the repository's proven
+ * Kotlin/Native Security-framework bridging pattern.
  */
 @Suppress("CAST_NEVER_SUCCEEDS")
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
@@ -50,6 +51,7 @@ class IosSecureLocalStore(
 
     fun putString(name: String, value: String) {
         validateName(name)
+
         val bytes = value.encodeToByteArray()
         require(bytes.size <= MAX_IOS_KEYCHAIN_VALUE_BYTES) {
             "iOS secure value is too large"
@@ -66,19 +68,14 @@ class IosSecureLocalStore(
             }
         }
 
-        val query = buildQuery(
-            account = name,
-            extras = arrayOf(
-                kSecValueData to data,
-                kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            )
+        val query = buildKeychainQuery(
+            name,
+            kSecValueData to data,
+            kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         )
-        val existing = SecItemDelete(buildQuery(account = name) as Any? as CFDictionaryRef)
-        check(existing == errSecSuccess || existing == errSecItemNotFound) {
-            "iOS secure local replacement preparation failed"
-        }
+        val cfQuery = query as CFDictionaryRef
+        val status = SecItemAdd(cfQuery, null)
 
-        val status = SecItemAdd(query as Any? as CFDictionaryRef, null)
         check(status == errSecSuccess) {
             "iOS secure local write failed"
         }
@@ -86,17 +83,17 @@ class IosSecureLocalStore(
 
     fun getString(name: String): String? {
         validateName(name)
-        val query = buildQuery(
-            account = name,
-            extras = arrayOf(
-                kSecReturnData to true,
-                kSecMatchLimit to kSecMatchLimitOne
-            )
+
+        val query = buildKeychainQuery(
+            name,
+            kSecReturnData to true,
+            kSecMatchLimit to kSecMatchLimitOne
         )
+        val cfQuery = query as CFDictionaryRef
 
         return memScoped {
             val result = alloc<CFTypeRefVar>()
-            val status = SecItemCopyMatching(query as Any? as CFDictionaryRef, result.ptr)
+            val status = SecItemCopyMatching(cfQuery, result.ptr)
 
             when (status) {
                 errSecItemNotFound -> null
@@ -123,7 +120,11 @@ class IosSecureLocalStore(
 
     fun remove(name: String) {
         validateName(name)
-        val status = SecItemDelete(buildQuery(account = name) as Any? as CFDictionaryRef)
+
+        val query = buildKeychainQuery(name)
+        val cfQuery = query as CFDictionaryRef
+        val status = SecItemDelete(cfQuery)
+
         check(status == errSecSuccess || status == errSecItemNotFound) {
             "iOS secure local delete failed"
         }
@@ -133,9 +134,9 @@ class IosSecureLocalStore(
         require(name.isNotBlank() && name.length <= MAX_IOS_KEYCHAIN_KEY_LENGTH)
     }
 
-    private fun buildQuery(
+    private fun buildKeychainQuery(
         account: String,
-        extras: Array<out Pair<Any?, Any?>> = emptyArray()
+        vararg extras: Pair<Any?, Any?>
     ): Map<Any?, *> {
         val keys = mutableListOf<Any?>(
             kSecClass,
@@ -147,10 +148,12 @@ class IosSecureLocalStore(
             service,
             account
         )
+
         extras.forEach { (key, value) ->
             keys.add(key)
             values.add(value)
         }
+
         return NSDictionary.dictionaryWithObjects(
             objects = values,
             forKeys = keys
