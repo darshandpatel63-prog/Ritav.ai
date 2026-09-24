@@ -1210,3 +1210,12 @@ Completed review of call paths, data flow, trust boundaries, authorization separ
 - Final end-to-end integration and consolidated security audit.
 
 The Android security implementation remains the established deterministic foundation; its remaining validation items are physical-device validation and signed production validation rather than missing core security primitives.
+
+
+## 2026-09-24 POST-MERGE CI VERIFIED — PR #12
+
+The merged security/session layer has now completed post-merge push-triggered CI on merge commit `cf2a9aeac26d70e7bda953e5a3b1f985a38e8bd7`:
+- Android Run #471 (`35981238676`) — SUCCESS; JVM tests, instrumentation-test compilation/APK assembly, and managed-device instrumentation passed.
+- iOS Run #68 (`35981238745`) — SUCCESS; iOS simulator-target tests passed.
+
+This closes the exact CI verification loop for the PR #12 merge. Physical Apple-device testing, signed Apple production packaging, hosted-simulator Keychain round-trip/overwrite success, and full iOS/iPadOS product support remain unverified/not claimed.
