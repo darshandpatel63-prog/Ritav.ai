@@ -217,7 +217,7 @@ class IosSecureLocalStore(
         private val ownedValues: List<CFTypeRef>
     ) {
         fun release() {
-            ownedValues.forEach(CFRelease)
+            ownedValues.forEach { value -> CFRelease(value) }
             CFRelease(dictionary)
         }
     }
