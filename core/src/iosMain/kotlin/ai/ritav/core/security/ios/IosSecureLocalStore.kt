@@ -1,29 +1,11 @@
 package ai.ritav.core.security.ios
 
+import ai.ritav.core.security.ios.keychain.ritav_keychain_delete
+import ai.ritav.core.security.ios.keychain.ritav_keychain_get
+import ai.ritav.core.security.ios.keychain.ritav_keychain_put
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
-import platform.CoreFoundation.kCFBooleanTrue
-import platform.Foundation.NSData
-import platform.CoreFoundation.CFDictionaryRef
-import platform.Foundation.NSString
-import platform.Foundation.NSUTF8StringEncoding
-import platform.Foundation.create
-import platform.Security.SecItemAdd
-import platform.Security.SecItemCopyMatching
-import platform.Security.SecItemDelete
-import platform.Security.kSecAttrAccessible
-import platform.Security.kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-import platform.Security.kSecAttrAccount
-import platform.Security.kSecAttrService
-import platform.Security.kSecClass
-import platform.Security.kSecClassGenericPassword
-import platform.Security.kSecMatchLimit
-import platform.Security.kSecMatchLimitOne
-import platform.Security.kSecReturnData
-import platform.Security.kSecValueData
-import platform.Security.errSecItemNotFound
-import platform.Security.errSecSuccess
 
 internal const val MAX_IOS_KEYCHAIN_VALUE_BYTES = 131_072
 internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
@@ -31,10 +13,9 @@ internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
 /**
  * Bounded Keychain-backed store for iOS/iPadOS security state.
  *
- * The implementation uses the app's default Keychain access group and
- * kSecAttrAccessibleWhenUnlockedThisDeviceOnly so state is not migratable
- * through the device backup/restore path. No raw secrets are logged or
- * returned through errors.
+ * Keychain data is restricted to the current device and is only available
+ * while the device is unlocked. The native bridge contains the only Security
+ * framework calls; no secrets are logged.
  */
 @OptIn(ExperimentalForeignApi::class)
 class IosSecureLocalStore(
@@ -46,77 +27,51 @@ class IosSecureLocalStore(
 
     fun putString(name: String, value: String) {
         validateName(name)
-        val data = requireUtf8(value)
-
-        val query = itemQuery(name).toMutableMap<Any?, Any?>()
-        SecItemDelete(query as CFDictionaryRef)
-
-        query[kSecValueData] = data
-        query[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-
-        check(SecItemAdd(query as CFDictionaryRef, null) == errSecSuccess) {
-            "iOS secure local write failed"
+        val bytes = value.encodeToByteArray()
+        require(bytes.size <= MAX_IOS_KEYCHAIN_VALUE_BYTES) {
+            "iOS secure value is too large"
         }
+
+        val status = bytes.usePinned { pinned ->
+            ritav_keychain_put(
+                service,
+                name,
+                pinned.addressOf(0),
+                bytes.size.toULong()
+            )
+        }
+        check(status == 0) { "iOS secure local write failed" }
     }
 
     fun getString(name: String): String? {
         validateName(name)
+        val buffer = ByteArray(MAX_IOS_KEYCHAIN_VALUE_BYTES)
+        val result = buffer.usePinned { pinned ->
+            ritav_keychain_get(
+                service,
+                name,
+                pinned.addressOf(0),
+                buffer.size.toULong()
+            )
+        }
 
-        val query = itemQuery(name).toMutableMap<Any?, Any?>()
-        query[kSecReturnData] = kCFBooleanTrue
-        query[kSecMatchLimit] = kSecMatchLimitOne
-
-        var result: CFTypeRef? = null
-        val status = SecItemCopyMatching(query as CFDictionaryRef, &result)
-        return when (status) {
-                errSecItemNotFound -> null
-            errSecSuccess -> {
-                val data = result as? NSData ?: return null
-                require(data.length.toLong() <= MAX_IOS_KEYCHAIN_VALUE_BYTES)
-                NSString.create(data, NSUTF8StringEncoding)?.toString()
-            }
+        return when {
+            result == -1 -> null
+            result >= 0 -> buffer.copyOf(result).decodeToString()
+            result == -3 -> error("iOS secure local value is too large")
             else -> error("iOS secure local read failed")
         }
     }
 
     fun remove(name: String) {
         validateName(name)
-        check(SecItemDelete(itemQuery(name) as CFDictionaryRef) == errSecSuccess ||
-            SecItemCopyMatching(
-                itemQuery(name).toMutableMap<Any?, Any?>()
-                    .apply {
-                        this[kSecReturnData] = kCFBooleanTrue
-                        this[kSecMatchLimit] = kSecMatchLimitOne
-                    } as CFDictionaryRef,
-                null
-            ) == errSecItemNotFound
-        ) {
-            "iOS secure local delete failed"
-        }
-    }
-
-    private fun requireUtf8(value: String): NSData {
-        val bytes = value.encodeToByteArray()
-        require(bytes.size <= MAX_IOS_KEYCHAIN_VALUE_BYTES) {
-            "iOS secure value is too large"
-        }
-        return bytes.usePinned { pinned ->
-            NSData.create(
-                bytes = pinned.addressOf(0),
-                length = bytes.size.toULong()
-            )
-        }
+        val result = ritav_keychain_delete(service, name)
+        check(result == 0 || result == -1) { "iOS secure local delete failed" }
     }
 
     private fun validateName(name: String) {
         require(name.isNotBlank() && name.length <= MAX_IOS_KEYCHAIN_KEY_LENGTH)
     }
-
-    private fun itemQuery(name: String): MutableMap<Any?, Any?> = mutableMapOf(
-        kSecClass to kSecClassGenericPassword,
-        kSecAttrService to service,
-        kSecAttrAccount to name
-    )
 
     private companion object {
         const val DEFAULT_SERVICE = "ai.ritav.core.secure-state"
