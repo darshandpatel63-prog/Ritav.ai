@@ -1,5 +1,7 @@
 package ai.ritav.core.security.ios
 
+import ai.ritav.core.security.PlatformSecureLocalStore
+
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -45,12 +47,12 @@ internal const val MAX_IOS_KEYCHAIN_KEY_LENGTH = 128
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 class IosSecureLocalStore(
     private val service: String = DEFAULT_SERVICE
-) {
+) : PlatformSecureLocalStore {
     init {
         require(service.isNotBlank() && service.length <= MAX_IOS_KEYCHAIN_KEY_LENGTH)
     }
 
-    fun putString(name: String, value: String) {
+    override fun putString(name: String, value: String) {
         validateName(name)
 
         val bytes = value.encodeToByteArray()
@@ -95,7 +97,7 @@ class IosSecureLocalStore(
         }
     }
 
-    fun getString(name: String): String? {
+    override fun getString(name: String): String? {
         validateName(name)
 
         val query = buildKeychainQuery(
@@ -132,7 +134,7 @@ class IosSecureLocalStore(
         }
     }
 
-    fun remove(name: String) {
+    override fun remove(name: String) {
         validateName(name)
 
         val query = buildKeychainQuery(name)
