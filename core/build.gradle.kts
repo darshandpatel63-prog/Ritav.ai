@@ -9,6 +9,7 @@ kotlin {
             cinterops {
                 val ritavKeychain by creating {
                     definitionFile.set(project.file("src/nativeInterop/cinterop/ritav_keychain.def"))
+                includeDirs.allHeaders("src/nativeInterop/cinterop")
                 }
             }
         }
