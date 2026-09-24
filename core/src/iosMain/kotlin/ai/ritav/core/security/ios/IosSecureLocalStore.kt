@@ -69,6 +69,7 @@ class IosSecureLocalStore(
         val update = buildUpdateAttributes(bytes)
 
         val updateStatus = SecItemUpdate(lookup.dictionary, update.dictionary)
+        println("IOS_KEYCHAIN_UPDATE_STATUS=$updateStatus")
         lookup.release()
         update.release()
 
@@ -81,6 +82,7 @@ class IosSecureLocalStore(
                     includeAccessible = true
                 )
                 val addStatus = SecItemAdd(add.dictionary, null)
+                println("IOS_KEYCHAIN_ADD_STATUS=$addStatus")
                 add.release()
                 check(addStatus == errSecSuccess) {
                     "iOS secure local write failed: status=$addStatus"
@@ -102,6 +104,7 @@ class IosSecureLocalStore(
         return memScoped {
             val result = alloc<CFTypeRefVar>()
             val status = SecItemCopyMatching(query.dictionary, result.ptr)
+            println("IOS_KEYCHAIN_GET_STATUS=$status")
             query.release()
 
             when (status) {
