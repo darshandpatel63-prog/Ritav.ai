@@ -17,6 +17,7 @@ import platform.Foundation.dictionaryWithObjects
 import platform.Security.SecItemAdd
 import platform.Security.SecItemCopyMatching
 import platform.Security.SecItemDelete
+import platform.Security.SecItemUpdate
 import platform.Security.errSecItemNotFound
 import platform.Security.errSecSuccess
 import platform.Security.kSecAttrAccessible
@@ -68,16 +69,30 @@ class IosSecureLocalStore(
             }
         }
 
-        val query = buildKeychainQuery(
+        val lookupQuery = buildKeychainQuery(name)
+        val updateAttributes = buildKeychainQuery(
             name,
             kSecValueData to data,
             kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         )
-        val cfQuery = query as CFDictionaryRef
-        val status = SecItemAdd(cfQuery, null)
+        val updateStatus = SecItemUpdate(
+            lookupQuery as CFDictionaryRef,
+            updateAttributes as CFDictionaryRef
+        )
 
-        check(status == errSecSuccess) {
-            "iOS secure local write failed"
+        when (updateStatus) {
+            errSecSuccess -> Unit
+            errSecItemNotFound -> {
+                val addQuery = buildKeychainQuery(
+                    name,
+                    kSecValueData to data,
+                    kSecAttrAccessible to kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+                )
+                check(SecItemAdd(addQuery as CFDictionaryRef, null) == errSecSuccess) {
+                    "iOS secure local write failed"
+                }
+            }
+            else -> error("iOS secure local update failed")
         }
     }
 
