@@ -1219,3 +1219,48 @@ The merged security/session layer has now completed post-merge push-triggered CI
 - iOS Run #68 (`35981238745`) — SUCCESS; iOS simulator-target tests passed.
 
 This closes the exact CI verification loop for the PR #12 merge. Physical Apple-device testing, signed Apple production packaging, hosted-simulator Keychain round-trip/overwrite success, and full iOS/iPadOS product support remain unverified/not claimed.
+
+
+## 2026-09-25 CURRENT PROJECT CHECKPOINT — Windows verified/paused + Android launch-security validation
+
+### CURRENT STOP POINT
+The Android launch/security gate is now the active sequencing checkpoint. Windows PR #13 is verified for its current storage-only scope but remains intentionally unmerged.
+
+### VERIFIED WINDOWS PR #13
+- Branch: `security/windows-secure-storage-runtime`
+- Exact verified head: `fbc336c70218310a5ecdd044d91b5b1e7697da52`
+- Windows Run #12 (`36144768794`) — SUCCESS; MinGW native target tests passed.
+- Android Run #483 (`36144768824`) — SUCCESS; JVM tests, debug instrumentation-test compilation/APK assembly and managed-device instrumentation passed.
+- iOS Run #80 (`36144768809`) — SUCCESS; iOS simulator-target tests passed.
+- Consolidated Windows security review found no demonstrated CRITICAL/HIGH/MEDIUM bypass in the reviewed layer.
+- The PR remains open and unmerged because the project owner explicitly sequenced Android launch/security validation before Windows merge.
+
+### WINDOWS HARDENING
+- Windows native test interop opt-in/import corrected.
+- Read/delete storage failures now distinguish missing-path (`ENOENT`) from real I/O/permission errors and fail closed on the latter.
+- Existing-directory verification closes the directory handle.
+- Scope remains local DPAPI secure storage only; no authorization, capability, model, network, finance or execution authority.
+
+### WINDOWS LIMITATIONS
+- Replacement is not crash-atomic and concurrent writers can still race.
+- DPAPI user scope is not a same-user isolation boundary.
+- Physical Windows host validation, signed production packaging and Windows Hello/device authentication remain unverified/not claimed.
+- Full Windows product/runtime support remains unclaimed.
+
+### ANDROID LAUNCH/SECURITY VALIDATION
+- Current Android composition is `MainActivity -> AndroidExecutionRuntime -> deterministic security controls`.
+- Trusted-app registry remains empty/deny-by-default.
+- Model runtime remains fail-closed through `UnavailableModelRuntime`.
+- Accessibility input is explicitly user-enabled, task/package/generation gated and bounded before model ingress; password/editable nodes are excluded.
+- Fresh Android managed-device verification in Run #483 executed **7 tests on `pixel2api30`**, all successfully.
+- Run #483 also compiled instrumentation tests and executed the managed device; this covers the same Android application/core implementation present on main because PR #13 adds only Windows core/workflow files relative to main.
+- The managed-device run emitted a non-failing ABI/NDK-translation warning; current `app/build.gradle.kts` explicitly declares `testedAbi = "x86"`. Track this as CI/toolchain maintenance rather than a current test failure.
+- Release-validation workflow source remains hardened for manifest backup/cleartext settings, release non-debuggable/minified/shrunk configuration, source secret scans, lint, release tests, APK/AAB generation and non-empty R8 mapping.
+- A fresh current-main release-validation execution is not available through the connected GitHub Actions interface, so no current-main release artifact or signed-production validation is claimed.
+- Physical-device validation remains unverified.
+
+### NEXT ACTION
+Complete the Android launch/security gate with fresh release-build evidence when an executable workflow path is available, then perform the final Android launch/security consolidated review. Keep Windows PR #13 open and unmerged until that sequencing gate is explicitly cleared.
+
+### EXACT DOCUMENTATION CHECKPOINT
+- HANDOFF documentation commit: `6c698ad6641117d21203bb5591cbe0ecdb6cd040`.
