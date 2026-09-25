@@ -126,7 +126,7 @@ class WindowsSecureLocalStore(
 
         protectedBytes.usePinned { pinned ->
             input.cbData = protectedBytes.size.toUInt()
-            input.pbData = pinned.addressOf(0)
+            input.pbData = pinned.addressOf(0).reinterpret()
             check(
                 CryptUnprotectData(
                     input.ptr,
@@ -134,7 +134,7 @@ class WindowsSecureLocalStore(
                     null,
                     null,
                     null,
-                    CRYPTPROTECT_UI_FORBIDDEN,
+                    CRYPTPROTECT_UI_FORBIDDEN.toUInt(),
                     output.ptr
                 ) != 0
             ) { "Windows DPAPI unprotect failed: error=" + GetLastError() }
