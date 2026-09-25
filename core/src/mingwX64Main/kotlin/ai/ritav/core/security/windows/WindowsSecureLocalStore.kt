@@ -1,11 +1,13 @@
 package ai.ritav.core.security.windows
 
 import ai.ritav.core.security.PlatformSecureLocalStore
+import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
+import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
 import platform.posix.fclose
@@ -94,7 +96,7 @@ class WindowsSecureLocalStore(
 
         plaintext.usePinned { pinned ->
             input.cbData = plaintext.size.toUInt()
-            input.pbData = pinned.addressOf(0)
+            input.pbData = pinned.addressOf(0).reinterpret()
             check(
                 CryptProtectData(
                     input.ptr,
@@ -102,9 +104,9 @@ class WindowsSecureLocalStore(
                     null,
                     null,
                     null,
-                    CRYPTPROTECT_UI_FORBIDDEN,
+                    CRYPTPROTECT_UI_FORBIDDEN.toUInt(),
                     output.ptr
-                )
+                ) != 0
             ) { "Windows DPAPI protect failed: error=" + GetLastError() }
         }
 
@@ -241,8 +243,9 @@ class WindowsSecureLocalStore(
         val size = cbData.toInt()
         if (size == 0) return ByteArray(0)
         val source = pbData ?: error("Windows DPAPI returned null data")
+        val bytes = source.reinterpret<ByteVar>()
         return ByteArray(size) { index ->
-            (source[index].toInt() and 0xff).toByte()
+            (bytes[index].toInt() and 0xff).toByte()
         }
     }
 
