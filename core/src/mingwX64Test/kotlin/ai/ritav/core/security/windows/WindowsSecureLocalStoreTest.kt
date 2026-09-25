@@ -1,5 +1,7 @@
 package ai.ritav.core.security.windows
 
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.toKString
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -8,6 +10,7 @@ import kotlin.test.assertNull
 import platform.posix.getenv
 import platform.posix.remove
 
+@OptIn(ExperimentalForeignApi::class)
 class WindowsSecureLocalStoreTest {
     @Test
     fun roundTripAndOverwrite() {
