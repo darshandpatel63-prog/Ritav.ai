@@ -255,7 +255,7 @@ class WindowsSecureLocalStore(
         val source = pbData ?: error("Windows DPAPI returned null data")
         val bytes = source.reinterpret<ByteVar>()
         return ByteArray(size) { index ->
-            bytes[index]
+            bytes.plus(index).pointed.value
         }
     }
 
