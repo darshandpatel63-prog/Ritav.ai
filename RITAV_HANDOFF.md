@@ -799,3 +799,47 @@ The merged security/session layer has now completed post-merge push-triggered CI
 - iOS Run #68 (`35981238745`) — SUCCESS; iOS simulator-target tests passed.
 
 This closes the exact CI verification loop for the PR #12 merge. Physical Apple-device testing, signed Apple production packaging, hosted-simulator Keychain round-trip/overwrite success, and full iOS/iPadOS product support remain unverified/not claimed.
+
+
+## 2026-09-25 CURRENT HANDOFF — Windows verified/paused + Android launch-security checkpoint
+
+### CURRENT STOP POINT
+- Android remains the active sequencing gate.
+- Windows PR #13 is implementation-complete for its current storage-only scope, exact-head CI verified, independently reviewed, and deliberately **not merged** per the project sequencing decision.
+- Main implementation baseline before this documentation checkpoint: `f5a1641a713f292e3626ecc0d59d3fde33ad8351`.
+
+### WINDOWS PR #13
+- Branch: `security/windows-secure-storage-runtime`
+- Exact verified head: `fbc336c70218310a5ecdd044d91b5b1e7697da52`
+- Windows Run #12 (`36144768794`) — SUCCESS; MinGW native target tests passed.
+- Android Run #483 (`36144768824`) — SUCCESS; JVM tests, debug instrumentation-test compilation/APK assembly, and managed-device instrumentation passed.
+- iOS Run #80 (`36144768809`) — SUCCESS; iOS simulator-target tests passed.
+
+### WINDOWS HARDENING COMPLETED
+- Windows test interop opt-in/import fixed after the prior exact-head test-compilation failure.
+- Secure-store read/delete now distinguishes missing-path (`ENOENT`) from real file/permission failures and fails closed on the latter.
+- Existing-directory verification now closes the `opendir` handle.
+- No authorization, capability, model, network, finance or execution authority was added.
+
+### WINDOWS CONSOLIDATED REVIEW
+Reviewed call paths, bounds, DPAPI allocation/lifecycle, file I/O failures, key/path validation, privacy/egress, trust-boundary separation, and integration impact. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in the reviewed Windows slice.
+
+### WINDOWS NOT VERIFIED / NOT CLAIMED
+- Physical Windows host validation.
+- Signed Windows production packaging.
+- Windows Hello/device-authentication integration.
+- Full Windows product/runtime support.
+- Crash-atomic replacement and concurrent-writer correctness remain future hardening items; current temp-file replacement is not claimed atomic.
+
+### ANDROID LAUNCH/SECURITY READINESS CHECKPOINT
+- Current Android composition still starts at `MainActivity -> AndroidExecutionRuntime -> deterministic security controls`; the external trusted-app registry remains empty/deny-by-default.
+- The model runtime remains `UnavailableModelRuntime`, so no external model/provider execution is introduced.
+- Accessibility screen-content capture is user-enabled by Android, bounded, excludes password/editable nodes, is task/package/generation gated, and only reaches the existing secure model gateway; no hidden network path was added.
+- Android managed-device Run #483 executed **7 tests on `pixel2api30`**, all completed successfully.
+- The run emitted a non-failing managed-device ABI/NDK-translation warning even though the current `app/build.gradle.kts` explicitly declares `testedAbi = "x86"`; track this as CI/toolchain maintenance, not as a current test failure.
+- The current release-validation workflow still exists and structurally enforces non-debuggable release, minification, resource shrinking, backup/data-extraction restrictions, secret/signing-material scanning, release unit tests, lint, APK/AAB generation and R8 mapping checks.
+- A **fresh current-main release-validation run is not available from the connected GitHub Actions interface**; therefore no current-main release artifact or signed-release claim is made.
+- Managed-device CI is not physical-device validation.
+
+### NEXT ACTION
+Complete the Android launch/security gate before merging Windows: obtain fresh release-build evidence for the current Android implementation when an executable workflow path is available, then perform the final Android launch/security consolidated review. Keep PR #13 open and unmerged until that sequencing gate is explicitly cleared.
