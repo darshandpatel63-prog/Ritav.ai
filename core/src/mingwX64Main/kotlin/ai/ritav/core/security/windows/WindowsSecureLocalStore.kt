@@ -10,14 +10,17 @@ import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
+import platform.posix.closedir
 import platform.posix.fclose
 import platform.posix.ferror
 import platform.posix.fopen
 import platform.posix.fread
 import platform.posix.fwrite
+import platform.posix.ENOENT
 import platform.posix.getenv
 import platform.posix.mkdir
 import platform.posix.remove
+import platform.posix.errno
 import platform.posix.rename
 import platform.posix.opendir
 import platform.windows.CRYPTPROTECT_UI_FORBIDDEN
@@ -84,10 +87,9 @@ class WindowsSecureLocalStore(
         validateName(name)
         val target = fileFor(name)
         if (platform.posix.remove(target) != 0) {
-            // POSIX remove returns non-zero for a missing path as well; verify
-            // existence through a read so failure is not silently ignored.
-            if (readFile(target) != null) {
-                error("Windows secure local delete failed")
+            val errorCode = errno
+            if (errorCode != ENOENT) {
+                error("Windows secure local delete failed: error=$errorCode")
             }
         }
     }
@@ -181,7 +183,11 @@ class WindowsSecureLocalStore(
 
     private fun readFile(path: String): ByteArray? {
         memScoped {
-            val file = fopen(path, "rb") ?: return null
+            val file = fopen(path, "rb") ?: run {
+                val errorCode = errno
+                if (errorCode == ENOENT) return null
+                error("Windows secure local open-for-read failed: error=$errorCode")
+            }
             try {
                     val result = ArrayList<Byte>(MAX_WINDOWS_SECURE_BLOB_BYTES)
                     val buffer = ByteArray(4096)
@@ -226,8 +232,10 @@ class WindowsSecureLocalStore(
             if (mkdir(current) != 0) {
                 // Existing directories are acceptable; every other mkdir failure
                 // must fail closed rather than being deferred to a later file I/O.
-                check(opendir(current) != null) {
-                    "Windows secure local directory creation failed"
+                val directory = opendir(current)
+                    ?: error("Windows secure local directory creation failed")
+                check(closedir(directory) == 0) {
+                    "Windows secure local directory close failed"
                 }
             }
         }
