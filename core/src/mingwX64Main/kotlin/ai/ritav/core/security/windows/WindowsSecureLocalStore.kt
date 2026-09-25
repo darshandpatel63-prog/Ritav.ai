@@ -11,6 +11,7 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
 import platform.posix.fclose
+import platform.posix.ferror
 import platform.posix.fopen
 import platform.posix.fread
 import platform.posix.fwrite
@@ -18,6 +19,7 @@ import platform.posix.getenv
 import platform.posix.mkdir
 import platform.posix.remove
 import platform.posix.rename
+import platform.posix.opendir
 import platform.windows.CRYPTPROTECT_UI_FORBIDDEN
 import platform.windows.CryptProtectData
 import platform.windows.CryptUnprotectData
@@ -192,7 +194,12 @@ class WindowsSecureLocalStore(
                                 file
                             ).toInt()
                         }
-                        if (count == 0) break
+                        if (count == 0) {
+                            check(ferror(file) == 0) {
+                                "Windows secure local read failed"
+                            }
+                            break
+                        }
                         result.addAll(buffer.take(count))
                         require(result.size <= MAX_WINDOWS_SECURE_BLOB_BYTES) {
                             "Windows secure blob is too large"
@@ -217,8 +224,11 @@ class WindowsSecureLocalStore(
             // path and must not be passed to mkdir.
             if (index == 0 && part.endsWith(":")) continue
             if (mkdir(current) != 0) {
-                // The directory may already exist; verify by attempting to create
-                // the next level. A later file operation will fail closed otherwise.
+                // Existing directories are acceptable; every other mkdir failure
+                // must fail closed rather than being deferred to a later file I/O.
+                check(opendir(current) != null) {
+                    "Windows secure local directory creation failed"
+                }
             }
         }
     }
