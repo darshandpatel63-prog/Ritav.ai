@@ -1,12 +1,12 @@
 package ai.ritav.core.security.windows
 
 import ai.ritav.core.security.PlatformSecureLocalStore
-import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
+import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
@@ -253,10 +253,7 @@ class WindowsSecureLocalStore(
         val size = cbData.toInt()
         if (size == 0) return ByteArray(0)
         val source = pbData ?: error("Windows DPAPI returned null data")
-        val bytes = source.reinterpret<ByteVar>()
-        return ByteArray(size) { index ->
-            bytes.plus(index).pointed.value
-        }
+        return source.readBytes(size)
     }
 
     private companion object {
