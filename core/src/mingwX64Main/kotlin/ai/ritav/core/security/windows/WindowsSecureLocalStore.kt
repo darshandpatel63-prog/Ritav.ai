@@ -136,7 +136,7 @@ class WindowsSecureLocalStore(
                     null,
                     CRYPTPROTECT_UI_FORBIDDEN,
                     output.ptr
-                )
+                ) != 0
             ) { "Windows DPAPI unprotect failed: error=" + GetLastError() }
         }
 
