@@ -127,11 +127,17 @@ static inline int ritav_secret_lookup(
     }
 
     /*
-     * Bound scanning before Kotlin decodes the returned C string. This
-     * prevents an attacker-controlled oversized Secret Service value from
-     * turning the read path into unbounded native-to-Kotlin string work.
+     * Bound scanning before Kotlin decodes the returned C string. The loop
+     * stops at the first NUL, so a shorter C string is never read past its
+     * allocated terminator; an oversized string is rejected at the configured
+     * bound before native-to-Kotlin decoding.
      */
-    if (memchr(value, '\0', RITAV_MAX_SECRET_VALUE_BYTES + 1U) == NULL) {
+    gsize bounded_length = 0;
+    while (bounded_length <= RITAV_MAX_SECRET_VALUE_BYTES &&
+           value[bounded_length] != '\0') {
+        ++bounded_length;
+    }
+    if (bounded_length > RITAV_MAX_SECRET_VALUE_BYTES) {
         secret_password_free(value);
         return -2;
     }
