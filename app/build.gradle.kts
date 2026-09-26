@@ -8,10 +8,10 @@ android {
     namespace = "ai.ritav.app"
     compileSdk = 36
 
-    val ciSigningStoreFile = providers.gradleProperty("RITAV_SIGNING_STORE_FILE").orNull
-    val ciSigningStorePassword = providers.gradleProperty("RITAV_SIGNING_STORE_PASSWORD").orNull
-    val ciSigningKeyAlias = providers.gradleProperty("RITAV_SIGNING_KEY_ALIAS").orNull
-    val ciSigningKeyPassword = providers.gradleProperty("RITAV_SIGNING_KEY_PASSWORD").orNull
+    val ciSigningStoreFile = providers.environmentVariable("RITAV_SIGNING_STORE_FILE").orNull
+    val ciSigningStorePassword = providers.environmentVariable("RITAV_SIGNING_STORE_PASSWORD").orNull
+    val ciSigningKeyAlias = providers.environmentVariable("RITAV_SIGNING_KEY_ALIAS").orNull
+    val ciSigningKeyPassword = providers.environmentVariable("RITAV_SIGNING_KEY_PASSWORD").orNull
     val hasCiSigningCredentials = listOf(
         ciSigningStoreFile,
         ciSigningStorePassword,
