@@ -87,7 +87,7 @@ class ExecutionBridgeTest {
     private fun pipelineFor(
         policy: PolicyEngine,
         identityManager: IdentitySessionManager,
-        gate: ActionAuthorizationGate = ActionAuthorizationGate()
+        gate: ActionAuthorizationService = testAuthorizationService()
     ) = SecurityExecutionPipeline(
         policy,
         ExecutionPolicyGate(policy),
@@ -255,7 +255,7 @@ class ExecutionBridgeTest {
             setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
         )
         val policy = PolicyEngine(permissions)
-        val authGate = ActionAuthorizationGate()
+        val authGate = testAuthorizationService()
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
             pipelineFor(policy, fixture.identityManager, authGate),
@@ -325,7 +325,7 @@ class ExecutionBridgeTest {
             setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
         )
         val policy = PolicyEngine(permissions)
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
             pipelineFor(policy, fixture.identityManager, gate),
@@ -381,7 +381,7 @@ class ExecutionBridgeTest {
             setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
         )
         val policy = PolicyEngine(permissions)
-        val authGate = ActionAuthorizationGate()
+        val authGate = testAuthorizationService()
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
             pipelineFor(policy, fixture.identityManager, authGate),
@@ -408,7 +408,7 @@ class ExecutionBridgeTest {
             setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
         )
         val policy = PolicyEngine(permissions)
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
             pipelineFor(policy, fixture.identityManager, gate),
@@ -434,7 +434,7 @@ class ExecutionBridgeTest {
             setOf(CapabilityGrant(plan.appId, plan.capability, plan.action, plan.sessionId))
         )
         val policy = PolicyEngine(permissions)
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val bridge = ExecutionBridge(
             CapabilityPolicyGate(registryFor(plan)),
             pipelineFor(policy, fixture.identityManager, gate),
