@@ -3,11 +3,14 @@ package ai.ritav.app
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +37,11 @@ class MainActivity : FragmentActivity() {
         securityControl = executionRuntime.securityControl
 
         setContent {
+            val navigationPositionStore = remember { NavigationPositionStore(this@MainActivity) }
+            var navigationPosition by remember { mutableStateOf(navigationPositionStore.load()) }
+            val uiPreferencesStore = remember { UiPreferencesStore(this@MainActivity) }
+            var uiPreferences by remember { mutableStateOf(uiPreferencesStore.load()) }
+            var destination by remember { mutableStateOf(AppDestination.HOME) }
             var stopped by remember { mutableStateOf(securityControl.isEmergencyStopActive()) }
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
@@ -81,6 +89,7 @@ class MainActivity : FragmentActivity() {
                             } else {
                                 "Device authentication did not establish a trusted session."
                             }
+                        }
                     }
                 }
             }
@@ -240,76 +249,138 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+            RitavTheme(preferences = uiPreferences) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    PermissionCenter(
-                        stopped = stopped,
-                        identitySession = identitySession,
-                        candidates = securityControl.capabilityGrantOptions(),
-                        pendingCandidate = pendingCandidate,
-                        pendingPlan = pendingGrantPlan,
-                        statusMessage = statusMessage,
-                        trustedPackageInput = trustedPackageInput,
-                        onTrustedPackageInputChanged = { value ->
-                            trustedPackageInput = value.take(256)
-                        },
-                        onPrepareTrustedApp = ::reviewTrustedApp,
-                        pendingTrustedPackage = pendingTrustedPackage,
-                        pendingTrustedPlan = pendingTrustedPlan,
-                        onDismissTrustedApproval = {
-                            dismissPendingTrustedApproval()
-                            statusMessage = null
-                        },
-                        onApproveTrustedApp = ::approvePendingTrustedApp,
-                        trustedPackages = trustedPackages,
-                        onTrustedPackageSelectedForRemoval = ::reviewTrustedRemoval,
-                        pendingTrustedRemovalPackage = pendingTrustedRemovalPackage,
-                        pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
-                        onDismissTrustedRemoval = {
-                            dismissPendingTrustedRemoval()
-                            statusMessage = null
-                        },
-                        onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
-                        onAuthenticate = ::authenticateProtectedActions,
-                        onEmergencyStop = {
-                            securityControl.activateEmergencyStop()
-                            stopped = true
-                            activeIdentitySession = null
-                            dismissPendingApproval()
-                            dismissPendingTrustedApproval()
-                            dismissPendingTrustedRemoval()
-                            statusMessage = "Emergency Stop activated. Protected actions are blocked."
-                        },
-                        onResume = {
-                            securityControl.resumeAfterUserConfirmation()
-                            stopped = securityControl.isEmergencyStopActive()
-                            activeIdentitySession = null
-                            dismissPendingApproval()
-                            dismissPendingTrustedApproval()
-                            dismissPendingTrustedRemoval()
-                            statusMessage =
-                                if (stopped) {
-                                    "Emergency Stop remains active."
-                                } else {
-                                    "Ritav resumed. Protected actions require fresh authentication."
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when (destination) {
+                            AppDestination.HOME -> ConversationalHomeScreen(
+                                securityControl = securityControl,
+                                onOpenSecurityCenter = { destination = AppDestination.SECURITY }
+                            )
+                            AppDestination.SECURITY -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                PermissionCenter(
+                                    stopped = stopped,
+                                    identitySession = identitySession,
+                                    candidates = securityControl.capabilityGrantOptions(),
+                                    pendingCandidate = pendingCandidate,
+                                    pendingPlan = pendingGrantPlan,
+                                    statusMessage = statusMessage,
+                                    trustedPackageInput = trustedPackageInput,
+                                    onTrustedPackageInputChanged = { value ->
+                                        trustedPackageInput = value.take(256)
+                                    },
+                                    onPrepareTrustedApp = ::reviewTrustedApp,
+                                    pendingTrustedPackage = pendingTrustedPackage,
+                                    pendingTrustedPlan = pendingTrustedPlan,
+                                    onDismissTrustedApproval = {
+                                        dismissPendingTrustedApproval()
+                                        statusMessage = null
+                                    },
+                                    onApproveTrustedApp = ::approvePendingTrustedApp,
+                                    trustedPackages = trustedPackages,
+                                    onTrustedPackageSelectedForRemoval = ::reviewTrustedRemoval,
+                                    pendingTrustedRemovalPackage = pendingTrustedRemovalPackage,
+                                    pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
+                                    onDismissTrustedRemoval = {
+                                        dismissPendingTrustedRemoval()
+                                        statusMessage = null
+                                    },
+                                    onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
+                                    onAuthenticate = ::authenticateProtectedActions,
+                                    onEmergencyStop = {
+                                        securityControl.activateEmergencyStop()
+                                        stopped = true
+                                        activeIdentitySession = null
+                                        dismissPendingApproval()
+                                        dismissPendingTrustedApproval()
+                                        dismissPendingTrustedRemoval()
+                                        statusMessage = "Emergency Stop activated. Protected actions are blocked."
+                                    },
+                                    onResume = {
+                                        securityControl.resumeAfterUserConfirmation()
+                                        stopped = securityControl.isEmergencyStopActive()
+                                        activeIdentitySession = null
+                                        dismissPendingApproval()
+                                        dismissPendingTrustedApproval()
+                                        dismissPendingTrustedRemoval()
+                                        statusMessage =
+                                            if (stopped) {
+                                                "Emergency Stop remains active."
+                                            } else {
+                                                "Ritav resumed. Protected actions require fresh authentication."
+                                            }
+                                    },
+                                    onCandidateSelected = ::reviewCandidate,
+                                    onDismissApproval = {
+                                        dismissPendingApproval()
+                                        statusMessage = null
+                                    },
+                                    onApprove = ::approvePendingGrant
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    TextButton(onClick = { destination = AppDestination.HOME }) {
+                                        Text("Back to Ritav")
+                                    }
+                                    TextButton(onClick = { destination = AppDestination.SETTINGS }) {
+                                        Text("UI & Appearance")
+                                    }
                                 }
-                        },
-                        onCandidateSelected = ::reviewCandidate,
-                        onDismissApproval = {
-                            dismissPendingApproval()
-                            statusMessage = null
-                        },
-                        onApprove = ::approvePendingGrant
-                    )
+                            }
+                        }
+                            AppDestination.SETTINGS -> UiAppearanceSettings(
+                                uiPreferences = uiPreferences,
+                                navigationFixed = navigationPosition.fixed,
+                                onThemeModeChanged = { mode ->
+                                    uiPreferences = uiPreferences.copy(themeMode = mode)
+                                    uiPreferencesStore.saveThemeMode(mode)
+                                },
+                                onThemeFamilyChanged = { family ->
+                                    uiPreferences = uiPreferences.copy(themeFamily = family)
+                                    uiPreferencesStore.saveThemeFamily(family)
+                                },
+                                onNavigationFixedChanged = { fixed ->
+                                    navigationPosition = navigationPosition.copy(fixed = fixed)
+                                    navigationPositionStore.setFixed(fixed)
+                                },
+                                onResetNavigationPosition = {
+                                    navigationPosition = navigationPosition.copy(
+                                        xFraction = 0.5f,
+                                        yFraction = 0.5f
+                                    )
+                                    navigationPositionStore.resetPosition()
+                                }
+                            )
+                        }
+
+                        GlobalAdaptiveFloatingNavigation(
+                            items = listOf(
+                                GlobalNavItem("Home", "⌂") { destination = AppDestination.HOME },
+                                GlobalNavItem("Security", "◈") { destination = AppDestination.SECURITY },
+                                GlobalNavItem("Settings", "⚙") { destination = AppDestination.SETTINGS }
+                            ),
+                            initialPosition = navigationPosition,
+                            onPositionSettled = { xFraction, yFraction ->
+                                navigationPosition = navigationPosition.copy(
+                                    xFraction = xFraction,
+                                    yFraction = yFraction
+                                )
+                                navigationPositionStore.savePosition(xFraction, yFraction)
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
