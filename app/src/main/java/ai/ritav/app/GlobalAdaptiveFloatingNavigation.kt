@@ -51,8 +51,12 @@ internal fun GlobalAdaptiveFloatingNavigation(
     val itemPx = with(density) { itemSize.toPx() }
     val marginPx = with(density) { margin.toPx() }
 
-    var xFraction by remember { mutableFloatStateOf(initialPosition.xFraction.coerceIn(0f, 1f)) }
-    var yFraction by remember { mutableFloatStateOf(initialPosition.yFraction.coerceIn(0f, 1f)) }
+    var xFraction by remember(initialPosition.xFraction, initialPosition.yFraction, initialPosition.fixed) {
+        mutableFloatStateOf(initialPosition.xFraction.coerceIn(0f, 1f))
+    }
+    var yFraction by remember(initialPosition.xFraction, initialPosition.yFraction, initialPosition.fixed) {
+        mutableFloatStateOf(initialPosition.yFraction.coerceIn(0f, 1f))
+    }
     var expanded by remember { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = modifier) {
@@ -82,6 +86,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                 .size(buttonSize)
                 .pointerInput(widthPx, heightPx, initialPosition.fixed) {
                     detectDragGestures(
+                        onDragStart = { expanded = false },
                         onDrag = { change, dragAmount ->
                             if (initialPosition.fixed) return@detectDragGestures
                             change.consume()
