@@ -11,6 +11,7 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.wcstr
+import kotlin.random.Random
 import platform.posix.closedir
 import platform.posix.fclose
 import platform.posix.ferror
@@ -194,7 +195,7 @@ class WindowsSecureLocalStore(
     }
 
     private fun nextTemporarySuffix(): String =
-        temporaryCounter.incrementAndGet().toString()
+        Random.nextLong().toString()
 
     private fun readFile(path: String): ByteArray? {
         memScoped {
@@ -279,7 +280,6 @@ class WindowsSecureLocalStore(
         return source.readBytes(size)
     }
 
-    private val temporaryCounter = kotlin.concurrent.AtomicLong(0)
 
     private companion object {
         fun defaultRootDirectory(): String {
