@@ -165,6 +165,7 @@ class MacosSecureLocalStore(
         } ?: error("macOS secure local update data creation failed")
 
         CFDictionaryAddValue(dictionary, kSecValueData!!, cfData)
+        CFDictionaryAddValue(dictionary, kSecUseDataProtectionKeychain!!, kCFBooleanTrue!!)
         return KeychainQuery(dictionary, listOf(cfData))
     }
 
