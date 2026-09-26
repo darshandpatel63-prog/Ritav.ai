@@ -15,7 +15,7 @@ import java.util.regex.Pattern
  * its own verification semantics. User intent, authorization, identity/session
  * state and Emergency Stop remain downstream security concerns.
  */
-class AgentActionPlanFactory(
+internal class AgentActionPlanFactory(
     private val registry: AppCapabilityRegistry
 ) {
     fun create(
