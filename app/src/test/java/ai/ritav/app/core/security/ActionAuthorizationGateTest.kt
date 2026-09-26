@@ -171,6 +171,20 @@ class ActionAuthorizationGateTest {
     }
 
     @Test
+    fun gateClockFailureFailsClosedOnTokenConsumption() {
+        val gate = ActionAuthorizationGate(clockEpochMillis = { error("clock failure") })
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+
+        assertFalse(
+            gate.consume(
+                token,
+                plan,
+                AuthorizationLevel.USER_CONFIRMATION
+            )
+        )
+    }
+
+    @Test
     fun gateOwnedClockRejectsExpiredTokenEvenWhenLegacyCallerClockWouldAccept() {
         var now = 1_000L
         val gate = ActionAuthorizationGate(clockEpochMillis = { now })
