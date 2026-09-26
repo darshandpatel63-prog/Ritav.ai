@@ -77,14 +77,7 @@ class AndroidRitavPlatformAdapter(
     }
 
     private fun detectPlatform(): RitavPlatform =
-        detectPlatform { feature -> hasFeature(feature) }
-
-    internal fun detectPlatform(hasSystemFeature: (String) -> Boolean): RitavPlatform =
-        if (hasSystemFeature(CHROMEOS_SYSTEM_FEATURE)) {
-            RitavPlatform.CHROMEOS
-        } else {
-            RitavPlatform.ANDROID
-        }
+        Companion.detectPlatform { feature -> hasFeature(feature) }
 
     private fun detectFormFactor(): RitavFormFactor {
         val smallestWidthDp = context.resources.configuration.smallestScreenWidthDp
@@ -95,5 +88,12 @@ class AndroidRitavPlatformAdapter(
     }
     private companion object {
         const val CHROMEOS_SYSTEM_FEATURE = "org.chromium.arc"
+
+        internal fun detectPlatform(hasSystemFeature: (String) -> Boolean): RitavPlatform =
+            if (hasSystemFeature(CHROMEOS_SYSTEM_FEATURE)) {
+                RitavPlatform.CHROMEOS
+            } else {
+                RitavPlatform.ANDROID
+            }
     }
 }
