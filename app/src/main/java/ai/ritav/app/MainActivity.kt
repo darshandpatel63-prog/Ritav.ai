@@ -37,6 +37,8 @@ class MainActivity : FragmentActivity() {
         securityControl = executionRuntime.securityControl
 
         setContent {
+            val navigationPositionStore = remember { NavigationPositionStore(this@MainActivity) }
+            val navigationPosition = remember { navigationPositionStore.load() }
             var stopped by remember { mutableStateOf(securityControl.isEmergencyStopActive()) }
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
@@ -334,6 +336,8 @@ class MainActivity : FragmentActivity() {
                                 GlobalNavItem("Home", "⌂") { adminMode = false },
                                 GlobalNavItem("Security", "◈") { adminMode = true }
                             ),
+                            initialPosition = navigationPosition,
+                            onPositionSettled = navigationPositionStore::savePosition,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
