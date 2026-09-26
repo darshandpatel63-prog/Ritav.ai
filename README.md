@@ -6,7 +6,7 @@ This README is the hand-off guide for future AI/development chats. Continue the 
 - Project: Ritav.ai
 - Repository: `darshandpatel63-prog/Ritav.ai`
 - **Product target: cross-platform** — Android, iOS/iPadOS, Windows, macOS, Linux and supported ChromeOS/device form factors.
-- **Current executable implementation: Android + JVM-targeted shared contracts/security only.** Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtimes are not present in this repository yet.
+- **Current executable implementation: Android + JVM-targeted shared contracts/security, plus a Windows DPAPI secure-storage runtime slice.** Native iOS/iPadOS, Windows full product runtime, macOS, Linux and ChromeOS product runtimes are not complete.
 - Android application ID: `ai.ritav.app`
 - Branch: `main`
 - Stage: Security completion — semantic verification merged; real AI/model/context ingestion is the next security layer
