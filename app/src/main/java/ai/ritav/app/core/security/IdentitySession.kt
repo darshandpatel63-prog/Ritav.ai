@@ -50,7 +50,8 @@ class SecuritySession private constructor(
 }
 
 class IdentitySessionManager(
-    private val emergencyStop: EmergencyStopController = EmergencyStopController()
+    private val emergencyStop: EmergencyStopController = EmergencyStopController(),
+    private val clockEpochMillis: () -> Long = System::currentTimeMillis
 ) {
     private val issuanceBinding = Any()
 
@@ -77,6 +78,14 @@ class IdentitySessionManager(
                 emergencyStopGeneration = emergencyStop.generation()
             )
         } ?: throw IllegalStateException("Emergency Stop is active")
+    }
+
+    internal fun permitsProtectedCapability(session: SecuritySession?): Boolean {
+        val now = runCatching { clockEpochMillis() }
+            .getOrNull()
+            ?.takeIf { it >= 0L }
+            ?: return false
+        return permitsProtectedCapability(session, now)
     }
 
     fun permitsProtectedCapability(session: SecuritySession?, nowEpochMillis: Long): Boolean =
