@@ -65,7 +65,7 @@ class ActionAuthorizationGate(
      * paths must use the clock-owned overload above so callers cannot control TTL.
      */
     @Deprecated("Use the gate-owned-clock consume overload for security decisions")
-    fun consume(
+    internal fun consume(
         token: String,
         plan: ActionPlan,
         providedLevel: AuthorizationLevel,
