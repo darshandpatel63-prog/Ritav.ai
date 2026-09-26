@@ -5,12 +5,22 @@ on:
     paths:
       - "core/**"
       - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
       - ".github/workflows/macos-platform-test.yml"
   push:
     branches: ["main"]
     paths:
       - "core/**"
       - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
       - ".github/workflows/macos-platform-test.yml"
 
 permissions:
