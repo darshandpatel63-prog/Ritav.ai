@@ -246,6 +246,12 @@ class MainActivity : FragmentActivity() {
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
+                if (!adminMode) {
+                    ConversationalHomeScreen(
+                        securityControl = securityControl,
+                        onOpenSecurityCenter = { adminMode = true }
+                    )
+                } else {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -312,6 +318,10 @@ class MainActivity : FragmentActivity() {
                         },
                         onApprove = ::approvePendingGrant
                     )
+                    TextButton(onClick = { adminMode = false }) {
+                        Text("Back to Ritav")
+                    }
+                }
                 }
             }
         }
