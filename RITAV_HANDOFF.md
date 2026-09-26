@@ -1132,3 +1132,47 @@ No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in the reviewed Linux
 
 ### NEXT SECURITY WORK
 Continue remaining launch-scope security closure: applicable ChromeOS/native runtime coverage, physical-device/real-host validation, signed production-release validation, complete product/security integration, and the final consolidated end-to-end adversarial/failure/race/egress review. Do not start UI until that security-before-UI gate is intentionally closed.
+
+
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — ChromeOS Android host boundary merged
+
+### LIVE MAIN
+- PR #18 is merged into `main`.
+- ChromeOS host-boundary merge commit: `ad33d2ad6b6ad0492d6fe08ae7721785f44b900a`.
+- Exact PR #18 verified head before merge: `c2efc6b83a41cea315fe95cb164a22d8c37aee5a`.
+- No open pull requests remain at this checkpoint.
+
+### CHROMEOS SECURITY LAYER — COMPLETED
+PR #18 adds an explicit host-platform fact boundary to the Android platform adapter:
+- Detects ChromeOS Android runtime using the Android system feature `org.chromium.arc`.
+- Reports `RitavPlatform.CHROMEOS` when the host feature is present and `RitavPlatform.ANDROID` otherwise.
+- The detection is metadata only; it does not grant permissions, capabilities, authorization, model access, network access, or execution authority.
+- Regression tests cover both ChromeOS-feature-present and Android-feature-absent paths plus real-host profile consistency.
+
+### EXACT VERIFICATION
+- Android Run #515 (`36226626036`) — **SUCCESS**, including JVM tests, instrumentation-test compilation and managed-device instrumentation.
+- The first attempt failed only because the test helper visibility was incorrect; the helper was corrected and the final exact head passed.
+- No other platform regression was required because the change is confined to Android application host detection.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed the complete ChromeOS host-detection path across:
+- Android adapter/profile call path;
+- host-feature detection trust boundary;
+- capability/permission/authorization separation;
+- fallback behavior when ChromeOS evidence is absent;
+- testability and instrumentation coverage;
+- interaction with existing deterministic execution/security gates.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed ChromeOS host-boundary layer.
+
+### POST-MERGE VERIFICATION / NON-CLAIMS
+- The connected GitHub workflow-run interface does not currently expose a push-triggered post-merge result for merge commit `ad33d2ad6b6ad0492d6fe08ae7721785f44b900a`; post-merge CI is therefore **not** claimed green.
+- No physical Chromebook/ChromeOS host validation.
+- No claim of full ChromeOS product/runtime support.
+- This layer identifies the ChromeOS Android host path; host-specific capability availability and real-device validation remain outstanding.
+- Signed production validation, complete product/security integration, final end-to-end audit, and real model/provider integration remain outstanding.
+- Product UI remains intentionally unstarted.
+
+### NEXT SECURITY WORK
+Continue final launch-scope security closure: physical-device/real-host validation, signed production-release validation, complete product/security integration, and the final consolidated adversarial/failure/race/egress review. Keep UI closed until that security-before-UI gate is intentionally complete.
