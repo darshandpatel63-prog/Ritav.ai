@@ -17,7 +17,7 @@ data class ExecutionResult(
 
 /** Public-safe execution port exposed by the trusted runtime composition root. */
 interface SecureExecutionPort {
-    fun execute(
+    override fun execute(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
         authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
