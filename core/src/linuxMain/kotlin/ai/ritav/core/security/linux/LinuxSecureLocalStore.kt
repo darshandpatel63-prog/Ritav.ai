@@ -11,8 +11,9 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
-import platform.posix.getenv
 import kotlinx.cinterop.toKString
+import kotlinx.cinterop.value
+import platform.posix.getenv
 
 internal const val MAX_LINUX_SECRET_SERVICE_VALUE_BYTES = 131_072
 internal const val MAX_LINUX_SECRET_SERVICE_KEY_LENGTH = 128
@@ -103,5 +104,6 @@ class LinuxSecureLocalStore(
     }
 }
 
+@OptIn(ExperimentalForeignApi::class)
 internal fun linuxSecretServiceIntegrationTestsEnabled(): Boolean =
     getenv("RITAV_ENABLE_SECRET_SERVICE_INTEGRATION_TESTS")?.toKString() == "1"
