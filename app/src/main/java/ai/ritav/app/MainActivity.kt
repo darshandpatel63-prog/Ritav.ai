@@ -38,7 +38,10 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             val navigationPositionStore = remember { NavigationPositionStore(this@MainActivity) }
-            val navigationPosition = remember { navigationPositionStore.load() }
+            var navigationPosition by remember { mutableStateOf(navigationPositionStore.load()) }
+            val uiPreferencesStore = remember { UiPreferencesStore(this@MainActivity) }
+            var uiPreferences by remember { mutableStateOf(uiPreferencesStore.load()) }
+            var destination by remember { mutableStateOf(AppDestination.HOME) }
             var stopped by remember { mutableStateOf(securityControl.isEmergencyStopActive()) }
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
@@ -247,18 +250,18 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
-            RitavTheme {
+            RitavTheme(preferences = uiPreferences) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        if (!adminMode) {
-                            ConversationalHomeScreen(
+                        when (destination) {
+                            AppDestination.HOME -> ConversationalHomeScreen(
                                 securityControl = securityControl,
-                                onOpenSecurityCenter = { adminMode = true }
+                                onOpenSecurityCenter = { destination = AppDestination.SECURITY }
                             )
-                        } else {
+                            AppDestination.SECURITY -> {
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -325,19 +328,57 @@ class MainActivity : FragmentActivity() {
                                     },
                                     onApprove = ::approvePendingGrant
                                 )
-                                TextButton(onClick = { adminMode = false }) {
-                                    Text("Back to Ritav")
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    TextButton(onClick = { destination = AppDestination.HOME }) {
+                                        Text("Back to Ritav")
+                                    }
+                                    TextButton(onClick = { destination = AppDestination.SETTINGS }) {
+                                        Text("UI & Appearance")
+                                    }
                                 }
                             }
+                        }
+                            AppDestination.SETTINGS -> UiAppearanceSettings(
+                                uiPreferences = uiPreferences,
+                                navigationFixed = navigationPosition.fixed,
+                                onThemeModeChanged = { mode ->
+                                    uiPreferences = uiPreferences.copy(themeMode = mode)
+                                    uiPreferencesStore.saveThemeMode(mode)
+                                },
+                                onThemeFamilyChanged = { family ->
+                                    uiPreferences = uiPreferences.copy(themeFamily = family)
+                                    uiPreferencesStore.saveThemeFamily(family)
+                                },
+                                onNavigationFixedChanged = { fixed ->
+                                    navigationPosition = navigationPosition.copy(fixed = fixed)
+                                    navigationPositionStore.setFixed(fixed)
+                                },
+                                onResetNavigationPosition = {
+                                    navigationPosition = navigationPosition.copy(
+                                        xFraction = 0.5f,
+                                        yFraction = 0.5f
+                                    )
+                                    navigationPositionStore.resetPosition()
+                                }
+                            )
                         }
 
                         GlobalAdaptiveFloatingNavigation(
                             items = listOf(
-                                GlobalNavItem("Home", "⌂") { adminMode = false },
-                                GlobalNavItem("Security", "◈") { adminMode = true }
+                                GlobalNavItem("Home", "⌂") { destination = AppDestination.HOME },
+                                GlobalNavItem("Security", "◈") { destination = AppDestination.SECURITY },
+                                GlobalNavItem("Settings", "⚙") { destination = AppDestination.SETTINGS }
                             ),
                             initialPosition = navigationPosition,
-                            onPositionSettled = navigationPositionStore::savePosition,
+                            onPositionSettled = { xFraction, yFraction ->
+                                navigationPosition = navigationPosition.copy(
+                                    xFraction = xFraction,
+                                    yFraction = yFraction
+                                )
+                                navigationPositionStore.savePosition(xFraction, yFraction)
+                            },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
