@@ -52,6 +52,29 @@ class LinuxSecureLocalStoreTest {
     }
 
     @Test
+    fun multibyteIdentifierUsesByteBound() {
+        var serviceRejected = false
+        var keyRejected = false
+        val oversizedUtf8 = "é".repeat((MAX_LINUX_SECRET_SERVICE_KEY_LENGTH / 2) + 1)
+
+        try {
+            LinuxSecureLocalStore(service = oversizedUtf8)
+        } catch (_: IllegalArgumentException) {
+            serviceRejected = true
+        }
+
+        val store = LinuxSecureLocalStore(service = "ai.ritav.test")
+        try {
+            store.putString(oversizedUtf8, "value")
+        } catch (_: IllegalArgumentException) {
+            keyRejected = true
+        }
+
+        assertTrue(serviceRejected)
+        assertTrue(keyRejected)
+    }
+
+    @Test
     fun oversizedKeyIsRejected() {
         val store = LinuxSecureLocalStore(service = "ai.ritav.test")
         var rejected = false
