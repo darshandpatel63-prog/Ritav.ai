@@ -24,7 +24,7 @@ class CapabilityGrantCoordinatorTest {
     fun tierTwoApprovalCreatesSessionBoundGrantOnlyAfterExplicitConfirmation() {
         val registry = registryFor(RiskTier.TIER_1_REVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
@@ -85,7 +85,7 @@ class CapabilityGrantCoordinatorTest {
     fun missingConfirmationNeverIssuesOrConsumesGrantAuthorization() {
         val registry = registryFor(RiskTier.TIER_1_REVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
@@ -127,7 +127,7 @@ class CapabilityGrantCoordinatorTest {
     fun forgedOrStalePlansAndSessionsAreRejected() {
         val registry = registryFor(RiskTier.TIER_1_REVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
@@ -172,7 +172,7 @@ class CapabilityGrantCoordinatorTest {
     fun tierThreeApprovalRequiresSuccessfulDeviceAuthentication() {
         val registry = registryFor(RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
@@ -218,7 +218,7 @@ class CapabilityGrantCoordinatorTest {
     fun tierThreeApprovalFailsClosedWhenDeviceAuthenticationFails() {
         val registry = registryFor(RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
@@ -263,7 +263,7 @@ class CapabilityGrantCoordinatorTest {
     fun emergencyStopBlocksApprovalAfterPlanPreparation() {
         val registry = registryFor(RiskTier.TIER_1_REVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,

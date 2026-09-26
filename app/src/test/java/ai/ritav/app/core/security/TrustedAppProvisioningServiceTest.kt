@@ -30,7 +30,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun exactEvidenceAndDeviceTokenPersistOneReviewedEntry() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -58,9 +58,38 @@ class TrustedAppProvisioningServiceTest {
     }
 
     @Test
+    fun callerSuppliedPersistTimeCannotExtendDeviceAuthorizationTokenLifetime() {
+        val stop = EmergencyStopController()
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 62_001L })
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val registry = AppCapabilityRegistry()
+        val service = TrustedAppProvisioningService(registry, store, gate, stop, sessionManager)
+
+        val plan = requireNotNull(
+            service.createPlan("com.example.safe", certificate, 1, session, 1_001L)
+        )
+        val token = gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_000L)
+
+        assertFalse(
+            service.persist(
+                plan,
+                "com.example.safe",
+                certificate,
+                1,
+                token,
+                1_001L,
+                session
+            )
+        )
+        assertFalse(registry.isRegistered("com.example.safe"))
+    }
+
+    @Test
     fun wrongEvidenceIsRejectedBeforeTokenConsumption() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -99,7 +128,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun certificateChangeCannotReuseOldPlanAuthorization() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -147,7 +176,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun malformedPackageNameFailsClosedWithoutRegisteringTrust() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -170,7 +199,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun multipleSignerAndEmergencyStopFailClosed() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -211,7 +240,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun storeFailureDoesNotActivateInMemoryTrust() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore().apply { failAdd = true }
@@ -238,7 +267,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun exactEvidenceAndDeviceTokenRemoveReviewedEntry() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -268,7 +297,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun wrongRemovalEvidenceDoesNotConsumeToken() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -293,7 +322,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun removalStoreFailureRestoresActiveTrust() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -317,7 +346,7 @@ class TrustedAppProvisioningServiceTest {
     @Test
     fun emergencyStopBlocksTrustedAppRemoval() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()

@@ -142,7 +142,7 @@ class AuditLogTest {
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
-            ActionAuthorizationGate(),
+            ActionAuthorizationGate(clockEpochMillis = { 1_000L }),
             auditLog = log
         )
 
@@ -181,7 +181,7 @@ class AuditLogTest {
                 setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", identitySession.id))
             )
         )
-        val gate = ActionAuthorizationGate()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 1_000L })
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),

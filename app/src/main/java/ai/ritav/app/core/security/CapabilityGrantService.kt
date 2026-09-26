@@ -95,8 +95,7 @@ internal class CapabilityGrantService(
             if (!authorizationGate.consume(
                     authorizationToken.orEmpty(),
                     plan,
-                    requiredAuthorizationFor(plan),
-                    nowEpochMillis
+                    requiredAuthorizationFor(plan)
                 )
             ) return@runIfInactive false
 

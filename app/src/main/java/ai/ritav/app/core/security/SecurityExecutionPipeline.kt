@@ -96,7 +96,7 @@ class SecurityExecutionPipeline(
         if (required != AuthorizationLevel.NONE) {
             val token = request.authorizationToken
                 ?: return denyAndAudit(request, actionHash, "One-time authorization token is required", required)
-            if (!authorizationGate.consume(token, request.plan, request.action.authorizationLevel, request.nowEpochMillis)) {
+            if (!authorizationGate.consume(token, request.plan, request.action.authorizationLevel)) {
                 return denyAndAudit(request, actionHash, "Authorization token is invalid, expired, mismatched, or already consumed", required)
             }
             auditLog.append(AuditEvent(

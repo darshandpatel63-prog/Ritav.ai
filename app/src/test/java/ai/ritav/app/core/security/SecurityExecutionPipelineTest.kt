@@ -54,7 +54,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate(clockEpochMillis = { 1_000L }))
         val result = pipeline.authorize(
             SecurityExecutionRequest(
                 fixture.action,
@@ -81,7 +81,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val gate = ActionAuthorizationGate()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 1_000L })
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
@@ -121,7 +121,7 @@ class SecurityExecutionPipelineTest {
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
-            ActionAuthorizationGate(),
+            ActionAuthorizationGate(clockEpochMillis = { 1_000L }),
             identitySessionManager = fixture.identityManager,
             auditLog = log
         )
@@ -154,7 +154,7 @@ class SecurityExecutionPipelineTest {
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
-            ActionAuthorizationGate(),
+            ActionAuthorizationGate(clockEpochMillis = { 1_000L }),
             identitySessionManager = fixture.identityManager,
             auditLog = log
         )
@@ -194,7 +194,7 @@ class SecurityExecutionPipelineTest {
                 setOf(CapabilityGrant("demo", Capability.UI_AUTOMATION, "edit", null))
             )
         )
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate(clockEpochMillis = { 1_000L }))
         val result = pipeline.authorize(SecurityExecutionRequest(action, plan, null, null, 1_000L))
         assertFalse(result.allowed)
     }
@@ -213,7 +213,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate(clockEpochMillis = { 1_000L }))
         val result = pipeline.authorize(
             SecurityExecutionRequest(
                 fixture.action,
@@ -240,7 +240,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate(clockEpochMillis = { 1_000L }))
         val result = pipeline.authorize(
             SecurityExecutionRequest(
                 fixture.action,
@@ -267,7 +267,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val gate = ActionAuthorizationGate()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 1_000L })
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
@@ -298,6 +298,49 @@ class SecurityExecutionPipelineTest {
         assertFalse(replay.allowed)
     }
 
+    @Test fun callerSuppliedTimestampCannotExtendExecutionTokenLifetime() {
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
+        var authoritativeNow = 62_001L
+        val gate = ActionAuthorizationGate(clockEpochMillis = { authoritativeNow })
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = fixture.identityManager
+        )
+
+        val token = gate.issue(
+            fixture.plan,
+            AuthorizationLevel.USER_CONFIRMATION,
+            1_000L
+        )
+
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = fixture.action,
+                plan = fixture.plan,
+                authorizationToken = token,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L
+            )
+        )
+
+        assertFalse(result.allowed)
+        authoritativeNow = 1_001L
+    }
+
     @Test fun sensitiveInputIsBlockedBeforeAuthorizationAndExecution() {
         val fixture = protectedFixture(1_000L)
         val engine = PolicyEngine(
@@ -312,7 +355,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val gate = ActionAuthorizationGate()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 1_000L })
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
@@ -351,7 +394,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val gate = ActionAuthorizationGate()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 1_000L })
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
@@ -401,7 +444,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val gate = ActionAuthorizationGate()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 1_000L })
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
@@ -439,7 +482,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val gate = ActionAuthorizationGate()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 1_000L })
         val pipeline = SecurityExecutionPipeline(
             engine,
             ExecutionPolicyGate(engine),
@@ -488,7 +531,7 @@ class SecurityExecutionPipelineTest {
                 )
             )
         )
-        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate())
+        val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), ActionAuthorizationGate(clockEpochMillis = { 1_000L }))
 
         val result = pipeline.authorize(
             SecurityExecutionRequest(
@@ -521,7 +564,7 @@ class SecurityExecutionPipelineTest {
             authorizationLevel = AuthorizationLevel.DEVICE_AUTHENTICATION
         )
         val engine = PolicyEngine()
-        val gate = ActionAuthorizationGate()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 1_000L })
         val pipeline = SecurityExecutionPipeline(engine, ExecutionPolicyGate(engine), gate)
         val token = gate.issue(plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1_000L)
 

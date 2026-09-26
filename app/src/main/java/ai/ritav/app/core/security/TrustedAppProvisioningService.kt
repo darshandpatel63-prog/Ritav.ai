@@ -210,8 +210,7 @@ internal class TrustedAppProvisioningService(
             if (!authorizationGate.consume(
                     authorizationToken.orEmpty(),
                     plan,
-                    AuthorizationLevel.DEVICE_AUTHENTICATION,
-                    nowEpochMillis
+                    AuthorizationLevel.DEVICE_AUTHENTICATION
                 )
             ) return@runIfInactive false
 
@@ -265,8 +264,7 @@ internal class TrustedAppProvisioningService(
             if (!authorizationGate.consume(
                     authorizationToken.orEmpty(),
                     plan,
-                    AuthorizationLevel.DEVICE_AUTHENTICATION,
-                    nowEpochMillis
+                    AuthorizationLevel.DEVICE_AUTHENTICATION
                 )
             ) return@runIfInactive false
 

@@ -9,7 +9,8 @@ import java.util.concurrent.ConcurrentHashMap
  * ActionAuthorizationService rather than self-asserting an auth level.
  */
 class ActionAuthorizationGate(
-    private val emergencyStop: EmergencyStopController = EmergencyStopController()
+    private val emergencyStop: EmergencyStopController = EmergencyStopController(),
+    private val clockEpochMillis: () -> Long = System::currentTimeMillis
 ) {
     private data class Grant(
         val planHash: String,
@@ -46,8 +47,32 @@ class ActionAuthorizationGate(
 
     internal fun emergencyStopController(): EmergencyStopController = emergencyStop
 
-    /** Atomically validates and consumes a token. */
-    fun consume(
+    /** Atomically validates and consumes a token using the gate-owned security clock. */
+    internal fun consume(
+        token: String,
+        plan: ActionPlan,
+        providedLevel: AuthorizationLevel
+    ): Boolean {
+        val now = runCatching { clockEpochMillis() }
+            .getOrNull()
+            ?.takeIf { it >= 0L }
+            ?: return false
+        return consumeAt(token, plan, providedLevel, now)
+    }
+
+    /**
+     * Legacy deterministic test/diagnostic entry point. Production authorization
+     * paths must use the clock-owned overload above so callers cannot control TTL.
+     */
+    @Deprecated("Use the gate-owned-clock consume overload for security decisions")
+    internal fun consume(
+        token: String,
+        plan: ActionPlan,
+        providedLevel: AuthorizationLevel,
+        nowEpochMillis: Long
+    ): Boolean = consumeAt(token, plan, providedLevel, nowEpochMillis)
+
+    private fun consumeAt(
         token: String,
         plan: ActionPlan,
         providedLevel: AuthorizationLevel,

@@ -70,7 +70,7 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun changedEvidenceBeforeAuthenticationBlocksApproval() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -96,7 +96,7 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun changedEvidenceAfterAuthenticationAlsoBlocksPersistence() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -129,7 +129,7 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun successfulDeviceAuthenticationPersistsEvidenceBackedTrust() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -153,7 +153,7 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun successfulDeviceAuthenticationRemovesTrust() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -182,7 +182,7 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun changedEvidenceBeforeRemovalAuthenticationBlocksApproval() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
@@ -209,7 +209,7 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun changedEvidenceAfterRemovalAuthenticationAlsoBlocksPersistence() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop)
+        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
