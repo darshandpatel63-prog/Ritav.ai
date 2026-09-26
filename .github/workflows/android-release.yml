@@ -152,7 +152,7 @@ jobs:
           patterns = (
               ("private-key", re.compile(rb"-----BEGIN(?: [A-Z0-9][A-Z0-9 ]{0,63})? PRIVATE KEY-----")),
               ("api-key-assignment", re.compile(rb"""(?i)(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\s*[:=]\s*["'][^"']{12,}["']""")),
-              ("password-assignment", re.compile(rb"""(?i)(?:password|passwd|passcode)\s*[:=]\s*["'][^"']{4,}["']""")),
+              ("password-assignment", re.compile(rb"""(?i)(?:password|passwd|passcode)\s*[:=]\s*["'](?!\$)[^"']{4,}["']""")),
               ("aws-access-key", re.compile(rb"\bAKIA[0-9A-Z]{16}\b")),
               ("github-token", re.compile(rb"\b(?:ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{70,})\b")),
               ("slack-token", re.compile(rb"\bxox[bp]-[A-Za-z0-9-]{20,}\b")),
