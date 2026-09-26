@@ -1221,3 +1221,35 @@ No demonstrated CRITICAL/HIGH/MEDIUM authorization bypass remains in this review
 - Keep model/provider runtime fail-closed until a concrete provider path is separately reviewed.
 - Keep UI unstarted until the security-before-UI gate is intentionally closed.
 
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Safe security-control UI facade merged
+
+### LIVE MAIN
+- PR #24 is merged into `main`.
+- Current `main` merge commit: `6eef16d21031703ae455f33bf8d84881d2543630`.
+- PR #24 exact head: `22c60d6f9948ac72498dc21beee43e8696882b6c`.
+- PR #24 exact-head Run #542 (`36235901912`) — **SUCCESS**.
+- Post-merge workflow results for the merge commit are not exposed by the connected workflow interface, so no post-merge green claim is made.
+
+### SECURITY-ADMIN UI BOUNDARY — COMPLETED
+- The existing Compose `PermissionCenter` security/admin UI now depends on the public `SecurityControlPort` only.
+- `ActionAuthorizationService`, device-auth gateways, identity-session manager, permission stores, Emergency Stop controller, and `SecurityRuntimeState` are module-internal.
+- `CapabilityGrantCandidate` is the only sanitized capability-option model exposed to this UI facade; certificate material and durable permission mutation remain behind security-owned services.
+- `AndroidExecutionRuntime` exposes the safe `SecurityControlPort` and `SecureExecutionPort`; concrete security/execution composition remains internal.
+- `AndroidExecutionRuntime.close()` is the public lifecycle teardown entry; accessibility implementation details remain internal.
+- Kotlin `internal` remains module-scoped; this is an API boundary, not a separate Gradle-module isolation boundary.
+
+### UI STATUS CLARIFICATION
+- Security/admin/permission UI already exists and is now behind the safe facade.
+- Product/conversational AI UI remains intentionally unstarted: **0%**.
+
+### VERIFICATION
+- PR #24 Run #542: JVM unit tests, instrumentation-test compilation, and Android managed-device instrumentation — **SUCCESS**.
+- Consolidated review checked the UI call paths, authorization/device/session construction boundary, permission mutation surface, Emergency Stop control, and execution facade. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this changed boundary.
+
+### REMAINING LAUNCH CLOSURE
+- Physical-device/real-host validation remains pending where feasible.
+- Signed production-release validation remains pending.
+- Final consolidated adversarial/failure/race/resource/privacy/egress review remains pending.
+- Real model/provider runtime remains intentionally unavailable/fail-closed until a concrete provider path is separately reviewed.
+- Continue the public-constructor/composition sweep and keep product/conversational UI closed until the security-before-UI gate is intentionally closed.
+
