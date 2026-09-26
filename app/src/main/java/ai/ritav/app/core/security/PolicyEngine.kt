@@ -1,6 +1,6 @@
 package ai.ritav.app.core.security
 
-class PolicyEngine(
+internal class PolicyEngine(
     private val permissionStore: PermissionStore = InMemoryPermissionStore(),
     private val emergencyStop: EmergencyStopController = EmergencyStopController()
 ) {
