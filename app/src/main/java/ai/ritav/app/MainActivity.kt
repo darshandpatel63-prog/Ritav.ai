@@ -3,6 +3,7 @@ package ai.ritav.app
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -84,7 +85,14 @@ class MainActivity : FragmentActivity() {
                             } else {
                                 "Device authentication did not establish a trusted session."
                             }
-                    }
+                        }
+                    GlobalAdaptiveFloatingNavigation(
+                        items = listOf(
+                            GlobalNavItem("Home", "⌂") { adminMode = false },
+                            GlobalNavItem("Security", "◈") { adminMode = true }
+                        ),
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
 
@@ -243,10 +251,12 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
+            RitavTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                 if (!adminMode) {
                     ConversationalHomeScreen(
                         securityControl = securityControl,
