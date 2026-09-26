@@ -36,7 +36,7 @@ internal class ExecutionBridge(
     private val semanticResultVerifier: SemanticResultVerifier = SemanticResultVerifier(),
     private val auditLog: AuditLog = securityPipeline.auditLog,
     private val clock: () -> Long = { System.currentTimeMillis() }
-) {
+) : SecureExecutionPort {
     fun execute(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
