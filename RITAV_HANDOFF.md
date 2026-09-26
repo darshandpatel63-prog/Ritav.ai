@@ -892,3 +892,53 @@ Do not describe post-merge CI as green until all three complete successfully.
 
 ### NEXT HANDOFF ACTION
 Complete the Android launch/security gate with fresh current-main release evidence, then perform the final Android launch/security consolidated review. After that, continue native-platform work incrementally while preserving the deterministic authorization boundary and existing deny-by-default controls.
+
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Windows storage hardening merged
+
+This section supersedes earlier historical Windows sequencing notes where they conflict.
+
+### LIVE MAIN
+- PR #14 exact head before merge: de51f3e17cd65afad08e1d2e3eece046cc94a7d6.
+- PR #14 merge SHA: 23ae67057dcd180d2167d12e8c55174043b31981.
+- Repository visibility remains public.
+- No open PR remains for this Windows storage hardening slice.
+
+### WINDOWS SECURITY LAYER
+The Windows DPAPI secure-storage slice is complete for its reviewed storage-only scope:
+- mingwX64 target enabled.
+- User-scoped Windows DPAPI encryption/decryption.
+- Bounded plaintext/ciphertext/key/path handling.
+- Local-only filesystem storage with no provider/network path.
+- Directory-handle leak fixed.
+- Write/close failure handling hardened.
+- Unique sibling temporary files.
+- MoveFileExW replacement semantics remove the prior explicit delete-before-rename target-absence window.
+- No authorization-token, capability-grant, model, finance or execution authority.
+
+### EXACT PR-HEAD EVIDENCE
+- Windows Run #18 (36218828039) — SUCCESS.
+- Android Run #489 (36218828028) — SUCCESS.
+- iOS Run #86 (36218828034) — SUCCESS.
+
+### POST-MERGE EVIDENCE
+On merge commit 23ae67057dcd180d2167d12e8c55174043b31981:
+- Windows Run #19 (36219057179) — SUCCESS.
+- Android Run #490 (36219057164) — SUCCESS, including managed-device instrumentation.
+- iOS Run #87 (36219057172) — SUCCESS.
+- Android release validation Run #16 (36219057173) — FAILURE in release unit-test/release-build validation; one rerun also failed. Do not treat the release workflow as green. This is a separate outstanding CI issue from the completed Windows storage layer.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed implementation and integration from multiple directions: call path/data flow, deterministic boundary separation, DPAPI memory lifecycle, key/path validation, filesystem failure handling, replacement/crash semantics, concurrent same-key writers, resource bounds, privacy/egress and cross-platform impact. The Windows store remains below authorization/execution authority. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed layer.
+
+### LIMITATIONS / NON-CLAIMS
+- No physical Windows-host validation.
+- No signed Windows production packaging.
+- Windows Hello/device authentication is not implemented.
+- Full Windows product/runtime support is not claimed.
+- Power-loss/crash durability is not guaranteed by stdio write+close.
+- Same-key concurrent writes are not transactionally serialized; unique temp names prevent shared-temp collisions but do not provide a locking/transaction coordinator.
+- DPAPI user scope is not a same-user process isolation boundary.
+
+### NEXT WORK
+Treat the Windows storage layer as complete. Separately investigate the failing Android release validation Run #16 before claiming the overall main CI surface green. Preserve the deterministic security boundary and the fail-closed model/runtime posture.
