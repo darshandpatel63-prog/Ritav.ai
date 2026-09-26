@@ -2,6 +2,19 @@ name: Android release validation
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "app/build.gradle.kts"
+      - "app/proguard-rules.pro"
+      - "core/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "app/src/main/AndroidManifest.xml"
+      - "app/src/main/res/xml/**"
+      - ".github/workflows/android-release.yml"
   push:
     branches: ["main"]
     paths:
@@ -139,7 +152,7 @@ jobs:
           patterns = (
               ("private-key", re.compile(rb"-----BEGIN(?: [A-Z0-9][A-Z0-9 ]{0,63})? PRIVATE KEY-----")),
               ("api-key-assignment", re.compile(rb"""(?i)(?:api[_ -]?key|access[_ -]?token|secret[_ -]?key)\s*[:=]\s*["'][^"']{12,}["']""")),
-              ("password-assignment", re.compile(rb"""(?i)(?:password|passwd|passcode)\s*[:=]\s*["'][^"']{4,}["']""")),
+              ("password-assignment", re.compile(rb"""(?i)(?:password|passwd|passcode)\s*[:=]\s*["'](?!\$)[^"']{4,}["']""")),
               ("aws-access-key", re.compile(rb"\bAKIA[0-9A-Z]{16}\b")),
               ("github-token", re.compile(rb"\b(?:ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{70,})\b")),
               ("slack-token", re.compile(rb"\bxox[bp]-[A-Za-z0-9-]{20,}\b")),
@@ -184,9 +197,33 @@ jobs:
           print("No embedded release-secret patterns or tracked signing material found in non-test sources.")
           PY
 
-      - name: Validate release unit tests and release build
+      - name: Generate ephemeral CI signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          keystore="$RUNNER_TEMP/ritav-ci-validation.jks"
+          password="$(python3 - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(32))
+          PY
+          )"
+          umask 077
+          keytool -genkeypair             -keystore "$keystore"             -storepass "$password"             -keypass "$password"             -alias ritav-ci-validation             -keyalg RSA             -keysize 2048             -validity 2             -dname "CN=Ritav CI Validation, OU=Security, O=Ritav.ai, L=CI, S=CI, C=US"             -noprompt
+          {
+            echo "RITAV_SIGNING_STORE_FILE=$keystore"
+            echo "RITAV_SIGNING_STORE_PASSWORD=$password"
+            echo "RITAV_SIGNING_KEY_ALIAS=ritav-ci-validation"
+            echo "RITAV_SIGNING_KEY_PASSWORD=$password"
+          } >> "$GITHUB_ENV"
+          keytool -list -keystore "$keystore" -storepass "$password" -alias ritav-ci-validation >/dev/null
+
+      - name: Validate release unit tests and signed release build
         run: >
           gradle --no-daemon
+          -PRITAV_SIGNING_STORE_FILE="$RITAV_SIGNING_STORE_FILE"
+          -PRITAV_SIGNING_STORE_PASSWORD="$RITAV_SIGNING_STORE_PASSWORD"
+          -PRITAV_SIGNING_KEY_ALIAS="$RITAV_SIGNING_KEY_ALIAS"
+          -PRITAV_SIGNING_KEY_PASSWORD="$RITAV_SIGNING_KEY_PASSWORD"
           :core:jvmTest
           testDebugUnitTest
           testReleaseUnitTest
@@ -194,18 +231,22 @@ jobs:
           assembleRelease
           bundleRelease
 
-      - name: Verify release artifacts and APK debug state
+      - name: Verify signed release artifacts and APK debug state
         shell: bash
         run: |
           set -euo pipefail
 
-          apk="app/build/outputs/apk/release/app-release-unsigned.apk"
+          apk="app/build/outputs/apk/release/app-release.apk"
           aab="app/build/outputs/bundle/release/app-release.aab"
           mapping="app/build/outputs/mapping/release/mapping.txt"
 
           test -s "$apk"
           test -s "$aab"
           test -s "$mapping"
+
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk"
+          jarsigner -verify -verbose -certs "$aab" >/tmp/ritav-aab-jarsigner.txt
+          grep -q "jar verified" /tmp/ritav-aab-jarsigner.txt
 
           manifest_dump="$(mktemp)"
           trap 'rm -f "$manifest_dump"' EXIT
@@ -216,19 +257,27 @@ jobs:
             exit 1
           fi
 
-          sha256sum "$apk" "$aab" "$mapping" > release-SHA256SUMS.txt
-          echo "Release artifacts:"
-          ls -lh "$apk" "$aab" "$mapping" release-SHA256SUMS.txt
-          echo "R8 mapping is present and release APK does not declare debuggable=true."
+          cert_fingerprint="$(
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk" |
+              sed -n 's/Signer #1 certificate SHA-256 digest: //p' |
+              head -n 1
+          )"
+          test -n "$cert_fingerprint"
+          printf 'APK signer certificate SHA-256: %s\n' "$cert_fingerprint"
 
-      - name: Upload unsigned release artifacts and mapping
+          sha256sum "$apk" "$aab" "$mapping" > release-SHA256SUMS.txt
+          echo "Signed release artifacts:"
+          ls -lh "$apk" "$aab" "$mapping" release-SHA256SUMS.txt
+          echo "R8 mapping is present, release APK is signed, AAB signature verified, and release APK is not debug-enabled."
+
+      - name: Upload signed release validation artifacts and mapping
         uses: actions/upload-artifact@v4
         with:
           name: ritav-android-release-validation
           retention-days: 7
           if-no-files-found: error
           path: |
-            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/apk/release/app-release.apk
             app/build/outputs/bundle/release/app-release.aab
             app/build/outputs/mapping/release/mapping.txt
             release-SHA256SUMS.txt

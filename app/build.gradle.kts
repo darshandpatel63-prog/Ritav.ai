@@ -8,6 +8,28 @@ android {
     namespace = "ai.ritav.app"
     compileSdk = 36
 
+    val ciSigningStoreFile = providers.gradleProperty("RITAV_SIGNING_STORE_FILE").orNull
+    val ciSigningStorePassword = providers.gradleProperty("RITAV_SIGNING_STORE_PASSWORD").orNull
+    val ciSigningKeyAlias = providers.gradleProperty("RITAV_SIGNING_KEY_ALIAS").orNull
+    val ciSigningKeyPassword = providers.gradleProperty("RITAV_SIGNING_KEY_PASSWORD").orNull
+    val hasCiSigningCredentials = listOf(
+        ciSigningStoreFile,
+        ciSigningStorePassword,
+        ciSigningKeyAlias,
+        ciSigningKeyPassword
+    ).all { !it.isNullOrBlank() }
+
+    signingConfigs {
+        if (hasCiSigningCredentials) {
+            create("ciValidation") {
+                storeFile = file(ciSigningStoreFile!!)
+                storePassword = ciSigningStorePassword
+                keyAlias = ciSigningKeyAlias
+                keyPassword = ciSigningKeyPassword
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "ai.ritav.app"
         minSdk = 26
@@ -30,6 +52,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasCiSigningCredentials) {
+                signingConfig = signingConfigs.getByName("ciValidation")
+            }
         }
     }
 
