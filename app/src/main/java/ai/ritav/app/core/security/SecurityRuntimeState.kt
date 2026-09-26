@@ -4,7 +4,7 @@ import android.content.Context
 import ai.ritav.app.core.storage.SecureLocalStore
 
 /** Runtime security composition root with shared emergency-stop, permissions, and audit state. */
-class SecurityRuntimeState private constructor(
+internal class SecurityRuntimeState private constructor(
     private val emergencyStopController: EmergencyStopController,
     private val mutablePermissionStore: MutablePermissionStore,
     private val secureLocalStore: SecureLocalStore?,

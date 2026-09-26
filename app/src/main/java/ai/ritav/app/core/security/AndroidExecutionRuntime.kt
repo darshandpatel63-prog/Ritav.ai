@@ -24,7 +24,7 @@ class AndroidExecutionRuntime(
     activity: FragmentActivity,
     modelRuntime: ModelRuntime = UnavailableModelRuntime
 ) {
-    val securityState = SecurityRuntimeState(activity.applicationContext)
+    internal val securityState = SecurityRuntimeState(activity.applicationContext)
     private val emergencyStop = securityState.policyEngine.emergencyStopController()
     private val trustedAppEntryStore = SecureTrustedAppEntryStore(securityState.secureLocalStore())
 
@@ -98,6 +98,14 @@ class AndroidExecutionRuntime(
             authenticationGateway = deviceAuthorization,
             emergencyStop = emergencyStop
         )
+
+    val securityControl: SecurityControlPort =
+        AndroidSecurityControlPort(
+            securityState = securityState,
+            identitySessionService = identitySessionService,
+            capabilityGrantCoordinator = capabilityGrantCoordinator,
+            trustedAppProvisioningCoordinator = trustedAppProvisioningCoordinator
+        )
     
     private val secureModelRuntimeGateway = SecureModelRuntimeGateway(modelRuntime)
     private val accessibilityModelAgent =
@@ -145,6 +153,10 @@ class AndroidExecutionRuntime(
 
     internal fun disarmAccessibilityModelContext() {
         accessibilityContextGate.disarm()
+    }
+
+    fun close() {
+        closeAccessibilityRuntime()
     }
 
     internal fun closeAccessibilityRuntime() {

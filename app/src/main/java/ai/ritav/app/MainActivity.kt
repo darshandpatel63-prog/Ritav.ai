@@ -19,27 +19,27 @@ import androidx.fragment.app.FragmentActivity
 import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.AndroidExecutionRuntime
 import ai.ritav.app.core.security.CapabilityGrantCandidate
-import ai.ritav.app.core.security.SecurityRuntimeState
+import ai.ritav.app.core.security.SecurityControlPort
 import ai.ritav.app.core.security.SecuritySession
 
 class MainActivity : FragmentActivity() {
     private lateinit var executionRuntime: AndroidExecutionRuntime
-    private lateinit var securityState: SecurityRuntimeState
+    private lateinit var securityControl: SecurityControlPort
     private var activeIdentitySession by mutableStateOf<SecuritySession?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Empty trusted registry keeps external actions deny-by-default until a reviewed allowlist exists.
         executionRuntime = AndroidExecutionRuntime(this)
-        securityState = executionRuntime.securityState
+        securityControl = executionRuntime.securityControl
 
         setContent {
-            var stopped by remember { mutableStateOf(securityState.isEmergencyStopActive()) }
+            var stopped by remember { mutableStateOf(securityControl.isEmergencyStopActive()) }
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var trustedPackageInput by remember { mutableStateOf("") }
             var trustedPackages by remember {
-                mutableStateOf(executionRuntime.trustedAppProvisioningCoordinator.trustedPackageNames())
+                mutableStateOf(securityControl.trustedPackageNames())
             }
             var pendingTrustedPackage by remember { mutableStateOf<String?>(null) }
             var pendingTrustedPlan by remember { mutableStateOf<ActionPlan?>(null) }
@@ -68,7 +68,7 @@ class MainActivity : FragmentActivity() {
 
             fun authenticateProtectedActions() {
                 statusMessage = null
-                executionRuntime.identitySessionService.authenticate(
+                securityControl.authenticateProtectedActions(
                     reason = "Authorize protected Ritav actions"
                 ) { session ->
                     runOnUiThread {
@@ -90,12 +90,12 @@ class MainActivity : FragmentActivity() {
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
-                if (session == null || securityState.isEmergencyStopActive()) {
+                if (session == null || securityControl.isEmergencyStopActive()) {
                     statusMessage = "Authenticate a protected identity session before approval."
                     return
                 }
 
-                val plan = executionRuntime.capabilityGrantCoordinator.prepare(candidate, session)
+                val plan = securityControl.prepareCapabilityGrant(candidate, session)
                 if (plan == null) {
                     statusMessage = "Capability approval could not be prepared."
                     return
@@ -110,7 +110,7 @@ class MainActivity : FragmentActivity() {
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
-                if (session == null || securityState.isEmergencyStopActive()) {
+                if (session == null || securityControl.isEmergencyStopActive()) {
                     statusMessage = "Authenticate a protected identity session before trusting an application."
                     return
                 }
@@ -121,7 +121,7 @@ class MainActivity : FragmentActivity() {
                     return
                 }
 
-                val plan = executionRuntime.trustedAppProvisioningCoordinator.prepare(
+                val plan = securityControl.prepareTrustedApp(
                     packageName = packageName,
                     identitySession = session
                 )
@@ -145,7 +145,7 @@ class MainActivity : FragmentActivity() {
                 dismissPendingTrustedApproval()
                 statusMessage = "Authorizing trusted-application approval..."
 
-                executionRuntime.trustedAppProvisioningCoordinator.approveAndPersist(
+                securityControl.approveTrustedApp(
                     plan = plan,
                     identitySession = session,
                     userConfirmed = true
@@ -168,12 +168,12 @@ class MainActivity : FragmentActivity() {
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
-                if (session == null || securityState.isEmergencyStopActive()) {
+                if (session == null || securityControl.isEmergencyStopActive()) {
                     statusMessage = "Authenticate a protected identity session before removing trusted access."
                     return
                 }
 
-                val plan = executionRuntime.trustedAppProvisioningCoordinator.prepareRemoval(
+                val plan = securityControl.prepareTrustedRemoval(
                     packageName = packageName,
                     identitySession = session
                 )
@@ -197,7 +197,7 @@ class MainActivity : FragmentActivity() {
                 dismissPendingTrustedRemoval()
                 statusMessage = "Authorizing trusted-application removal..."
 
-                executionRuntime.trustedAppProvisioningCoordinator.approveAndRemove(
+                securityControl.approveTrustedRemoval(
                     plan = plan,
                     identitySession = session,
                     userConfirmed = true
@@ -224,7 +224,7 @@ class MainActivity : FragmentActivity() {
                 dismissPendingApproval()
                 statusMessage = "Authorizing capability approval..."
 
-                executionRuntime.capabilityGrantCoordinator.approveAndGrant(
+                securityControl.approveCapabilityGrant(
                     plan = plan,
                     identitySession = session,
                     userConfirmed = true
@@ -254,7 +254,7 @@ class MainActivity : FragmentActivity() {
                     PermissionCenter(
                         stopped = stopped,
                         identitySession = identitySession,
-                        candidates = executionRuntime.capabilityGrantCoordinator.options(),
+                        candidates = securityControl.capabilityGrantOptions(),
                         pendingCandidate = pendingCandidate,
                         pendingPlan = pendingGrantPlan,
                         statusMessage = statusMessage,
@@ -281,7 +281,7 @@ class MainActivity : FragmentActivity() {
                         onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
                         onAuthenticate = ::authenticateProtectedActions,
                         onEmergencyStop = {
-                            securityState.activateEmergencyStop()
+                            securityControl.activateEmergencyStop()
                             stopped = true
                             activeIdentitySession = null
                             dismissPendingApproval()
@@ -290,8 +290,8 @@ class MainActivity : FragmentActivity() {
                             statusMessage = "Emergency Stop activated. Protected actions are blocked."
                         },
                         onResume = {
-                            securityState.resumeAfterUserConfirmation(confirmed = true)
-                            stopped = securityState.isEmergencyStopActive()
+                            securityControl.resumeAfterUserConfirmation()
+                            stopped = securityControl.isEmergencyStopActive()
                             activeIdentitySession = null
                             dismissPendingApproval()
                             dismissPendingTrustedApproval()
@@ -324,7 +324,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onDestroy() {
         if (::executionRuntime.isInitialized) {
-            executionRuntime.closeAccessibilityRuntime()
+            executionRuntime.close()
         }
         super.onDestroy()
     }

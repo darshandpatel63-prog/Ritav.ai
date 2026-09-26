@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * The system owns biometric/device-credential verification; Ritav only receives
  * the success/failure result and never sees the credential or biometric data.
  */
-class AndroidDeviceAuthorizationGateway(
+internal class AndroidDeviceAuthorizationGateway(
     private val activity: FragmentActivity
 ) : DeviceAuthorizationGateway {
     override fun isDeviceAuthenticationAvailable(): Boolean {

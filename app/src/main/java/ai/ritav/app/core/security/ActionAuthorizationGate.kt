@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Raw token minting is deliberately encapsulated inside this service so callers
  * cannot self-assert an authorization level or caller-controlled timestamp.
  */
-class ActionAuthorizationService(
+internal class ActionAuthorizationService(
     private val deviceAuthorization: DeviceAuthorizationGateway,
     private val clockEpochMillis: () -> Long = System::currentTimeMillis,
     private val emergencyStop: EmergencyStopController = EmergencyStopController()
