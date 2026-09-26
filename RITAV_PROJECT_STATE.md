@@ -1574,3 +1574,49 @@ No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed Chro
 
 ### NEXT SECURITY WORK
 Continue final launch-scope security closure: physical-device/real-host validation, signed production-release validation, complete product/security integration, and the final consolidated adversarial/failure/race/egress review. Keep UI closed until that security-before-UI gate is intentionally complete.
+
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Tier 2 confirmation-token clock hardening merged
+
+### LIVE MAIN
+- PR #19 is merged into `main`.
+- Security hardening merge commit: `9c57d4801011334fb6966c408b6889780921a3fd`.
+- Exact PR #19 verified head before merge: `a84dca2cfa29c80711b6ce4c41632e644ff666c9`.
+- Documentation checkpoint commit will follow on `main`.
+- No open pull requests remain.
+
+### TIER 2 AUTHORIZATION HARDENING — COMPLETED
+- `ActionAuthorizationService.issueUserConfirmationToken()` no longer accepts a caller-supplied timestamp.
+- The service-owned clock is sampled at the authorization event itself.
+- Clock failure and an active Emergency Stop at issuance fail closed.
+- `CapabilityGrantCoordinator` no longer supplies caller time to token issuance.
+- Regression coverage verifies the service-owned TTL boundary and clock-failure denial.
+- Exact action-plan hash binding and one-time Emergency Stop generation binding remain unchanged.
+
+### EXACT VERIFICATION
+- Android unit-test Run #520 (`36230117606`) on exact PR #19 head `a84dca2cfa29c80711b6ce4c41632e644ff666c9` — **SUCCESS**.
+- The run completed JVM unit tests, instrumentation-test compilation and managed-device instrumentation.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed the complete affected authorization/grant path for:
+- time authority and asynchronous issuance semantics;
+- exact plan binding;
+- Emergency Stop races;
+- token replay/one-time consumption;
+- clock failure handling;
+- grant-time identity/session revalidation.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed hardening layer.
+
+### NOT VERIFIED / NON-CLAIMS
+- Connected workflow-run interface exposes no push-triggered post-merge result for merge commit `9c57d4801011334fb6966c408b6889780921a3fd`; post-merge CI is **not** claimed green.
+- No physical-device/real-host validation added by this change.
+- No signed production validation added by this change.
+- Real model/provider remains intentionally unavailable/fail-closed.
+- Product UI remains intentionally unstarted.
+
+### CURRENT STOP POINT
+The Tier 2 confirmation-token clock hardening work package is implemented, integrated, exact-head CI-verified, consolidated-reviewed, and merged. Continue only with remaining launch-scope security closure; do not start UI.
+
+### NEXT ACTION
+Continue physical-device/real-host validation where feasible, signed production-release validation, complete product/security integration, and the final consolidated end-to-end adversarial/failure/race/resource/privacy/egress review.
