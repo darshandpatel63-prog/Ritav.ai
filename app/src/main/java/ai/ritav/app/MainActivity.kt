@@ -257,86 +257,94 @@ class MainActivity : FragmentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                if (!adminMode) {
-                    ConversationalHomeScreen(
-                        securityControl = securityControl,
-                        onOpenSecurityCenter = { adminMode = true }
-                    )
-                } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    PermissionCenter(
-                        stopped = stopped,
-                        identitySession = identitySession,
-                        candidates = securityControl.capabilityGrantOptions(),
-                        pendingCandidate = pendingCandidate,
-                        pendingPlan = pendingGrantPlan,
-                        statusMessage = statusMessage,
-                        trustedPackageInput = trustedPackageInput,
-                        onTrustedPackageInputChanged = { value ->
-                            trustedPackageInput = value.take(256)
-                        },
-                        onPrepareTrustedApp = ::reviewTrustedApp,
-                        pendingTrustedPackage = pendingTrustedPackage,
-                        pendingTrustedPlan = pendingTrustedPlan,
-                        onDismissTrustedApproval = {
-                            dismissPendingTrustedApproval()
-                            statusMessage = null
-                        },
-                        onApproveTrustedApp = ::approvePendingTrustedApp,
-                        trustedPackages = trustedPackages,
-                        onTrustedPackageSelectedForRemoval = ::reviewTrustedRemoval,
-                        pendingTrustedRemovalPackage = pendingTrustedRemovalPackage,
-                        pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
-                        onDismissTrustedRemoval = {
-                            dismissPendingTrustedRemoval()
-                            statusMessage = null
-                        },
-                        onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
-                        onAuthenticate = ::authenticateProtectedActions,
-                        onEmergencyStop = {
-                            securityControl.activateEmergencyStop()
-                            stopped = true
-                            activeIdentitySession = null
-                            dismissPendingApproval()
-                            dismissPendingTrustedApproval()
-                            dismissPendingTrustedRemoval()
-                            statusMessage = "Emergency Stop activated. Protected actions are blocked."
-                        },
-                        onResume = {
-                            securityControl.resumeAfterUserConfirmation()
-                            stopped = securityControl.isEmergencyStopActive()
-                            activeIdentitySession = null
-                            dismissPendingApproval()
-                            dismissPendingTrustedApproval()
-                            dismissPendingTrustedRemoval()
-                            statusMessage =
-                                if (stopped) {
-                                    "Emergency Stop remains active."
-                                } else {
-                                    "Ritav resumed. Protected actions require fresh authentication."
+                        if (!adminMode) {
+                            ConversationalHomeScreen(
+                                securityControl = securityControl,
+                                onOpenSecurityCenter = { adminMode = true }
+                            )
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                PermissionCenter(
+                                    stopped = stopped,
+                                    identitySession = identitySession,
+                                    candidates = securityControl.capabilityGrantOptions(),
+                                    pendingCandidate = pendingCandidate,
+                                    pendingPlan = pendingGrantPlan,
+                                    statusMessage = statusMessage,
+                                    trustedPackageInput = trustedPackageInput,
+                                    onTrustedPackageInputChanged = { value ->
+                                        trustedPackageInput = value.take(256)
+                                    },
+                                    onPrepareTrustedApp = ::reviewTrustedApp,
+                                    pendingTrustedPackage = pendingTrustedPackage,
+                                    pendingTrustedPlan = pendingTrustedPlan,
+                                    onDismissTrustedApproval = {
+                                        dismissPendingTrustedApproval()
+                                        statusMessage = null
+                                    },
+                                    onApproveTrustedApp = ::approvePendingTrustedApp,
+                                    trustedPackages = trustedPackages,
+                                    onTrustedPackageSelectedForRemoval = ::reviewTrustedRemoval,
+                                    pendingTrustedRemovalPackage = pendingTrustedRemovalPackage,
+                                    pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
+                                    onDismissTrustedRemoval = {
+                                        dismissPendingTrustedRemoval()
+                                        statusMessage = null
+                                    },
+                                    onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
+                                    onAuthenticate = ::authenticateProtectedActions,
+                                    onEmergencyStop = {
+                                        securityControl.activateEmergencyStop()
+                                        stopped = true
+                                        activeIdentitySession = null
+                                        dismissPendingApproval()
+                                        dismissPendingTrustedApproval()
+                                        dismissPendingTrustedRemoval()
+                                        statusMessage = "Emergency Stop activated. Protected actions are blocked."
+                                    },
+                                    onResume = {
+                                        securityControl.resumeAfterUserConfirmation()
+                                        stopped = securityControl.isEmergencyStopActive()
+                                        activeIdentitySession = null
+                                        dismissPendingApproval()
+                                        dismissPendingTrustedApproval()
+                                        dismissPendingTrustedRemoval()
+                                        statusMessage =
+                                            if (stopped) {
+                                                "Emergency Stop remains active."
+                                            } else {
+                                                "Ritav resumed. Protected actions require fresh authentication."
+                                            }
+                                    },
+                                    onCandidateSelected = ::reviewCandidate,
+                                    onDismissApproval = {
+                                        dismissPendingApproval()
+                                        statusMessage = null
+                                    },
+                                    onApprove = ::approvePendingGrant
+                                )
+                                TextButton(onClick = { adminMode = false }) {
+                                    Text("Back to Ritav")
                                 }
-                        },
-                        onCandidateSelected = ::reviewCandidate,
-                        onDismissApproval = {
-                            dismissPendingApproval()
-                            statusMessage = null
-                        },
-                        onApprove = ::approvePendingGrant
-                    )
-                    TextButton(onClick = { adminMode = false }) {
-                        Text("Back to Ritav")
+                            }
+                        }
+
+                        GlobalAdaptiveFloatingNavigation(
+                            items = listOf(
+                                GlobalNavItem("Home", "⌂") { adminMode = false },
+                                GlobalNavItem("Security", "◈") { adminMode = true }
+                            ),
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
-                }
             }
-        }
-    }
 
     override fun onResume() {
         super.onResume()
