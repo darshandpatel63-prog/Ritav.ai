@@ -9,6 +9,40 @@ private fun integrationEnabled(): Boolean =
 
 class MacosSecureLocalStoreTest {
     @Test
+    fun invalidServiceIsRejected() {
+        var rejected = false
+        try {
+            MacosSecureLocalStore(service = "")
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+        assertTrue(rejected)
+    }
+
+    @Test
+    fun oversizedServiceIsRejected() {
+        var rejected = false
+        try {
+            MacosSecureLocalStore(service = "x".repeat(MAX_MACOS_KEYCHAIN_KEY_LENGTH + 1))
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+        assertTrue(rejected)
+    }
+
+    @Test
+    fun oversizedKeyIsRejectedBeforeKeychainWrite() {
+        val store = MacosSecureLocalStore(service = "ai.ritav.test")
+        var rejected = false
+        try {
+            store.putString("x".repeat(MAX_MACOS_KEYCHAIN_KEY_LENGTH + 1), "value")
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+        assertTrue(rejected)
+    }
+
+    @Test
     fun oversizedValueIsRejectedBeforeKeychainWrite() {
         val store = MacosSecureLocalStore(service = "ai.ritav.test")
         var rejected = false
