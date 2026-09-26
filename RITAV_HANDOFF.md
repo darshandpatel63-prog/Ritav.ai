@@ -1176,3 +1176,35 @@ No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed Chro
 
 ### NEXT SECURITY WORK
 Continue final launch-scope security closure: physical-device/real-host validation, signed production-release validation, complete product/security integration, and the final consolidated adversarial/failure/race/egress review. Keep UI closed until that security-before-UI gate is intentionally complete.
+
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Tier 2 confirmation-token clock hardening merged
+
+### LIVE MAIN
+- PR #19 merged at `9c57d4801011334fb6966c408b6889780921a3fd`.
+- Exact PR-head implementation verified at `a84dca2cfa29c80711b6ce4c41632e644ff666c9`.
+- No open pull requests remain.
+
+### COMPLETED SECURITY HARDENING
+The Tier 2 confirmation-token flow now has authoritative security time:
+- `ActionAuthorizationService.issueUserConfirmationToken()` samples its own clock at issuance.
+- Caller-controlled timestamps are removed from this authority boundary.
+- Clock failure and Emergency Stop races fail closed.
+- Capability-grant orchestration was updated accordingly.
+- Exact-plan hash binding, one-time consumption and Emergency Stop generation binding remain enforced.
+
+### VERIFICATION
+- Exact PR-head Android Run #520 (`36230117606`) — **SUCCESS**.
+- JVM tests, instrumentation-test compilation and managed-device instrumentation completed successfully.
+
+### CONSOLIDATED REVIEW
+Affected call path was rechecked from confirmation/grant coordination through authorization token issuance, Emergency Stop, token consumption and final grant mutation. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this hardening layer.
+
+### NON-CLAIMS
+- No push-triggered post-merge workflow result is currently exposed for merge commit `9c57d4801011334fb6966c408b6889780921a3fd`; post-merge CI is not claimed green.
+- No physical-device or signed-production validation added by this change.
+- Real model/provider remains unavailable/fail-closed.
+- UI remains unstarted and blocked.
+
+### NEXT ACTION
+Continue final security closure: physical-device/real-host validation, signed production-release validation, complete product/security integration, and final end-to-end adversarial/failure/race/resource/privacy/egress review.
