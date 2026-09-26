@@ -1063,3 +1063,45 @@ No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed Chro
 
 ### NEXT SECURITY WORK
 Continue final launch-scope security closure: physical-device/real-host validation, signed production-release validation, complete product/security integration, and the final consolidated adversarial/failure/race/egress review. Keep UI closed until that security-before-UI gate is intentionally complete.
+
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Tier 2 confirmation-token clock hardening merged
+
+### LIVE MAIN
+- PR #19 is merged into `main`.
+- Security hardening merge commit: `9c57d4801011334fb6966c408b6889780921a3fd`.
+- Exact PR #19 verified head before merge: `a84dca2cfa29c80711b6ce4c41632e644ff666c9`.
+- No open pull requests remain at this checkpoint.
+
+### SECURITY LAYER — COMPLETED
+PR #19 hardens Tier 2 user-confirmation authorization:
+- Caller-supplied timestamps were removed from `ActionAuthorizationService.issueUserConfirmationToken()`.
+- The authorization service now samples its own clock at the token-issuance event.
+- Clock failure and an Emergency Stop race fail closed.
+- `CapabilityGrantCoordinator` was updated so the service, not the caller, owns token lifetime timing.
+- Regression tests verify the service-clock TTL boundary and fail-closed clock behavior.
+- The one-time token remains bound to the exact action-plan hash and existing Emergency Stop generation controls remain authoritative.
+
+### EXACT VERIFICATION
+- Android unit-test Run #520 (`36230117606`) on exact PR head `a84dca2cfa29c80711b6ce4c41632e644ff666c9` — **SUCCESS**.
+- The completed job ran JVM unit tests, instrumentation-test compilation and Android managed-device instrumentation.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed the complete affected authorization path across:
+- confirmation request -> authorization service -> one-time token gate -> capability-grant coordinator -> permission mutation;
+- caller time authority versus service-owned security time;
+- Emergency Stop state/race handling;
+- exact plan-hash binding;
+- one-time/replay-resistant token consumption;
+- clock failure behavior and downstream grant-time revalidation.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed hardening layer.
+
+### POST-MERGE VERIFICATION / NON-CLAIMS
+- The connected workflow-run interface currently exposes no push-triggered workflow result for merge commit `9c57d4801011334fb6966c408b6889780921a3fd`; post-merge CI is therefore **not** claimed green.
+- No physical-device validation or signed production validation is established by this PR.
+- The real model/provider runtime remains intentionally unavailable/fail-closed.
+- Product UI remains intentionally unstarted.
+
+### NEXT SECURITY WORK
+Continue final launch-scope security closure: physical-device/real-host validation, signed production-release validation, complete product/security integration, and the final consolidated end-to-end adversarial/failure/race/resource/privacy/egress review. Keep UI closed until that security-before-UI gate is intentionally complete.
