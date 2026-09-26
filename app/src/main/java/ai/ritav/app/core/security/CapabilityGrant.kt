@@ -9,7 +9,7 @@ data class CapabilityGrant(
     val enabled: Boolean = true
 )
 
-interface PermissionStore {
+internal interface PermissionStore {
     fun isGranted(appId: String, capability: Capability, action: String, sessionId: String?): Boolean
 }
 
@@ -18,7 +18,7 @@ interface MutablePermissionStore : PermissionStore {
     fun revoke(grant: CapabilityGrant)
 }
 
-class InMemoryPermissionStore(grants: Set<CapabilityGrant> = emptySet()) : MutablePermissionStore {
+internal class InMemoryPermissionStore(grants: Set<CapabilityGrant> = emptySet()) : MutablePermissionStore {
     private val grants = grants.toMutableSet()
 
     @Synchronized
