@@ -1208,3 +1208,47 @@ Affected call path was rechecked from confirmation/grant coordination through au
 
 ### NEXT ACTION
 Continue final security closure: physical-device/real-host validation, signed production-release validation, complete product/security integration, and final end-to-end adversarial/failure/race/resource/privacy/egress review.
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Authorization-token consumption clock hardening merged
+
+### LIVE MAIN
+- PR #20 is merged into `main`.
+- Current `main` merge commit: `ca146f5f9a8404354b7f33a0cde3eb86f25a6f2c`.
+- Exact PR #20 head before merge: `34e630820df0b75957fcb2597b07e3ecadbbd817`.
+- No open pull requests remain.
+
+### AUTHORIZATION-TOKEN TIME AUTHORITY — COMPLETED
+- `ActionAuthorizationGate.consume(token, plan, providedLevel)` now samples a gate-owned security clock.
+- Production execution, capability-grant, and trusted-app authorization paths use the clock-owned consume overload and no longer pass caller-controlled execution timestamps into token TTL validation.
+- Clock failure and negative security time fail closed.
+- Exact action-plan hash binding, required authorization-level binding, Emergency Stop generation binding, one-time consumption and replay resistance remain enforced.
+- The prior caller-timestamp consume overload remains only as an `internal` deprecated deterministic test/diagnostic surface; it is not used by production authorization paths.
+
+### EXACT VERIFICATION
+- Exact PR #20 head Android Run #526 (`36233220587`) — **SUCCESS**.
+- The run completed JVM unit tests, instrumentation-test compilation and Android managed-device instrumentation.
+- Regression coverage proves a caller-supplied timestamp cannot extend an expired execution, capability-grant or trusted-app authorization token.
+- Regression coverage also proves token-consumption clock failure fails closed.
+
+### CONSOLIDATED SECURITY REVIEW
+Rechecked the affected authorization boundary across:
+- token issuance -> gate storage -> authoritative token consumption;
+- execution pipeline, capability-grant and trusted-app production call paths;
+- exact plan-hash binding and authorization-level checks;
+- Emergency Stop race/generation handling;
+- one-time atomic consumption and replay resistance;
+- clock failure/negative-clock failure paths;
+- caller-time separation from security TTL decisions.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed token-consumption hardening layer.
+
+### POST-MERGE VERIFICATION / NON-CLAIMS
+- The connected workflow interface currently exposes no push-triggered workflow result for merge commit `ca146f5f9a8404354b7f33a0cde3eb86f25a6f2c`; post-merge CI is therefore **not** claimed green.
+- No physical-device/real-host validation is established by this merge.
+- No signed production-release validation is established by this merge.
+- The real model/provider runtime remains intentionally unavailable/fail-closed.
+- Product UI remains intentionally unstarted and blocked by the security-before-UI gate.
+
+### NEXT SECURITY WORK
+Continue remaining launch-scope closure: physical-device/real-host validation where feasible, signed production-release validation, complete product/security integration, and the final consolidated adversarial/failure/race/resource/privacy/egress review. Keep UI closed until that security-before-UI gate is intentionally closed.
+
