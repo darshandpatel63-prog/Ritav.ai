@@ -6,9 +6,11 @@ import ai.ritav.core.security.linux.libsecret.ritav_secret_free
 import ai.ritav.core.security.linux.libsecret.ritav_secret_lookup
 import ai.ritav.core.security.linux.libsecret.ritav_secret_store
 import kotlinx.cinterop.CPointerVar
+import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.ptr
 import kotlinx.cinterop.pointed
 import platform.posix.getenv
 import kotlinx.cinterop.toKString
@@ -50,7 +52,7 @@ class LinuxSecureLocalStore(
         validateIdentifier(name)
 
         return memScoped {
-            val outValue = alloc<CPointerVar<Byte>>()
+            val outValue = alloc<CPointerVar<ByteVar>>()
             val status = ritav_secret_lookup(service, name, outValue.ptr)
 
             when (status) {
