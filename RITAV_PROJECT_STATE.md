@@ -1797,3 +1797,46 @@ Revalidated the integrated security boundary on current `main` across:
 - Security-before-UI gate remains tracked at approximately **99%**.
 - Security/admin UI exists behind `SecurityControlPort`; product/conversational AI UI remains intentionally unstarted (0%).
 
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Signed-release validation + CI signing secret boundary completed
+
+### LIVE MAIN
+- PR #25 merged: `bfb4c4b833fa0a9ff03e5ea8c7cebf81e4f2b0f8`.
+- PR #26 merged: `d51b0ed43ac7fe37c194af08f3dfe57fb3a003fe`.
+- Current `main` merge commit: `d51b0ed43ac7fe37c194af08f3dfe57fb3a003fe`.
+- No open pull requests remain.
+
+### SIGNED ANDROID RELEASE VALIDATION — COMPLETED
+- Android release workflow now runs on relevant pull requests as well as main/manual validation.
+- CI generates a fresh ephemeral RSA signing key only for the validation job.
+- Release APK is cryptographically verified with `apksigner`.
+- Release AAB signature is verified with `jarsigner`.
+- Release APK is checked for non-debug state, R8 mapping is required, and artifact checksums are emitted.
+- Exact PR #25 release Run #24 (`36238395058`) — **SUCCESS**.
+- This is **signed-build pipeline validation only**; it does not establish the real production keystore, Play/App Store signing identity, or production-distribution authorization.
+
+### CI SIGNING SECRET BOUNDARY — COMPLETED
+- PR #26 moved CI signing credentials from Gradle project properties to environment variables.
+- Gradle signing configuration reads the four CI signing values from environment only.
+- Gradle command-line `-P` arguments no longer carry signing passwords/keys.
+- The ephemeral signing password is masked in GitHub Actions logs.
+- Exact PR #26 Android unit/managed-device Run #550 — **SUCCESS**.
+- Exact PR #26 Android release Run #26 — **SUCCESS**.
+
+### MANAGED-DEVICE OBSERVATION VALIDATION — CLARIFIED
+- The managed-device instrumentation test now verifies real `UsageStatsManager` access/permission on the AOSP ATD device.
+- Exact foreground-event semantics remain covered by deterministic JVM tests in `AndroidTargetAppForegroundObserverTest`.
+- The previous managed-device foreground-transition test was unreliable in the AOSP ATD environment; it was not treated as a production observer failure and was split into real-device access validation plus deterministic event semantics.
+
+### REMAINING LAUNCH CLOSURE
+- Real Android physical-device validation remains pending.
+- iPhone/iPad, Windows host, macOS host, Linux host, and Chromebook physical/real-host validation remain pending where applicable.
+- Real production signing keystore / distribution identity validation remains pending.
+- A concrete external model/provider integration remains intentionally unavailable/fail-closed.
+- Final product/conversational AI UI remains unstarted; the security/admin PermissionCenter UI is already present behind `SecurityControlPort`.
+- Kotlin `internal` is module-scoped; separate Gradle-module isolation is not claimed.
+
+### CURRENT STATUS
+- Overall Security: approximately **99%** planning estimate.
+- Security-before-UI Gate: approximately **99%** planning estimate.
+- Product/conversational UI: **0%**.
+
