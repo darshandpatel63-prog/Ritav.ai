@@ -14,8 +14,8 @@ import java.util.concurrent.ConcurrentHashMap
 internal class TrustedAppProvisioningService(
     private val registry: AppCapabilityRegistry,
     private val entryStore: TrustedAppEntryStore,
-    private val authorizationGate: ActionAuthorizationGate,
-    private val emergencyStop: EmergencyStopController = authorizationGate.emergencyStopController(),
+    private val authorizationService: ActionAuthorizationService,
+    private val emergencyStop: EmergencyStopController = authorizationService.emergencyStopController(),
     private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(emergencyStop),
     private val clockEpochMillis: () -> Long = System::currentTimeMillis
 ) {
@@ -207,7 +207,7 @@ internal class TrustedAppProvisioningService(
                 !identitySessionManager.permitsProtectedCapability(session, nowEpochMillis)
             ) return@runIfInactive false
 
-            if (!authorizationGate.consume(
+            if (!authorizationService.consume(
                     authorizationToken.orEmpty(),
                     plan,
                     AuthorizationLevel.DEVICE_AUTHENTICATION
@@ -261,7 +261,7 @@ internal class TrustedAppProvisioningService(
                 !identitySessionManager.permitsProtectedCapability(session, nowEpochMillis)
             ) return@runIfInactive false
 
-            if (!authorizationGate.consume(
+            if (!authorizationService.consume(
                     authorizationToken.orEmpty(),
                     plan,
                     AuthorizationLevel.DEVICE_AUTHENTICATION
