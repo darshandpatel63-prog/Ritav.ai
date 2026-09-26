@@ -4,7 +4,7 @@ package ai.ritav.app.core.security
  * Platform authentication abstraction. The core security layer never implements
  * or guesses biometric/device credentials itself; Android provides the secure UI.
  */
-interface DeviceAuthorizationGateway {
+internal interface DeviceAuthorizationGateway {
     fun isDeviceAuthenticationAvailable(): Boolean
 
     /** Starts platform-controlled authentication and invokes exactly one callback. */
@@ -12,7 +12,7 @@ interface DeviceAuthorizationGateway {
 }
 
 /** Test-only implementation. Never use this as a production authenticator. */
-class StubDeviceAuthorizationGateway(
+internal class StubDeviceAuthorizationGateway(
     private val available: Boolean = false,
     private val result: Boolean = false
 ) : DeviceAuthorizationGateway {
