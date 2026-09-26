@@ -797,3 +797,53 @@ The merged security/session layer has now completed post-merge push-triggered CI
 - iOS Run #68 (`35981238745`) — SUCCESS; iOS simulator-target tests passed.
 
 This closes the exact CI verification loop for the PR #12 merge. Physical Apple-device testing, signed Apple production packaging, hosted-simulator Keychain round-trip/overwrite success, and full iOS/iPadOS product support remain unverified/not claimed.
+
+
+## 2026-09-26 CURRENT SECURITY CHECKPOINT — Windows DPAPI secure storage merged
+
+### LIVE MAIN
+- PR #13 is merged into `main` at `be2ef978884100896396396f521ec24ead1f55f6`.
+- Exact PR #13 head before merge: `fbc336c70218310a5ecdd044d91b5b1e7697da52`.
+- PR #13 is now closed and no longer remains an unmerged sequencing item.
+- Repository visibility remains **public**.
+
+### WINDOWS SECURITY LAYER — COMPLETED
+PR #13 adds the first concrete Windows-native security-runtime slice behind `PlatformSecureLocalStore`:
+- Kotlin/Native `mingwX64` enabled in `core`;
+- bounded Windows DPAPI user-scoped encrypted local storage;
+- path-safe encoded storage keys with traversal rejection;
+- bounded plaintext/ciphertext sizes;
+- fail-closed DPAPI and filesystem error handling;
+- temporary-file replacement flow;
+- Windows-native roundtrip, overwrite, deletion and adversarial-bound tests;
+- dedicated `windows-latest` CI workflow.
+
+The layer grants **no authorization, capability, model, network, finance or execution authority**. Windows Hello/device authentication is not implemented or claimed.
+
+### EXACT PR-HEAD VERIFICATION
+- Windows Run #12 (`36144768794`) — **SUCCESS**; `mingwX64Test` passed on the exact PR #13 head.
+- Android Run #483 (`36144768824`) — **SUCCESS**; JVM tests, instrumentation-test compilation/APK assembly and managed-device instrumentation passed on the exact head.
+- iOS Run #80 (`36144768809`) — **SUCCESS**; iOS simulator-target tests passed on the exact head.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed Windows call paths, DPAPI allocation/free lifecycle, storage bounds, filesystem failures, key/path validation, privacy/egress, authorization separation, and cross-platform integration impact. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in the reviewed Windows storage layer.
+
+### KNOWN LIMITS / NON-CLAIMS
+- Physical Windows host validation is unverified.
+- Signed Windows production packaging is unverified.
+- Windows Hello/device-authentication integration is not implemented.
+- Full Windows product/runtime support is not claimed.
+- Current replacement is not claimed crash-atomic, and concurrent writers are not claimed race-free.
+- DPAPI user scope protects against other Windows users, but it is not an isolation boundary against another process running as the same Windows user.
+- Final physical-device/real-host, signed-production and end-to-end validation remain outstanding.
+
+### POST-MERGE CI — PENDING AT THIS CHECKPOINT
+The merge commit `be2ef978884100896396396f521ec24ead1f55f6` triggered push workflows:
+- Android Run #484 (`36217845176`) — **in progress**;
+- Windows Run #13 (`36217845304`) — **in progress**;
+- iOS Run #81 (`36217845197`) — **in progress**.
+
+No post-merge green claim is made until all three exact merge-commit runs complete successfully.
+
+### NEXT ACTION
+Complete the Android launch/security gate with fresh current-main release-build evidence and then perform the final Android launch/security consolidated review. Preserve the deterministic authorization boundary while continuing native-platform work incrementally; do not add speculative cloud/provider integrations.
