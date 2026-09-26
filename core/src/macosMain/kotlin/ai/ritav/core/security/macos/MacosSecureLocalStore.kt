@@ -100,21 +100,27 @@ class MacosSecureLocalStore(
             when (status) {
                 errSecItemNotFound -> null
                 errSecSuccess -> {
-                    val data = result.value as? NSData
-                        ?: error("macOS secure local read returned invalid data")
-                    require(data.length.toLong() <= MAX_MACOS_KEYCHAIN_VALUE_BYTES)
+                    val returned = result.value
+                        ?: error("macOS secure local read returned no data")
+                    try {
+                        val data = returned as? NSData
+                            ?: error("macOS secure local read returned invalid data")
+                        require(data.length.toLong() <= MAX_MACOS_KEYCHAIN_VALUE_BYTES)
 
-                    ByteArray(data.length.toInt()).also { bytes ->
-                        if (bytes.isNotEmpty()) {
-                            bytes.usePinned { pinned ->
-                                platform.posix.memcpy(
-                                    pinned.addressOf(0),
-                                    data.bytes,
-                                    data.length
-                                )
+                        ByteArray(data.length.toInt()).also { bytes ->
+                            if (bytes.isNotEmpty()) {
+                                bytes.usePinned { pinned ->
+                                    platform.posix.memcpy(
+                                        pinned.addressOf(0),
+                                        data.bytes,
+                                        data.length
+                                    )
+                                }
                             }
-                        }
-                    }.decodeToString()
+                        }.decodeToString()
+                    } finally {
+                        CFRelease(returned)
+                    }
                 }
                 else -> error("macOS secure local read failed: status=$status")
             }
