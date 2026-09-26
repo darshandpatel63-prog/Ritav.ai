@@ -11,7 +11,6 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
-import kotlinx.cinterop.pointed
 import platform.posix.getenv
 import kotlinx.cinterop.toKString
 
