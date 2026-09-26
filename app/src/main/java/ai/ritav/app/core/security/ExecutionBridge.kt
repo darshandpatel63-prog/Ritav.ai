@@ -20,11 +20,11 @@ interface SecureExecutionPort {
     fun execute(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
-        authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
-        containsSensitiveData: Boolean = false,
-        authorizationToken: String? = null,
-        identitySession: SecuritySession? = null,
-        inputText: String? = null
+        authorizationLevel: AuthorizationLevel,
+        containsSensitiveData: Boolean,
+        authorizationToken: String?,
+        identitySession: SecuritySession?,
+        inputText: String?
     ): ExecutionResult
 }
 
