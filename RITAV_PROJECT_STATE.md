@@ -1343,3 +1343,33 @@ Reviewed call path, DPAPI allocation/free lifecycle, key/path validation, filesy
 - Power-loss/crash durability is not guaranteed by the current stdio write+close path.
 - Same-key concurrent writers are not serialized by a transactional lock; the store is not a concurrency coordinator.
 - DPAPI user scope is not a same-user process isolation boundary.
+
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Android release gate verified
+
+### LIVE MAIN
+- Current main HEAD: 115f8c2744e54e0f50b384bb523900f1bd52fe65.
+- PR #15 merged at 115f8c2744e54e0f50b384bb523900f1bd52fe65.
+- No open pull requests remain.
+
+### ANDROID RELEASE GATE
+The previous Android release-validation blocker is resolved and re-verified on the exact current main head.
+- Release validation Run #17 (36220355508) — SUCCESS.
+- Android unit tests Run #492 (36220355504) — SUCCESS, including managed-device instrumentation.
+- PR #15 removed the unused PACKAGE_USAGE_STATS special permission from the launch manifest because release lint rejected it while the current foreground observer already fails closed without it.
+
+### SECURITY EFFECT
+The Android release-security gate no longer has the previously observed manifest/lint blocker. The current Android path remains deny-by-default for external trusted-app execution, fail-closed for unavailable model execution, and bounded/filtering for accessibility model context.
+
+### CONSOLIDATED CHECKPOINT
+Reviewed the current Android launch path after the release fix: manifest privilege surface, release configuration, deterministic security composition, model fail-closed boundary, accessibility/context filtering, trusted-app default-deny state, and current CI evidence. No new demonstrated CRITICAL/HIGH/MEDIUM bypass was identified from this checkpoint.
+
+### NOT VERIFIED / NOT CLAIMED
+- Physical Android-device validation.
+- Signed production release validation/signing-key evidence.
+- Full iOS/iPadOS, Windows, macOS, Linux or ChromeOS product support.
+- Hosted iOS Keychain integration round-trip/overwrite as a passing test.
+- Universal/contextual secret classification beyond the pattern-based firewall.
+
+### NEXT WORK
+Proceed to remaining native-platform security/runtime work, beginning with the next concrete desktop security primitive that can be implemented with a real OS boundary and executable CI. Keep unsupported capabilities unavailable rather than emulating them.
