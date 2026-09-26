@@ -31,11 +31,34 @@ class MacosSecureLocalStoreTest {
     }
 
     @Test
+    fun embeddedNulInServiceIsRejected() {
+        var rejected = false
+        try {
+            MacosSecureLocalStore(service = "safe\u0000service")
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+        assertTrue(rejected)
+    }
+
+    @Test
     fun oversizedKeyIsRejectedBeforeKeychainWrite() {
         val store = MacosSecureLocalStore(service = "ai.ritav.test")
         var rejected = false
         try {
             store.putString("x".repeat(MAX_MACOS_KEYCHAIN_KEY_LENGTH + 1), "value")
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+        assertTrue(rejected)
+    }
+
+    @Test
+    fun embeddedNulInKeyIsRejectedBeforeKeychainWrite() {
+        val store = MacosSecureLocalStore(service = "ai.ritav.test")
+        var rejected = false
+        try {
+            store.putString("key\u0000suffix", "value")
         } catch (_: IllegalArgumentException) {
             rejected = true
         }
