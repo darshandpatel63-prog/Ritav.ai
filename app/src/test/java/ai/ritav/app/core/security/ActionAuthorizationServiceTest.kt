@@ -12,15 +12,15 @@ class ActionAuthorizationServiceTest {
     private val userConfirmationPlan = plan.copy(riskTier = RiskTier.TIER_2_CONTENT_MUTATION)
 
     @Test fun userConfirmationRequiresExactPlanHash() {
-        val gate = ActionAuthorizationGate()
-        val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
+
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway())
 
         assertNull(service.issueUserConfirmationToken(userConfirmationPlan, "wrong-hash"))
         assertNotNull(service.issueUserConfirmationToken(userConfirmationPlan, userConfirmationPlan.stableHash()))
     }
 
     @Test fun emergencyStopBlocksUserConfirmationTokenIssuance() {
-        val gate = ActionAuthorizationGate()
+
         val emergencyStop = EmergencyStopController().apply { activate() }
         val service = ActionAuthorizationService(
             gate,
@@ -37,7 +37,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun emergencyStopBlocksDeviceAuthenticationTokenIssuanceBeforeAuthentication() {
-        val gate = ActionAuthorizationGate()
+
         val emergencyStop = EmergencyStopController().apply { activate() }
         val gateway = StubDeviceAuthorizationGateway(available = true, result = true)
         val service = ActionAuthorizationService(
@@ -53,7 +53,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun emergencyStopRecheckAfterAuthenticationPreventsDeviceTokenMinting() {
-        val gate = ActionAuthorizationGate()
+
         val emergencyStop = EmergencyStopController()
         var authenticationCallback: ((Boolean) -> Unit)? = null
         val gateway = object : DeviceAuthorizationGateway {
@@ -79,14 +79,14 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun userConfirmationCannotAuthorizeHigherRiskPlan() {
-        val gate = ActionAuthorizationGate()
-        val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
+
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway())
         val highRisk = plan
         assertNull(service.issueUserConfirmationToken(highRisk, highRisk.stableHash()))
     }
 
     @Test fun deviceTokenCannotBeMintedWhenAuthenticationIsUnavailable() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(available = false, result = true)
@@ -98,7 +98,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun userConfirmationTokenTtlStartsFromServiceClock() {
-        val gate = ActionAuthorizationGate()
+
         var now = 1_000L
         val service = ActionAuthorizationService(
             gate,
@@ -115,7 +115,7 @@ class ActionAuthorizationServiceTest {
 
         assertEquals(
             true,
-            gate.consume(
+            service.consume(
                 token,
                 userConfirmationPlan,
                 AuthorizationLevel.USER_CONFIRMATION,
@@ -126,7 +126,7 @@ class ActionAuthorizationServiceTest {
         now = 62_000L
         assertEquals(
             false,
-            gate.consume(
+            service.consume(
                 token,
                 userConfirmationPlan,
                 AuthorizationLevel.USER_CONFIRMATION,
@@ -136,7 +136,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun userConfirmationClockFailureFailsClosed() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(),
@@ -152,7 +152,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun deviceAuthenticationCallbackCanMintOnlyOneToken() {
-        val gate = ActionAuthorizationGate()
+
         var authenticationCallback: ((Boolean) -> Unit)? = null
         val gateway = object : DeviceAuthorizationGateway {
             override fun isDeviceAuthenticationAvailable(): Boolean = true
@@ -161,7 +161,7 @@ class ActionAuthorizationServiceTest {
                 authenticationCallback = callback
             }
         }
-        val service = ActionAuthorizationService(gate, gateway, clockEpochMillis = { 1_000L })
+        val service = ActionAuthorizationService(gateway, clockEpochMillis = { 1_000L })
 
         val tokens = mutableListOf<String?>()
         service.issueDeviceAuthenticationToken(plan, "Authorize action") { tokens += it }
@@ -173,7 +173,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun deviceAuthenticationFailureInPlatformGatewayFailsClosed() {
-        val gate = ActionAuthorizationGate()
+
         val gateway = object : DeviceAuthorizationGateway {
             override fun isDeviceAuthenticationAvailable(): Boolean = true
 
@@ -181,7 +181,7 @@ class ActionAuthorizationServiceTest {
                 error("platform authentication failure")
             }
         }
-        val service = ActionAuthorizationService(gate, gateway)
+        val service = ActionAuthorizationService(gateway)
 
         var token: String? = "unexpected"
         service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
@@ -190,7 +190,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun deviceAuthenticationClockFailureFailsClosedAndCallsBack() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(available = true, result = true),
@@ -204,7 +204,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun deviceTokenIsMintedOnlyAfterSuccessfulAuthentication() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(available = true, result = true),
@@ -214,11 +214,11 @@ class ActionAuthorizationServiceTest {
         var token: String? = null
         service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
         assertNotNull(token)
-        assertEquals(true, gate.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1000L))
+        assertEquals(true, service.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 1000L))
     }
 
     @Test fun deviceTokenTtlStartsFromPostAuthenticationClock() {
-        val gate = ActionAuthorizationGate()
+
         var now = 1000L
         var authenticationCallback: ((Boolean) -> Unit)? = null
         val gateway = object : DeviceAuthorizationGateway {
@@ -228,7 +228,7 @@ class ActionAuthorizationServiceTest {
                 authenticationCallback = callback
             }
         }
-        val service = ActionAuthorizationService(gate, gateway, clockEpochMillis = { now })
+        val service = ActionAuthorizationService(gateway, clockEpochMillis = { now })
 
         var token: String? = null
         service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
@@ -240,12 +240,12 @@ class ActionAuthorizationServiceTest {
 
         assertEquals(
             true,
-            gate.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 120_000L + 60_000L)
+            service.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 120_000L + 60_000L)
         )
     }
 
     @Test fun malformedDeviceAuthorizationRequestFailsClosedWithoutThrowing() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(available = true, result = true)
@@ -258,7 +258,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun deviceAuthorizationRejectsWrongRiskTier() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(available = true, result = true)
@@ -271,7 +271,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun deviceAuthorizationRejectsInvalidPostAuthenticationClock() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(available = true, result = true),
@@ -285,7 +285,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun deviceAuthorizationBoundsAuthenticationReason() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(available = true, result = true)
@@ -298,7 +298,7 @@ class ActionAuthorizationServiceTest {
     }
 
     @Test fun failedDeviceAuthenticationCannotMintToken() {
-        val gate = ActionAuthorizationGate()
+
         val service = ActionAuthorizationService(
             gate,
             StubDeviceAuthorizationGateway(available = true, result = false)
