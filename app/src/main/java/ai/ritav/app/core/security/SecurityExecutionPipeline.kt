@@ -20,7 +20,7 @@ data class SecurityExecutionDecision(
 class SecurityExecutionPipeline(
     private val policyEngine: PolicyEngine,
     private val executionPolicyGate: ExecutionPolicyGate,
-    private val authorizationGate: ActionAuthorizationGate,
+    private val authorizationService: ActionAuthorizationService,
     private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(),
     val auditLog: AuditLog = InMemoryAuditLog(),
     private val sensitiveFirewall: SensitiveInformationFirewall = SensitiveInformationFirewall(),
@@ -96,7 +96,7 @@ class SecurityExecutionPipeline(
         if (required != AuthorizationLevel.NONE) {
             val token = request.authorizationToken
                 ?: return denyAndAudit(request, actionHash, "One-time authorization token is required", required)
-            if (!authorizationGate.consume(token, request.plan, request.action.authorizationLevel)) {
+            if (!authorizationService.consume(token, request.plan, request.action.authorizationLevel)) {
                 return denyAndAudit(request, actionHash, "Authorization token is invalid, expired, mismatched, or already consumed", required)
             }
             auditLog.append(AuditEvent(
