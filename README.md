@@ -863,3 +863,61 @@ Complete the Android launch/security gate with fresh current-main release-build 
 - Same-key concurrent writers are not transactionally serialized; unique temporary names prevent shared-temp collisions, but the store is not a concurrency coordinator.
 - No physical Windows-host validation, signed Windows production packaging, or full Windows product support is claimed.
 \n\n## 2026-09-26 CURRENT VERIFIED CHECKPOINT — Android release gate closed\n\n### LIVE MAIN\n- Current main HEAD: 115f8c2744e54e0f50b384bb523900f1bd52fe65.\n- PR #15 merged at 115f8c2744e54e0f50b384bb523900f1bd52fe65.\n- No open pull requests remain.\n- Repository visibility remains public.\n\n### ANDROID RELEASE / TEST VERIFICATION\n- Android release validation Run #17 (36220355508) — SUCCESS on the exact current main head.\n- Android unit tests Run #492 (36220355504) — SUCCESS, including managed-device instrumentation.\n- PR #15 removed the unused PACKAGE_USAGE_STATS manifest permission after release lint rejected it; the current manifest contains no Usage Access special permission.\n\n### SECURITY REVIEW / NON-CLAIMS\nThe Android launch-security checkpoint is materially stronger than the previous failed release-validation state. This does not establish physical-device validation, signed production validation, full cross-platform support, or universal security. Trusted external-app execution remains deny-by-default, and the real model runtime remains fail-closed through UnavailableModelRuntime.\n\n### NEXT SECURITY WORK\nContinue remaining native-platform security/runtime scope incrementally, prioritizing concrete macOS/Linux/ChromeOS security primitives and real CI/runtime evidence. Do not start product UI work until the remaining launch-scope security gate is intentionally closed.\n
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — macOS Keychain secure storage merged
+
+### LIVE MAIN
+- PR #16 merged into `main`.
+- macOS security-layer merge commit: `f5dd027c0ce1ca1e2ed025af7e3c1fbd44a23794`.
+- Exact PR #16 verified head before merge: `d027a8df668d89f9f2a3ccafeec54b3807c5b1c6`.
+- Repository visibility remains public.
+
+### MACOS SECURITY LAYER — COMPLETED
+PR #16 adds a concrete macOS-native secure local-store primitive behind `PlatformSecureLocalStore`:
+- Kotlin/Native `macosArm64` target in the shared `core` module.
+- macOS Security.framework Keychain generic-password storage.
+- Bounded service/key names and value size.
+- Embedded-NUL rejection for Keychain identifiers.
+- Fail-closed behavior for Keychain read/update/add/delete failures.
+- Explicit CoreFoundation ownership cleanup, including the returned Keychain object on reads.
+- `kSecUseDataProtectionKeychain` is applied to both lookup/add and update paths.
+- Native adversarial tests cover invalid/oversized identifiers, oversized values and the opt-in Keychain round-trip/overwrite/delete path.
+- Dedicated macOS GitHub Actions workflow with precise Gradle/build path triggers.
+
+The layer adds **storage authority only**. It adds no authorization, capability grant, model/provider, network, finance or execution authority.
+
+### EXACT VERIFICATION
+On exact PR #16 head `d027a8df668d89f9f2a3ccafeec54b3807c5b1c6`:
+- macOS Run #9 (`36221131125`) — SUCCESS.
+- iOS Run #96 (`36221131123`) — SUCCESS.
+- Windows Run #28 (`36221131133`) — SUCCESS.
+- Android Run #501 (`36221131124`) — SUCCESS.
+
+The earlier macOS Run #1 failure was a Kotlin/Native CoreFoundation ownership-type compilation error; it was corrected and the exact final head passed.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed the complete macOS storage path across:
+- platform-neutral contract and integration boundaries;
+- Keychain query construction and identifier validation;
+- CF object allocation/release lifecycle;
+- bounded memory/data handling;
+- update/add race semantics;
+- not-found versus real-error behavior;
+- privacy/egress and separation from authorization/execution;
+- CI trigger coverage and cross-platform regression impact.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in the reviewed macOS storage layer.
+
+### NOT VERIFIED / NOT CLAIMED
+- Hosted Keychain round-trip/overwrite execution is still opt-in and is not claimed as passed unless explicitly enabled and observed.
+- No physical Mac host validation beyond GitHub-hosted macOS CI.
+- No signed macOS production package validation.
+- Full macOS product/runtime support is not claimed.
+- Full Linux and ChromeOS native security-runtime coverage is still outstanding.
+- Final end-to-end product/security integration and consolidated final audit remain outstanding.
+
+### POST-MERGE VERIFICATION
+Post-merge push-triggered workflows for merge commit `f5dd027c0ce1ca1e2ed025af7e3c1fbd44a23794` must be observed through the connected Actions interface before this merge is described as post-merge green.
+
+### NEXT WORK
+Continue remaining native-platform security/runtime scope with a concrete Linux security primitive assessment and executable CI evidence. Do not start product UI until the remaining launch-scope security gate is intentionally closed.
