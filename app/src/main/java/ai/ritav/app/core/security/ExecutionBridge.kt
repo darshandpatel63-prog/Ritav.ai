@@ -20,11 +20,11 @@ interface SecureExecutionPort {
     fun execute(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
-        authorizationLevel: AuthorizationLevel,
-        containsSensitiveData: Boolean,
-        authorizationToken: String?,
-        identitySession: SecuritySession?,
-        inputText: String?
+        authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
+        containsSensitiveData: Boolean = false,
+        authorizationToken: String? = null,
+        identitySession: SecuritySession? = null,
+        inputText: String? = null
     ): ExecutionResult
 }
 
@@ -40,11 +40,11 @@ internal class ExecutionBridge(
     override fun execute(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
-        authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
-        containsSensitiveData: Boolean = false,
-        authorizationToken: String? = null,
-        identitySession: SecuritySession? = null,
-        inputText: String? = null
+        authorizationLevel: AuthorizationLevel,
+        containsSensitiveData: Boolean,
+        authorizationToken: String?,
+        identitySession: SecuritySession?,
+        inputText: String?
     ): ExecutionResult {
         val now = runCatching { clock() }.getOrElse {
             return ExecutionResult(false, false, "Security clock unavailable")
