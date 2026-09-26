@@ -68,9 +68,9 @@ class CapabilityGrantServiceTest {
     }
 
     @Test
-    fun grantAuthorizationRejectsInvalidClock() {
+    fun grantAuthorizationClockFailureFailsClosed() {
         val store = InMemoryPermissionStore()
-        val gate = ActionAuthorizationGate(clockEpochMillis = { 2_001L })
+        val gate = ActionAuthorizationGate(clockEpochMillis = { error("clock failure") })
         val service = CapabilityGrantService(registry, store, gate)
         val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
