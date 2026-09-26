@@ -23,10 +23,16 @@ class SecurityExecutionPipeline(
     private val authorizationGate: ActionAuthorizationGate,
     private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(),
     val auditLog: AuditLog = InMemoryAuditLog(),
+    private val clockEpochMillis: () -> Long = System::currentTimeMillis,
     private val sensitiveFirewall: SensitiveInformationFirewall = SensitiveInformationFirewall(),
     private val financeFirewall: FinanceExecutionFirewall = FinanceExecutionFirewall()
 ) {
     fun authorize(request: SecurityExecutionRequest): SecurityExecutionDecision {
+        val securityNow = runCatching { clockEpochMillis() }
+            .getOrNull()
+            ?.takeIf { it >= 0L }
+            ?: return denyAndAudit(request, null, "Security clock unavailable", AuthorizationLevel.NONE)
+
         if (!request.plan.isValid()) {
             return denyAndAudit(request, null, "Action plan is malformed or exceeds security bounds", AuthorizationLevel.NONE)
         }
@@ -34,8 +40,7 @@ class SecurityExecutionPipeline(
         if (request.action.appId.isBlank() || request.action.appId.length > MAX_APP_ID_LENGTH ||
             request.action.action.isBlank() || request.action.action.length > MAX_ACTION_LENGTH ||
             (request.action.sessionId != null &&
-                (request.action.sessionId.isBlank() || request.action.sessionId.length > MAX_SESSION_ID_LENGTH)) ||
-            request.nowEpochMillis < 0
+                (request.action.sessionId.isBlank() || request.action.sessionId.length > MAX_SESSION_ID_LENGTH))
         ) {
             return denyAndAudit(request, actionHash, "Execution request is malformed or exceeds security bounds", AuthorizationLevel.NONE)
         }
@@ -77,7 +82,7 @@ class SecurityExecutionPipeline(
         }
 
         if (request.action.riskTier >= RiskTier.TIER_2_CONTENT_MUTATION &&
-            !identitySessionManager.permitsProtectedCapability(request.identitySession, request.nowEpochMillis)
+            !identitySessionManager.permitsProtectedCapability(request.identitySession)
         ) {
             return denyAndAudit(request, actionHash, "Protected action requires an active trusted identity session", AuthorizationLevel.USER_CONFIRMATION)
         }
@@ -96,17 +101,17 @@ class SecurityExecutionPipeline(
         if (required != AuthorizationLevel.NONE) {
             val token = request.authorizationToken
                 ?: return denyAndAudit(request, actionHash, "One-time authorization token is required", required)
-            if (!authorizationGate.consume(token, request.plan, request.action.authorizationLevel, request.nowEpochMillis)) {
+            if (!authorizationGate.consume(token, request.plan, request.action.authorizationLevel)) {
                 return denyAndAudit(request, actionHash, "Authorization token is invalid, expired, mismatched, or already consumed", required)
             }
             auditLog.append(AuditEvent(
-                request.nowEpochMillis, request.action.sessionId, actionHash,
+                securityNow, request.action.sessionId, actionHash,
                 AuditEventType.AUTHORIZATION, true, false, "One-time authorization accepted"
             ))
         }
 
         auditLog.append(AuditEvent(
-            request.nowEpochMillis, request.action.sessionId, actionHash,
+            securityNow, request.action.sessionId, actionHash,
             AuditEventType.POLICY_DECISION, true, false, decision.reason
         ))
         return SecurityExecutionDecision(true, decision.reason, required, request.inputText)
@@ -120,7 +125,10 @@ class SecurityExecutionPipeline(
         reason: String,
         required: AuthorizationLevel
     ): SecurityExecutionDecision {
-        val auditTimestamp = request.nowEpochMillis.takeIf { it >= 0L } ?: 0L
+        val auditTimestamp = runCatching { clockEpochMillis() }
+            .getOrNull()
+            ?.takeIf { it >= 0L }
+            ?: 0L
         val auditSessionId = request.action.sessionId?.takeIf { it.length <= MAX_AUDIT_SESSION_ID_LENGTH }
         runCatching {
             auditLog.append(AuditEvent(
