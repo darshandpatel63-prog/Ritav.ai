@@ -13,7 +13,7 @@ internal interface PermissionStore {
     fun isGranted(appId: String, capability: Capability, action: String, sessionId: String?): Boolean
 }
 
-interface MutablePermissionStore : PermissionStore {
+internal interface MutablePermissionStore : PermissionStore {
     fun grant(grant: CapabilityGrant)
     fun revoke(grant: CapabilityGrant)
 }
