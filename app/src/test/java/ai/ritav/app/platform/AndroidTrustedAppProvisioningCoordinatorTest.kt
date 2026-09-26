@@ -100,6 +100,7 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun changedEvidenceAfterAuthenticationAlsoBlocksPersistence() {
         val stop = EmergencyStopController()
+        var readerForCallback: MutableCertificateReader? = null
         val deviceAuthorization = object : DeviceAuthorizationGateway {
             override fun isDeviceAuthenticationAvailable(): Boolean = true
 
@@ -108,7 +109,6 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
                 callback(true)
             }
         }
-        var readerForCallback: MutableCertificateReader? = null
         val authorizationService = authorizationService(stop, deviceAuthorization)
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
