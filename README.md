@@ -1188,3 +1188,36 @@ No demonstrated CRITICAL/HIGH/MEDIUM authorization bypass remains in this review
 - Real model/provider runtime remains intentionally unavailable/fail-closed.
 - UI remains intentionally unstarted and blocked by the security-before-UI gate.
 
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Execution construction boundary merged
+
+### LIVE MAIN
+- PR #22 is merged into `main`.
+- Current `main` merge commit: `c6ce46615b64d43929d59b2fdc5ff5b14640dd76`.
+- PR #22 exact head: `c5ce2950da570c0f21e28c578025d69407a73d2c`.
+- No active PR remains for the execution-construction hardening stream.
+
+### EXECUTION CONSTRUCTION AUTHORITY — COMPLETED
+- Public callers now receive only `SecureExecutionPort` from `AndroidExecutionRuntime`.
+- Concrete `ExecutionBridge` construction is internal and remains the single deterministic bridge composition inside the runtime.
+- `AndroidActionAdapter` and `AndroidIntentActionAdapter` are internal.
+- `ActionAuthorizationService` exposure from the runtime is internal.
+- The public execution port does not expose policy-gate, pipeline, adapter, dispatcher, or audit dependency injection.
+
+### EXACT VERIFICATION
+- Exact PR #22 head Run #536 (`36235069379`) — **SUCCESS**.
+- JVM unit tests and instrumentation-test compilation — **SUCCESS**.
+- Android managed-device instrumentation tests — **SUCCESS**.
+- Consolidated construction-boundary review found no alternate production dispatch composition in the changed path.
+
+### IMPORTANT LIMIT
+- Kotlin `internal` is module-scoped. This PR prevents public API consumers from constructing the concrete execution path, but it is not a separate Gradle-module isolation boundary for future same-module UI code.
+- Therefore the eventual UI should still consume the safe execution port and must not be given direct access to internal construction APIs.
+
+### NEXT SECURITY CLOSURE
+- Sweep remaining public security constructors/entry points for alternate authorization, policy, permission, storage, model, or execution composition.
+- Complete physical-device/real-host validation where feasible.
+- Complete signed-production release validation.
+- Complete final consolidated adversarial/failure/race/resource/privacy/egress review.
+- Keep model/provider runtime fail-closed until a concrete provider path is separately reviewed.
+- Keep UI unstarted until the security-before-UI gate is intentionally closed.
+
