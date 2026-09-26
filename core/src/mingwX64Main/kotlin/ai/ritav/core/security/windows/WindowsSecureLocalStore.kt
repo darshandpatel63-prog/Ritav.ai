@@ -10,7 +10,6 @@ import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
-import kotlinx.cinterop.wcstr
 import kotlin.random.Random
 import platform.posix.closedir
 import platform.posix.fclose
@@ -191,7 +190,7 @@ class WindowsSecureLocalStore(
         // availability gap and handles both first creation and overwrite.
         val windowsTemp = temp.replace('/', '\\')
         val windowsTarget = target.replace('/', '\\')
-        if (MoveFileExW(windowsTemp.wcstr, windowsTarget.wcstr, MOVEFILE_REPLACE_EXISTING) == 0) {
+        if (MoveFileExW(windowsTemp, windowsTarget, MOVEFILE_REPLACE_EXISTING) == 0) {
             error("Windows secure local replace failed: error=" + GetLastError())
         }
     }
