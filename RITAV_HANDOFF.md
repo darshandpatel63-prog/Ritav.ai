@@ -843,3 +843,52 @@ Reviewed call paths, bounds, DPAPI allocation/lifecycle, file I/O failures, key/
 
 ### NEXT ACTION
 Complete the Android launch/security gate before merging Windows: obtain fresh release-build evidence for the current Android implementation when an executable workflow path is available, then perform the final Android launch/security consolidated review. Keep PR #13 open and unmerged until that sequencing gate is explicitly cleared.
+
+
+## 2026-09-26 CURRENT HANDOFF — Windows DPAPI secure storage merged
+
+### EXACT LIVE STATE
+- Repository: `darshandpatel63-prog/Ritav.ai`.
+- `main` merge commit for PR #13: `be2ef978884100896396396f521ec24ead1f55f6`.
+- PR #13 exact final head before merge: `fbc336c70218310a5ecdd044d91b5b1e7697da52`.
+- PR #13 is merged and closed.
+- Repository visibility: **public**.
+
+### WORK COMPLETED
+- Enabled `mingwX64` in the shared security core.
+- Added bounded Windows DPAPI user-scoped secure local storage behind `PlatformSecureLocalStore`.
+- Added path-safe key encoding and traversal rejection.
+- Added bounded DPAPI/file I/O with fail-closed handling.
+- Added Windows native roundtrip, overwrite, deletion and adversarial-bound tests.
+- Added dedicated Windows GitHub Actions verification.
+
+### SECURITY BOUNDARY
+Windows secure storage remains a storage primitive only. It adds no authorization token, capability grant, model authority, network/provider access, finance authority or execution authority. Windows Hello/device authentication is deliberately not claimed.
+
+### EXACT PR-HEAD VERIFICATION
+- Windows Run #12 (`36144768794`) — SUCCESS.
+- Android Run #483 (`36144768824`) — SUCCESS.
+- iOS Run #80 (`36144768809`) — SUCCESS.
+
+### CONSOLIDATED REVIEW
+Reviewed call path, native DPAPI trust boundary, allocation/free lifecycle, bounds, path/key handling, filesystem failure paths, privacy/egress and integration impact. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed layer.
+
+### LIMITATIONS / NOT CLAIMED
+- No physical Windows host validation.
+- No signed Windows production package validation.
+- No Windows Hello/device-auth implementation.
+- No full Windows product/runtime support claim.
+- Current temp-file replacement is not claimed crash-atomic; concurrent-writer correctness is not claimed race-free.
+- DPAPI user scope is not a same-user process isolation boundary.
+- Physical-device/real-host, signed-production and final end-to-end validation remain outstanding.
+
+### POST-MERGE VERIFICATION STATUS
+For merge commit `be2ef978884100896396396f521ec24ead1f55f6`, push-triggered runs were started:
+- Android #484 (`36217845176`) — in progress;
+- Windows #13 (`36217845304`) — in progress;
+- iOS #81 (`36217845197`) — in progress.
+
+Do not describe post-merge CI as green until all three complete successfully.
+
+### NEXT HANDOFF ACTION
+Complete the Android launch/security gate with fresh current-main release evidence, then perform the final Android launch/security consolidated review. After that, continue native-platform work incrementally while preserving the deterministic authorization boundary and existing deny-by-default controls.
