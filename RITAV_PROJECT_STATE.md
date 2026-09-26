@@ -1471,3 +1471,62 @@ PR #17 is the active security work package. Do not merge it without exact-head L
 
 ### NEXT ACTION
 Obtain exact-head PR #17 CI evidence; fix any compiler/native-runtime defects; then perform the consolidated Linux system-level review and merge only after the full work-package gate is satisfied. Continue without starting product UI.
+
+
+
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Linux Secret Service secure storage merged
+
+### LIVE MAIN
+- PR #17 is merged into `main`.
+- Linux security-layer merge commit: `07a5a93593bc3a2b5f82f4624beb487b28f64326`.
+- Exact PR #17 verified head before merge: `f74ce354cc2f0da67e98a5f5b3962579cb644c7f`.
+- Repository visibility remains public.
+- No open pull requests remain at this checkpoint.
+
+### LINUX SECURITY LAYER — COMPLETED
+PR #17 adds a concrete Linux `linuxX64` secure local-store primitive behind `PlatformSecureLocalStore` using the user's Secret Service through libsecret.
+- Storage-only authority; no authorization, capability-grant, model/provider, network, finance or execution authority.
+- Service/key identifiers reject blank, embedded-NUL and over-128-byte UTF-8 values.
+- Stored values reject embedded NUL and exceed neither 131,072 UTF-8 bytes nor the native read bound.
+- Secret Service errors fail closed; there is no plaintext fallback.
+- Native bridge bounds returned secret scanning before Kotlin decoding and frees returned secrets/GLib resources on all reviewed paths.
+- Native integration roundtrip/overwrite/delete test exists as an opt-in test when a real Secret Service is explicitly available.
+- Dedicated Ubuntu GitHub Actions workflow installs libsecret development dependencies and executes `:core:linuxX64Test`.
+
+### EXACT PR-HEAD VERIFICATION
+On exact PR #17 head `f74ce354cc2f0da67e98a5f5b3962579cb644c7f`:
+- Linux Run #9 (`36225084687`) — **SUCCESS**.
+- macOS Run #19 (`36225084621`) — **SUCCESS**.
+- iOS Run #106 (`36225084677`) — **SUCCESS**.
+- Windows Run #38 (`36225084654`) — **SUCCESS**.
+- Android Run #511 (`36225084658`) — **SUCCESS**, including managed-device instrumentation.
+
+The Linux path required executable fixes for Kotlin/Native interop compilation, linker resolution for libsecret and GLib, then a final bounded native-read hardening and UTF-8 byte-bound adversarial test. The final exact head above is the green verification point.
+
+### CONSOLIDATED SECURITY REVIEW
+Reviewed the complete Linux storage path across:
+- common contract integration and authority separation;
+- identifier/value validation and UTF-8 byte bounds;
+- embedded-NUL handling;
+- Secret Service attribute/value separation;
+- C/GLib/libsecret allocation and cleanup;
+- bounded native-to-Kotlin read behavior;
+- Secret Service failure/locked/unavailable behavior;
+- no-plaintext-fallback guarantee;
+- CI trigger/toolchain/linker configuration;
+- privacy/egress and separation from policy, authorization, model, finance and execution layers.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in the reviewed Linux storage layer.
+
+### POST-MERGE VERIFICATION / NON-CLAIMS
+- The connected GitHub workflow-run interface currently does not expose push-triggered post-merge runs for merge commit `07a5a93593bc3a2b5f82f4624beb487b28f64326`; therefore post-merge CI for the merge commit is **not** claimed green.
+- No physical Linux host validation.
+- No signed Linux production package validation.
+- Full Linux product/runtime support is not claimed; this is a concrete `linuxX64` secure-storage slice.
+- ChromeOS native security-runtime coverage remains to be determined/implemented where its actual runtime requires it.
+- Final complete product/security integration and final consolidated end-to-end audit remain outstanding.
+- The real model/provider runtime remains intentionally unavailable/fail-closed.
+- Product UI remains intentionally unstarted.
+
+### NEXT SECURITY WORK
+Continue remaining launch-scope security closure: applicable ChromeOS/native runtime coverage, physical-device/real-host validation, signed production-release validation, complete product/security integration, and the final consolidated end-to-end adversarial/failure/race/egress review. Do not start UI until that security-before-UI gate is intentionally closed.
