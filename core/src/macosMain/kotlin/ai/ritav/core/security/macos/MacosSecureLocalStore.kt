@@ -39,28 +39,45 @@ import platform.Security.kSecValueData
 internal const val MAX_MACOS_KEYCHAIN_VALUE_BYTES = 131_072
 internal const val MAX_MACOS_KEYCHAIN_KEY_LENGTH = 128
 
+/**
+ * Bounded macOS Keychain-backed store for local security state.
+ *
+ * Security.framework receives CoreFoundation dictionaries whose temporary
+ * CFString/CFData values remain explicitly owned until each Security call
+ * completes. The explicit CFTypeRef typing is required by macOS Kotlin/Native
+ * interop because CFData pointers do not infer to the generic CFTypeRef list.
+ */
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 class MacosSecureLocalStore(
     private val service: String = DEFAULT_SERVICE
 ) : PlatformSecureLocalStore {
-    init { require(service.isNotBlank() && service.length <= MAX_MACOS_KEYCHAIN_KEY_LENGTH) }
+
+    init {
+        require(service.isNotBlank() && service.length <= MAX_MACOS_KEYCHAIN_KEY_LENGTH)
+    }
 
     override fun putString(name: String, value: String) {
         validateName(name)
         val bytes = value.encodeToByteArray()
-        require(bytes.size <= MAX_MACOS_KEYCHAIN_VALUE_BYTES)
-        val lookup = buildQuery(name)
-        val update = buildDataAttribute(bytes)
+        require(bytes.size <= MAX_MACOS_KEYCHAIN_VALUE_BYTES) {
+            "macOS secure value is too large"
+        }
+
+        val lookup = buildKeychainQuery(name)
+        val update = buildUpdateAttributes(bytes)
         val updateStatus = SecItemUpdate(lookup.dictionary, update.dictionary)
         lookup.release()
         update.release()
+
         when (updateStatus) {
             errSecSuccess -> Unit
             errSecItemNotFound -> {
-                val add = buildQuery(name, bytes)
-                val status = SecItemAdd(add.dictionary, null)
+                val add = buildKeychainQuery(name = name, valueBytes = bytes)
+                val addStatus = SecItemAdd(add.dictionary, null)
                 add.release()
-                check(status == errSecSuccess) { "macOS secure local write failed: status=$status" }
+                check(addStatus == errSecSuccess) {
+                    "macOS secure local write failed: status=$addStatus"
+                }
             }
             else -> error("macOS secure local update failed: status=$updateStatus")
         }
@@ -68,20 +85,33 @@ class MacosSecureLocalStore(
 
     override fun getString(name: String): String? {
         validateName(name)
-        val query = buildQuery(name, returnData = true, matchLimitOne = true)
+
+        val query = buildKeychainQuery(
+            name = name,
+            returnData = true,
+            matchLimitOne = true
+        )
+
         return memScoped {
             val result = alloc<CFTypeRefVar>()
             val status = SecItemCopyMatching(query.dictionary, result.ptr)
             query.release()
+
             when (status) {
                 errSecItemNotFound -> null
                 errSecSuccess -> {
-                    val data = result.value as? NSData ?: error("macOS secure local read returned invalid data")
+                    val data = result.value as? NSData
+                        ?: error("macOS secure local read returned invalid data")
                     require(data.length.toLong() <= MAX_MACOS_KEYCHAIN_VALUE_BYTES)
+
                     ByteArray(data.length.toInt()).also { bytes ->
                         if (bytes.isNotEmpty()) {
                             bytes.usePinned { pinned ->
-                                platform.posix.memcpy(pinned.addressOf(0), data.bytes, data.length)
+                                platform.posix.memcpy(
+                                    pinned.addressOf(0),
+                                    data.bytes,
+                                    data.length
+                                )
                             }
                         }
                     }.decodeToString()
@@ -93,56 +123,96 @@ class MacosSecureLocalStore(
 
     override fun remove(name: String) {
         validateName(name)
-        val query = buildQuery(name)
+
+        val query = buildKeychainQuery(name)
         val status = SecItemDelete(query.dictionary)
         query.release()
-        check(status == errSecSuccess || status == errSecItemNotFound)
+
+        check(status == errSecSuccess || status == errSecItemNotFound) {
+            "macOS secure local delete failed: status=$status"
+        }
     }
 
     private fun validateName(name: String) {
         require(name.isNotBlank() && name.length <= MAX_MACOS_KEYCHAIN_KEY_LENGTH)
     }
 
-    private fun buildDataAttribute(valueBytes: ByteArray): KeychainQuery {
-        val dictionary = CFDictionaryCreateMutable(null, 0, null, null) ?: error("dictionary creation failed")
-        val unsignedBytes = UByteArray(valueBytes.size) { valueBytes[it].toUByte() }
-        val data = if (unsignedBytes.isEmpty()) CFDataCreate(null, null, 0) else unsignedBytes.usePinned {
-            CFDataCreate(null, it.addressOf(0), valueBytes.size.toLong())
-        } ?: error("data creation failed")
-        CFDictionaryAddValue(dictionary, kSecValueData!!, data)
-        return KeychainQuery(dictionary, listOf(data))
+    private fun buildUpdateAttributes(valueBytes: ByteArray): KeychainQuery {
+        val dictionary = CFDictionaryCreateMutable(null, 0, null, null)
+            ?: error("macOS secure local update dictionary creation failed")
+        val unsignedBytes = UByteArray(valueBytes.size) { index -> valueBytes[index].toUByte() }
+        val cfData: CFTypeRef = if (unsignedBytes.isEmpty()) {
+            CFDataCreate(null, null, 0)
+        } else {
+            unsignedBytes.usePinned { pinned ->
+                CFDataCreate(null, pinned.addressOf(0), valueBytes.size.toLong())
+            }
+        } ?: error("macOS secure local update data creation failed")
+
+        CFDictionaryAddValue(dictionary, kSecValueData!!, cfData)
+        return KeychainQuery(dictionary, listOf(cfData))
     }
 
-    private fun buildQuery(name: String, valueBytes: ByteArray? = null, returnData: Boolean = false, matchLimitOne: Boolean = false): KeychainQuery {
-        val dictionary = CFDictionaryCreateMutable(null, 0, null, null) ?: error("dictionary creation failed")
+    private fun buildKeychainQuery(
+        name: String,
+        valueBytes: ByteArray? = null,
+        returnData: Boolean = false,
+        matchLimitOne: Boolean = false
+    ): KeychainQuery {
+        val dictionary = CFDictionaryCreateMutable(null, 0, null, null)
+            ?: error("macOS secure local dictionary creation failed")
         val ownedValues = mutableListOf<CFTypeRef>()
+
         fun addString(key: CFStringRef, value: String) {
-            val cfValue = CFStringCreateWithCString(null, value, kCFStringEncodingUTF8) ?: error("string creation failed")
+            val cfValue: CFTypeRef = CFStringCreateWithCString(
+                null,
+                value,
+                kCFStringEncodingUTF8
+            ) ?: error("macOS secure local string creation failed")
             CFDictionaryAddValue(dictionary, key, cfValue)
             ownedValues += cfValue
         }
+
         CFDictionaryAddValue(dictionary, kSecClass!!, kSecClassGenericPassword!!)
         addString(kSecAttrService!!, service)
         addString(kSecAttrAccount!!, name)
+
         if (valueBytes != null) {
-            val unsignedBytes = UByteArray(valueBytes.size) { valueBytes[it].toUByte() }
-            val data = if (unsignedBytes.isEmpty()) CFDataCreate(null, null, 0) else unsignedBytes.usePinned {
-                CFDataCreate(null, it.addressOf(0), valueBytes.size.toLong())
-            } ?: error("data creation failed")
-            CFDictionaryAddValue(dictionary, kSecValueData!!, data)
-            ownedValues += data
+            val unsignedBytes = UByteArray(valueBytes.size) { index -> valueBytes[index].toUByte() }
+            val cfData: CFTypeRef = if (unsignedBytes.isEmpty()) {
+                CFDataCreate(null, null, 0)
+            } else {
+                unsignedBytes.usePinned { pinned ->
+                    CFDataCreate(null, pinned.addressOf(0), valueBytes.size.toLong())
+                }
+            } ?: error("macOS secure local data creation failed")
+
+            CFDictionaryAddValue(dictionary, kSecValueData!!, cfData)
+            ownedValues += cfData
         }
-        if (returnData) CFDictionaryAddValue(dictionary, kSecReturnData!!, kCFBooleanTrue!!)
-        if (matchLimitOne) CFDictionaryAddValue(dictionary, kSecMatchLimit!!, kSecMatchLimitOne!!)
+
+        if (returnData) {
+            CFDictionaryAddValue(dictionary, kSecReturnData!!, kCFBooleanTrue!!)
+        }
+
+        if (matchLimitOne) {
+            CFDictionaryAddValue(dictionary, kSecMatchLimit!!, kSecMatchLimitOne!!)
+        }
+
         return KeychainQuery(dictionary, ownedValues)
     }
 
-    private class KeychainQuery(val dictionary: CFDictionaryRef, private val ownedValues: List<CFTypeRef>) {
+    private class KeychainQuery(
+        val dictionary: CFDictionaryRef,
+        private val ownedValues: List<CFTypeRef>
+    ) {
         fun release() {
             ownedValues.forEach { value -> CFRelease(value) }
             CFRelease(dictionary)
         }
     }
 
-    private companion object { const val DEFAULT_SERVICE = "ai.ritav.core.secure-state" }
+    private companion object {
+        const val DEFAULT_SERVICE = "ai.ritav.core.secure-state"
+    }
 }
