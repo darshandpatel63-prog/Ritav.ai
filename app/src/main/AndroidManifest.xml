@@ -2,8 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Required only to read local connectivity state; no network permission is granted. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Special app access used only for package-level post-launch foreground observation. -->
-    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
