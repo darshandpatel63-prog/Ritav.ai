@@ -15,8 +15,8 @@ class ActionAuthorizationServiceTest {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
 
-        assertNull(service.issueUserConfirmationToken(userConfirmationPlan, "wrong-hash", 1000L))
-        assertNotNull(service.issueUserConfirmationToken(userConfirmationPlan, userConfirmationPlan.stableHash(), 1000L))
+        assertNull(service.issueUserConfirmationToken(userConfirmationPlan, "wrong-hash"))
+        assertNotNull(service.issueUserConfirmationToken(userConfirmationPlan, userConfirmationPlan.stableHash()))
     }
 
     @Test fun emergencyStopBlocksUserConfirmationTokenIssuance() {
@@ -31,8 +31,7 @@ class ActionAuthorizationServiceTest {
         assertNull(
             service.issueUserConfirmationToken(
                 userConfirmationPlan,
-                userConfirmationPlan.stableHash(),
-                1000L
+                userConfirmationPlan.stableHash()
             )
         )
     }
@@ -83,7 +82,7 @@ class ActionAuthorizationServiceTest {
         val gate = ActionAuthorizationGate()
         val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
         val highRisk = plan
-        assertNull(service.issueUserConfirmationToken(highRisk, highRisk.stableHash(), 1000L))
+        assertNull(service.issueUserConfirmationToken(highRisk, highRisk.stableHash()))
     }
 
     @Test fun deviceTokenCannotBeMintedWhenAuthenticationIsUnavailable() {
@@ -98,15 +97,56 @@ class ActionAuthorizationServiceTest {
         assertNull(token)
     }
 
-    @Test fun userConfirmationFailsClosedOnAuthorizationClockOverflow() {
+    @Test fun userConfirmationTokenTtlStartsFromServiceClock() {
         val gate = ActionAuthorizationGate()
-        val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
+        var now = 1_000L
+        val service = ActionAuthorizationService(
+            gate,
+            StubDeviceAuthorizationGateway(),
+            clockEpochMillis = { now }
+        )
+
+        val token = requireNotNull(
+            service.issueUserConfirmationToken(
+                userConfirmationPlan,
+                userConfirmationPlan.stableHash()
+            )
+        )
+
+        assertEquals(
+            true,
+            gate.consume(
+                token,
+                userConfirmationPlan,
+                AuthorizationLevel.USER_CONFIRMATION,
+                61_000L
+            )
+        )
+
+        now = 62_000L
+        assertEquals(
+            false,
+            gate.consume(
+                token,
+                userConfirmationPlan,
+                AuthorizationLevel.USER_CONFIRMATION,
+                now
+            )
+        )
+    }
+
+    @Test fun userConfirmationClockFailureFailsClosed() {
+        val gate = ActionAuthorizationGate()
+        val service = ActionAuthorizationService(
+            gate,
+            StubDeviceAuthorizationGateway(),
+            clockEpochMillis = { error("clock failure") }
+        )
 
         assertNull(
             service.issueUserConfirmationToken(
                 userConfirmationPlan,
-                userConfirmationPlan.stableHash(),
-                Long.MAX_VALUE
+                userConfirmationPlan.stableHash()
             )
         )
     }
@@ -194,13 +234,10 @@ class ActionAuthorizationServiceTest {
         service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
         assertNull(token)
 
-        // Simulate authentication completing after a significant delay.
         now = 120_000L
         authenticationCallback!!.invoke(true)
         assertNotNull(token)
 
-        // A token minted from the old pre-auth timestamp (1000 ms) would already
-        // be expired here. The post-auth timestamp keeps the intended full TTL.
         assertEquals(
             true,
             gate.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 120_000L + 60_000L)

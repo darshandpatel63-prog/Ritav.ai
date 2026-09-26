@@ -78,8 +78,7 @@ internal class CapabilityGrantCoordinator(
 
                 val token = authorizationService.issueUserConfirmationToken(
                     plan = plan,
-                    confirmedPlanHash = plan.stableHash(),
-                    nowEpochMillis = issueTime
+                    confirmedPlanHash = plan.stableHash()
                 )
                 if (token == null) {
                     complete(false)

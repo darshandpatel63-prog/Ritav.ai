@@ -36,8 +36,7 @@ class ActionAuthorizationGateTest {
         assertTrue(
             service.issueUserConfirmationToken(
                 plan,
-                plan.stableHash(),
-                1_000L
+                plan.stableHash()
             ) == null
         )
     }
