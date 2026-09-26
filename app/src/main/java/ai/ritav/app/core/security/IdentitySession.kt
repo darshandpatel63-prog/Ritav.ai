@@ -49,7 +49,7 @@ class SecuritySession private constructor(
     }
 }
 
-class IdentitySessionManager(
+internal class IdentitySessionManager(
     private val emergencyStop: EmergencyStopController = EmergencyStopController()
 ) {
     private val issuanceBinding = Any()
