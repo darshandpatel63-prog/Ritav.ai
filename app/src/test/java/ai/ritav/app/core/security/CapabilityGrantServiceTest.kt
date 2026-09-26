@@ -33,6 +33,18 @@ class CapabilityGrantServiceTest {
     }
 
     @Test
+    fun callerSuppliedGrantTimeCannotExtendAuthorizationTokenLifetime() {
+        val store = InMemoryPermissionStore()
+        val gate = ActionAuthorizationGate(clockEpochMillis = { 62_001L })
+        val service = CapabilityGrantService(registry, store, gate)
+        val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
+        val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
+
+        assertFalse(service.grant(plan, token, 1_001L))
+        assertFalse(store.isGranted("com.example.safe", Capability.APP_LAUNCH, "open", null))
+    }
+
+    @Test
     fun wrongPlanCannotConsumeGrantAuthorization() {
         val store = InMemoryPermissionStore()
         val gate = ActionAuthorizationGate(clockEpochMillis = { 2_001L })
