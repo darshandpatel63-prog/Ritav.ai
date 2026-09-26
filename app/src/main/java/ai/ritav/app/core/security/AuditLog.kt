@@ -21,7 +21,7 @@ enum class AuditEventType {
     EMERGENCY_STOP
 }
 
-interface AuditLog {
+internal interface AuditLog {
     fun append(event: AuditEvent)
     fun readAll(): List<AuditEvent>
     fun clear()
@@ -31,7 +31,7 @@ internal const val MAX_AUDIT_EVENTS = 128
 internal const val MAX_AUDIT_STORAGE_CHARS = 64_000
 
 /** In-memory implementation for unit tests. */
-class InMemoryAuditLog : AuditLog {
+internal class InMemoryAuditLog : AuditLog {
     private val events = mutableListOf<AuditEvent>()
 
     @Synchronized
@@ -61,7 +61,7 @@ class InMemoryAuditLog : AuditLog {
  * Retention is bounded by both event count and encoded storage size so repeated
  * audit activity cannot grow the persistent security-state value without bound.
  */
-class SecureAuditLog(private val store: SecureLocalStore) : AuditLog {
+internal class SecureAuditLog(private val store: SecureLocalStore) : AuditLog {
     @Synchronized
     override fun append(event: AuditEvent) {
         val safe = validate(event)
