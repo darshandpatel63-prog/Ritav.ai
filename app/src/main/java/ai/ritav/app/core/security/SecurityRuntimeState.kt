@@ -8,7 +8,7 @@ class SecurityRuntimeState private constructor(
     private val emergencyStopController: EmergencyStopController,
     private val mutablePermissionStore: MutablePermissionStore,
     private val secureLocalStore: SecureLocalStore?,
-    val policyEngine: PolicyEngine,
+    internal val policyEngine: PolicyEngine,
     val auditLog: AuditLog
 ) {
     private constructor(deps: RuntimeDeps) : this(
