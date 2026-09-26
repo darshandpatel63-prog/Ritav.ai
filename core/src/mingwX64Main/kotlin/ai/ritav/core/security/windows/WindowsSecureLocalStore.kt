@@ -189,7 +189,9 @@ class WindowsSecureLocalStore(
     private fun replaceFile(temp: String, target: String) {
         // MoveFileExW with replacement avoids the prior delete-then-rename
         // availability gap and handles both first creation and overwrite.
-        if (MoveFileExW(temp.wcstr, target.wcstr, MOVEFILE_REPLACE_EXISTING) == 0) {
+        val windowsTemp = temp.replace('/', '\\')
+        val windowsTarget = target.replace('/', '\\')
+        if (MoveFileExW(windowsTemp.wcstr, windowsTarget.wcstr, MOVEFILE_REPLACE_EXISTING) == 0) {
             error("Windows secure local replace failed: error=" + GetLastError())
         }
     }
