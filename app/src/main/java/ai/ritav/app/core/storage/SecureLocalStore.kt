@@ -25,7 +25,7 @@ internal const val MAX_SECURE_STORE_ENCODED_LENGTH = 174_800
  * This class is intentionally simple. Larger structured data should move to an
  * encrypted database layer only after that dependency is reviewed.
  */
-class SecureLocalStore(context: Context) {
+internal class SecureLocalStore(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(
         PREFS_NAME,
         Context.MODE_PRIVATE
