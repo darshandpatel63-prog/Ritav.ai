@@ -17,7 +17,7 @@ data class SecurityExecutionDecision(
     val sanitizedInput: String? = null
 )
 
-class SecurityExecutionPipeline(
+internal class SecurityExecutionPipeline(
     private val policyEngine: PolicyEngine,
     private val executionPolicyGate: ExecutionPolicyGate,
     private val authorizationService: ActionAuthorizationService,

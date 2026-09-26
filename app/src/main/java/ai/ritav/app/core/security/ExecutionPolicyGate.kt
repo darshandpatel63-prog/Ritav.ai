@@ -5,7 +5,7 @@ package ai.ritav.app.core.security
  *
  * The execution layer must never trust an agent/model's earlier decision.
  */
-class ExecutionPolicyGate(
+internal class ExecutionPolicyGate(
     private val policyEngine: PolicyEngine
 ) {
     fun authorize(request: ActionRequest): PolicyDecision {
