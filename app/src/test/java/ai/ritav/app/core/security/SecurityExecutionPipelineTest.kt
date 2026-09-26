@@ -298,6 +298,49 @@ class SecurityExecutionPipelineTest {
         assertFalse(replay.allowed)
     }
 
+    @Test fun callerSuppliedTimestampCannotExtendExecutionTokenLifetime() {
+        val fixture = protectedFixture(1_000L)
+        val engine = PolicyEngine(
+            InMemoryPermissionStore(
+                setOf(
+                    CapabilityGrant(
+                        fixture.plan.appId,
+                        fixture.plan.capability,
+                        fixture.plan.action,
+                        fixture.plan.sessionId
+                    )
+                )
+            )
+        )
+        var authoritativeNow = 62_001L
+        val gate = ActionAuthorizationGate(clockEpochMillis = { authoritativeNow })
+        val pipeline = SecurityExecutionPipeline(
+            engine,
+            ExecutionPolicyGate(engine),
+            gate,
+            identitySessionManager = fixture.identityManager
+        )
+
+        val token = gate.issue(
+            fixture.plan,
+            AuthorizationLevel.USER_CONFIRMATION,
+            1_000L
+        )
+
+        val result = pipeline.authorize(
+            SecurityExecutionRequest(
+                action = fixture.action,
+                plan = fixture.plan,
+                authorizationToken = token,
+                identitySession = fixture.session,
+                nowEpochMillis = 1_000L
+            )
+        )
+
+        assertFalse(result.allowed)
+        authoritativeNow = 1_001L
+    }
+
     @Test fun sensitiveInputIsBlockedBeforeAuthorizationAndExecution() {
         val fixture = protectedFixture(1_000L)
         val engine = PolicyEngine(
