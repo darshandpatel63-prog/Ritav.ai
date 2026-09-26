@@ -35,7 +35,8 @@ internal class ExecutionBridge(
     private val adapter: AndroidActionAdapter,
     private val semanticResultVerifier: SemanticResultVerifier = SemanticResultVerifier(),
     private val auditLog: AuditLog = securityPipeline.auditLog,
-    private val clock: () -> Long = { System.currentTimeMillis() }
+    private val clock: () -> Long = { System.currentTimeMillis() },
+    private val emergencyStop: EmergencyStopController = securityPipeline.emergencyStopController()
 ) : SecureExecutionPort {
     override fun execute(
         plan: ActionPlan,
@@ -95,7 +96,23 @@ internal class ExecutionBridge(
         auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
             true, false, "Capability and security pipeline checks passed"))
 
-        val adapterResult = runCatching { adapter.execute(plan) }.getOrElse {
+        val adapterAttempt = emergencyStop.runIfInactive {
+            runCatching { adapter.execute(plan) }
+        }
+
+        if (adapterAttempt == null) {
+            auditLog.append(AuditEvent(
+                safeClock(now), plan.sessionId, actionHash, AuditEventType.EXECUTION,
+                false, false, "Emergency Stop became active before adapter dispatch"
+            ))
+            auditLog.append(AuditEvent(
+                safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
+                false, false, "Result verification skipped because Emergency Stop blocked dispatch"
+            ))
+            return ExecutionResult(false, false, "Emergency Stop became active before adapter dispatch")
+        }
+
+        val adapterResult = adapterAttempt.getOrElse {
             auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.EXECUTION,
                 false, false, "Adapter execution failed"))
             auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
