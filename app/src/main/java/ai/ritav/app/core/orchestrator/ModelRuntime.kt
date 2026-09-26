@@ -13,7 +13,7 @@ import java.util.Collections
  * filtered AgentRequest. The raw caller cannot construct a model request with
  * arbitrary content through the public factory.
  */
-class ModelRuntimeRequest private constructor(
+internal class ModelRuntimeRequest private constructor(
     val taskId: String,
     val userCommand: String,
     val context: List<UntrustedContent>,
@@ -37,12 +37,12 @@ class ModelRuntimeRequest private constructor(
  * boundary. It receives only ModelRuntimeRequest produced by the secure
  * gateway and its response is treated as untrusted model output.
  */
-fun interface ModelRuntime {
+internal fun interface ModelRuntime {
     fun generate(request: ModelRuntimeRequest): ModelProposalDraft?
 }
 
 /** Untrusted, provider-produced candidate action. */
-data class ModelProposalDraft(
+internal data class ModelProposalDraft(
     val taskId: String,
     val proposedAction: String,
     val capability: Capability,
@@ -57,7 +57,7 @@ data class ModelProposalDraft(
  * bearing even when the input context was safely filtered. Such output is
  * rejected rather than repaired into an executable instruction.
  */
-class ModelOutputBoundary(
+internal class ModelOutputBoundary(
     private val sensitiveInformationFirewall: SensitiveInformationFirewall =
         SensitiveInformationFirewall()
 ) {
@@ -106,7 +106,7 @@ class ModelOutputBoundary(
  * the model runtime itself never receives the unfiltered source material.
  * Model failures are contained and fail closed.
  */
-class SecureModelRuntimeGateway(
+internal class SecureModelRuntimeGateway(
     private val runtime: ModelRuntime,
     private val outputBoundary: ModelOutputBoundary = ModelOutputBoundary()
 ) {
@@ -161,7 +161,7 @@ class SecureModelRuntimeGateway(
  * Model-backed SpecialistAgent. Its output is still untrusted and must pass
  * ScopedAgentInvoker before conversion to ActionPlan.
  */
-class ModelBackedSpecialistAgent(
+internal class ModelBackedSpecialistAgent(
     override val id: String,
     private val gateway: SecureModelRuntimeGateway
 ) : SpecialistAgent {
@@ -173,6 +173,6 @@ class ModelBackedSpecialistAgent(
  * Safe default until a concrete, reviewed model provider is selected and wired.
  * It never fabricates model output and always fails closed.
  */
-object UnavailableModelRuntime : ModelRuntime {
+internal object UnavailableModelRuntime : ModelRuntime {
     override fun generate(request: ModelRuntimeRequest): ModelProposalDraft? = null
 }

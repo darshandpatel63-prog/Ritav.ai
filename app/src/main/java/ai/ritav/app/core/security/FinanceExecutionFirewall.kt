@@ -8,7 +8,7 @@ package ai.ritav.app.core.security
  * an executable action. Existing PolicyEngine and CapabilityPolicyGate checks
  * remain in force; this firewall is an additional security choke point.
  */
-class FinanceExecutionFirewall {
+internal class FinanceExecutionFirewall {
     fun inspect(request: ActionRequest): FinancialFirewallDecision {
         if (request.capability == Capability.FINANCIAL_ACTION) {
             return FinancialFirewallDecision(
@@ -20,7 +20,7 @@ class FinanceExecutionFirewall {
     }
 }
 
-data class FinancialFirewallDecision(
+internal data class FinancialFirewallDecision(
     val allowed: Boolean,
     val reason: String
 )

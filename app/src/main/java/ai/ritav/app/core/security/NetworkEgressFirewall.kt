@@ -1,31 +1,36 @@
 package ai.ritav.app.core.security
 
 /** Classification of data that may be considered for an outbound request. */
-enum class DataClassification {
+internal enum class DataClassification {
     PUBLIC,
     USER_DATA,
     SENSITIVE,
     SECRET
 }
 
-data class NetworkEgressRequest(
+internal data class NetworkEgressRequest(
     val destination: String,
     val reason: String,
     val dataClassification: DataClassification,
     val userExplicitlyAuthorized: Boolean = false
 )
 
-data class NetworkEgressDecision(
+internal data class NetworkEgressDecision(
     val allowed: Boolean,
     val reason: String
 )
 
 /**
+ * Security-internal policy evaluator; callers never receive network-I/O authority.
+ *
  * Defense-in-depth egress policy. The Android app currently has no INTERNET
  * permission, but this deterministic boundary also protects future connected
  * mode from accidentally sending private data through a new dependency.
+ *
+ * This type is intentionally internal: evaluating egress policy is not itself
+ * an authority to perform network I/O or grant authorization to a caller.
  */
-class NetworkEgressFirewall {
+internal class NetworkEgressFirewall {
     fun evaluate(request: NetworkEgressRequest): NetworkEgressDecision {
         if (request.destination.isBlank()) return deny("Network destination is required")
         if (request.reason.isBlank()) return deny("Network purpose is required")

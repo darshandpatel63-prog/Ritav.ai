@@ -20,7 +20,7 @@ import ai.ritav.app.core.orchestrator.UnavailableModelRuntime
  * store. Missing or invalid state yields an empty registry and therefore
  * deny-by-default external execution.
  */
-class AndroidExecutionRuntime(
+class AndroidExecutionRuntime internal constructor(
     activity: FragmentActivity,
     modelRuntime: ModelRuntime = UnavailableModelRuntime
 ) {
