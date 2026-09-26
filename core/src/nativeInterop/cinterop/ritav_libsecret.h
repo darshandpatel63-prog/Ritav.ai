@@ -3,6 +3,9 @@
 
 #include <glib.h>
 #include <libsecret/secret.h>
+#include <string.h>
+
+#define RITAV_MAX_SECRET_VALUE_BYTES 131072
 
 static inline GHashTable* ritav_secret_attributes(
     const char* service,
@@ -84,6 +87,7 @@ static inline int ritav_secret_store(
  *   1 = found; out_value receives owned secret string
  *   0 = not found
  *  -1 = Secret Service error
+ *  -2 = returned secret exceeds Ritav.ai read bound
  */
 static inline int ritav_secret_lookup(
     const char* service,
@@ -120,6 +124,16 @@ static inline int ritav_secret_lookup(
 
     if (value == NULL) {
         return 0;
+    }
+
+    /*
+     * Bound scanning before Kotlin decodes the returned C string. This
+     * prevents an attacker-controlled oversized Secret Service value from
+     * turning the read path into unbounded native-to-Kotlin string work.
+     */
+    if (memchr(value, '\0', RITAV_MAX_SECRET_VALUE_BYTES + 1U) == NULL) {
+        secret_password_free(value);
+        return -2;
     }
 
     *out_value = value;
