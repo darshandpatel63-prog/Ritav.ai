@@ -110,7 +110,7 @@ class MainActivity : FragmentActivity() {
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
-                if (session == null || securityState.isEmergencyStopActive()) {
+                if (session == null || securityControl.isEmergencyStopActive()) {
                     statusMessage = "Authenticate a protected identity session before trusting an application."
                     return
                 }
@@ -168,7 +168,7 @@ class MainActivity : FragmentActivity() {
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
-                if (session == null || securityState.isEmergencyStopActive()) {
+                if (session == null || securityControl.isEmergencyStopActive()) {
                     statusMessage = "Authenticate a protected identity session before removing trusted access."
                     return
                 }
@@ -291,7 +291,7 @@ class MainActivity : FragmentActivity() {
                         },
                         onResume = {
                             securityControl.resumeAfterUserConfirmation()
-                            stopped = securityState.isEmergencyStopActive()
+                            stopped = securityControl.isEmergencyStopActive()
                             activeIdentitySession = null
                             dismissPendingApproval()
                             dismissPendingTrustedApproval()
