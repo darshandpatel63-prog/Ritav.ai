@@ -29,6 +29,7 @@ import platform.Security.errSecItemNotFound
 import platform.Security.errSecSuccess
 import platform.Security.kSecAttrAccount
 import platform.Security.kSecAttrService
+import platform.Security.kSecUseDataProtectionKeychain
 import platform.Security.kSecClass
 import platform.Security.kSecClassGenericPassword
 import platform.Security.kSecMatchLimit
@@ -190,6 +191,7 @@ class MacosSecureLocalStore(
         CFDictionaryAddValue(dictionary, kSecClass!!, kSecClassGenericPassword!!)
         addString(kSecAttrService!!, service)
         addString(kSecAttrAccount!!, name)
+        CFDictionaryAddValue(dictionary, kSecUseDataProtectionKeychain!!, kCFBooleanTrue!!)
 
         if (valueBytes != null) {
             val unsignedBytes = UByteArray(valueBytes.size) { index -> valueBytes[index].toUByte() }
