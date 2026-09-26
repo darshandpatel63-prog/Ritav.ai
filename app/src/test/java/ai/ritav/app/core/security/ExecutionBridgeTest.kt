@@ -476,6 +476,57 @@ class ExecutionBridgeTest {
         assertEquals(1, adapter.calls)
     }
 
+    @Test fun emergencyStopActivatedAfterAuthorizationBlocksAdapterDispatch() {
+        val plan = ActionPlan(
+            "demo.app",
+            Capability.APP_LAUNCH,
+            "open",
+            RiskTier.TIER_1_REVERSIBLE,
+            expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE
+        )
+        val adapter = RecordingAdapter()
+        val stop = EmergencyStopController()
+        val permissions = InMemoryPermissionStore(
+            setOf(CapabilityGrant(plan.appId, plan.capability, plan.action))
+        )
+        val policy = PolicyEngine(permissions, stop)
+        val gate = testAuthorizationService(stop)
+        val baseLog = InMemoryAuditLog()
+        var triggerStop = false
+        val auditLog = object : AuditLog {
+            override fun append(event: AuditEvent) {
+                baseLog.append(event)
+                if (!triggerStop && event.eventType == AuditEventType.POLICY_DECISION && event.allowed) {
+                    triggerStop = true
+                    stop.activate()
+                }
+            }
+
+            override fun readAll(): List<AuditEvent> = baseLog.readAll()
+
+            override fun clear() = baseLog.clear()
+        }
+        val pipeline = SecurityExecutionPipeline(
+            policy,
+            ExecutionPolicyGate(policy),
+            gate,
+            auditLog = auditLog
+        )
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipeline,
+            adapter
+        )
+
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+
+        assertFalse(result.success)
+        assertFalse(result.verified)
+        assertEquals("Emergency Stop became active before adapter dispatch", result.message)
+        assertEquals(0, adapter.calls)
+        assertTrue(stop.isActive())
+    }
+
     @Test fun emergencyStopBlocksExecution() {
         val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
