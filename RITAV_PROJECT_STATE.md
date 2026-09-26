@@ -14,7 +14,7 @@ Phase 0 — secure foundation and cross-platform architecture expansion; runtime
 ## Platform scope
 Ritav.ai's **target architecture** is cross-platform: Android, iOS/iPadOS, Windows, macOS, Linux and supported ChromeOS runtimes, across phones, tablets, laptops, desktops, 2-in-1 devices and other explicitly supported form factors.
 
-**Current implementation reality:** the repository currently contains an Android application/runtime plus a JVM-targeted Kotlin Multiplatform contract layer. No native iOS/iPadOS/Windows/macOS/Linux/ChromeOS runtime implementation exists yet.
+**Current implementation reality:** the repository contains an Android application/runtime, a JVM-targeted Kotlin Multiplatform contract/security layer, and a verified Windows DPAPI secure-storage runtime slice. Full native product runtimes for iOS/iPadOS, Windows, macOS, Linux and ChromeOS are not complete.
 
 The architecture is one platform-neutral core plus native platform adapters/UI/runtime implementations. A platform is not considered supported until a real implementation, integration, tests, packaging/build verification and platform-specific security review exist.
 
