@@ -17,7 +17,7 @@ data class ExecutionResult(
 
 /** Public-safe execution port exposed by the trusted runtime composition root. */
 interface SecureExecutionPort {
-    override fun execute(
+    fun execute(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
         authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
@@ -37,7 +37,7 @@ internal class ExecutionBridge(
     private val auditLog: AuditLog = securityPipeline.auditLog,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) : SecureExecutionPort {
-    fun execute(
+    override fun execute(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
         authorizationLevel: AuthorizationLevel = AuthorizationLevel.NONE,
