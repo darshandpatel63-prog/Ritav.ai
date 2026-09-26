@@ -66,6 +66,9 @@ class LinuxSecureLocalStore(
                         ritav_secret_free(value)
                     }
                 }
+                STATUS_OVERSIZED -> {
+                    error("Linux secure local read exceeded the configured size bound")
+                }
                 else -> error("Linux secure local read failed: status=$status")
             }
         }
@@ -83,7 +86,7 @@ class LinuxSecureLocalStore(
     private fun validateIdentifier(value: String) {
         require(
             value.isNotBlank() &&
-                value.length <= MAX_LINUX_SECRET_SERVICE_KEY_LENGTH &&
+                value.encodeToByteArray().size <= MAX_LINUX_SECRET_SERVICE_KEY_LENGTH &&
                 '\u0000' !in value
         )
     }
@@ -100,6 +103,7 @@ class LinuxSecureLocalStore(
     private companion object {
         const val STATUS_NOT_FOUND = 0
         const val STATUS_SUCCESS = 1
+        const val STATUS_OVERSIZED = -2
         const val DEFAULT_SERVICE = "ai.ritav.core.secure-state"
     }
 }
