@@ -53,7 +53,11 @@ class MacosSecureLocalStore(
 ) : PlatformSecureLocalStore {
 
     init {
-        require(service.isNotBlank() && service.length <= MAX_MACOS_KEYCHAIN_KEY_LENGTH)
+        require(
+            service.isNotBlank() &&
+                service.length <= MAX_MACOS_KEYCHAIN_KEY_LENGTH &&
+                '\u0000' !in service
+        )
     }
 
     override fun putString(name: String, value: String) {
@@ -140,7 +144,11 @@ class MacosSecureLocalStore(
     }
 
     private fun validateName(name: String) {
-        require(name.isNotBlank() && name.length <= MAX_MACOS_KEYCHAIN_KEY_LENGTH)
+        require(
+            name.isNotBlank() &&
+                name.length <= MAX_MACOS_KEYCHAIN_KEY_LENGTH &&
+                '\u0000' !in name
+        )
     }
 
     private fun buildUpdateAttributes(valueBytes: ByteArray): KeychainQuery {
