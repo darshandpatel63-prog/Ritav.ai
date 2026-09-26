@@ -1,8 +1,10 @@
 package ai.ritav.app.core.security
 
+import java.lang.reflect.InvocationTargetException
+
 /**
- * Test-only construction/legacy gate probes. Production code must not expose a
- * raw token gate or caller-controlled token minting surface.
+ * Test-only construction/legacy authorization probes. Production code does not
+ * expose the raw token gate or caller-controlled token minting surface.
  */
 fun testAuthorizationService(
     emergencyStop: EmergencyStopController = EmergencyStopController(),
@@ -31,7 +33,10 @@ fun ActionAuthorizationService.issue(
         Long::class.javaPrimitiveType,
         Long::class.javaPrimitiveType
     ).apply { isAccessible = true }
-    return method.invoke(gate, plan, requiredLevel, nowEpochMillis, ttlMillis) as String
+
+    return invokeUnwrapped {
+        method.invoke(gate, plan, requiredLevel, nowEpochMillis, ttlMillis)
+    } as String
 }
 
 /** Test-only deterministic consume probe for caller-time regression tests. */
@@ -49,8 +54,18 @@ fun ActionAuthorizationService.consume(
         AuthorizationLevel::class.java,
         Long::class.javaPrimitiveType
     ).apply { isAccessible = true }
-    return method.invoke(gate, token, plan, providedLevel, nowEpochMillis) as Boolean
+
+    return invokeUnwrapped {
+        method.invoke(gate, token, plan, providedLevel, nowEpochMillis)
+    } as Boolean
 }
 
 private fun ActionAuthorizationService.privateTokenGate(): Any =
-    javaClass.getDeclaredField("tokenGate").apply { isAccessible = true }.get(this)
+    javaClass.getDeclaredField("tokenGate").apply { isAccessible = true }.get(this)!!
+
+private fun invokeUnwrapped(block: () -> Any?): Any? =
+    try {
+        block()
+    } catch (error: InvocationTargetException) {
+        throw (error.targetException ?: error)
+    }
