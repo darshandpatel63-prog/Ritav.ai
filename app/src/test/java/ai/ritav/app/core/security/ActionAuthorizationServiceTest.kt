@@ -22,9 +22,7 @@ class ActionAuthorizationServiceTest {
     @Test fun emergencyStopBlocksUserConfirmationTokenIssuance() {
 
         val emergencyStop = EmergencyStopController().apply { activate() }
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(),
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(),
             emergencyStop = emergencyStop
         )
 
@@ -40,9 +38,7 @@ class ActionAuthorizationServiceTest {
 
         val emergencyStop = EmergencyStopController().apply { activate() }
         val gateway = StubDeviceAuthorizationGateway(available = true, result = true)
-        val service = ActionAuthorizationService(
-            gate,
-            gateway,
+        val service = ActionAuthorizationService(gateway,
             emergencyStop = emergencyStop
         )
 
@@ -63,9 +59,7 @@ class ActionAuthorizationServiceTest {
                 authenticationCallback = callback
             }
         }
-        val service = ActionAuthorizationService(
-            gate,
-            gateway,
+        val service = ActionAuthorizationService(gateway,
             clockEpochMillis = { 1000L },
             emergencyStop = emergencyStop
         )
@@ -87,9 +81,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun deviceTokenCannotBeMintedWhenAuthenticationIsUnavailable() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(available = false, result = true)
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(available = false, result = true)
         )
 
         var token: String? = "unexpected"
@@ -100,9 +92,7 @@ class ActionAuthorizationServiceTest {
     @Test fun userConfirmationTokenTtlStartsFromServiceClock() {
 
         var now = 1_000L
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(),
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(),
             clockEpochMillis = { now }
         )
 
@@ -137,9 +127,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun userConfirmationClockFailureFailsClosed() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(),
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(),
             clockEpochMillis = { error("clock failure") }
         )
 
@@ -191,9 +179,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun deviceAuthenticationClockFailureFailsClosedAndCallsBack() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(available = true, result = true),
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(available = true, result = true),
             clockEpochMillis = { error("clock failure") }
         )
 
@@ -205,9 +191,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun deviceTokenIsMintedOnlyAfterSuccessfulAuthentication() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(available = true, result = true),
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(available = true, result = true),
             clockEpochMillis = { 1000L }
         )
 
@@ -246,9 +230,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun malformedDeviceAuthorizationRequestFailsClosedWithoutThrowing() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(available = true, result = true)
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(available = true, result = true)
         )
 
         var token: String? = "unexpected"
@@ -259,9 +241,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun deviceAuthorizationRejectsWrongRiskTier() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(available = true, result = true)
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(available = true, result = true)
         )
 
         var token: String? = "unexpected"
@@ -272,9 +252,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun deviceAuthorizationRejectsInvalidPostAuthenticationClock() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(available = true, result = true),
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(available = true, result = true),
             clockEpochMillis = { -1L }
         )
 
@@ -286,9 +264,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun deviceAuthorizationBoundsAuthenticationReason() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(available = true, result = true)
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(available = true, result = true)
         )
 
         var token: String? = "unexpected"
@@ -299,9 +275,7 @@ class ActionAuthorizationServiceTest {
 
     @Test fun failedDeviceAuthenticationCannotMintToken() {
 
-        val service = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(available = true, result = false)
+        val service = ActionAuthorizationService(StubDeviceAuthorizationGateway(available = true, result = false)
         )
 
         var token: String? = "unexpected"
