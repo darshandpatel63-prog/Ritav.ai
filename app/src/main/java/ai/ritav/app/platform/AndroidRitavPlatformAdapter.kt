@@ -93,4 +93,7 @@ class AndroidRitavPlatformAdapter(
             else -> RitavFormFactor.PHONE
         }
     }
+    private companion object {
+        const val CHROMEOS_SYSTEM_FEATURE = "org.chromium.arc"
+    }
 }
