@@ -1034,3 +1034,42 @@ Post-merge push-triggered workflows for merge commit `f5dd027c0ce1ca1e2ed025af7e
 
 ### NEXT WORK
 Continue remaining native-platform security/runtime scope with a concrete Linux security primitive assessment and executable CI evidence. Do not start product UI until the remaining launch-scope security gate is intentionally closed.
+
+
+## 2026-09-26 ACTIVE NATIVE-SECURITY CHECKPOINT — Linux Secret Service PR open
+
+### CURRENT MAIN
+- macOS Keychain storage PR #16 is merged at `f5dd027c0ce1ca1e2ed025af7e3c1fbd44a23794`.
+- PR #16 exact verified head: `d027a8df668d89f9f2a3ccafeec54b3807c5b1c6`.
+- Exact PR-head CI was green: macOS Run #9 `36221131125`, iOS Run #96 `36221131123`, Windows Run #28 `36221131133`, Android Run #501 `36221131124`.
+- The connected workflow-run interface has not exposed a post-merge workflow result for merge commit `f5dd027c0ce1ca1e2ed025af7e3c1fbd44a23794`; therefore post-merge CI is not claimed green.
+
+### ACTIVE PR #17 — LINUX
+- PR #17: `Security: add Linux Secret Service secure storage`.
+- Current exact head: `634f1b1c6946c19b593111daee68c74db801aed0`.
+- Branch: `security/linux-secret-service-runtime`.
+- State: open, not merged, not executable-verified yet.
+- Scope: storage-only `linuxX64` implementation behind `PlatformSecureLocalStore`, using libsecret/Secret Service with no plaintext fallback.
+- Bounds: service/key length 128; value size 131,072 bytes; embedded-NUL rejection; fail-closed Secret Service errors.
+- Tests: native boundary tests plus opt-in Secret Service roundtrip/overwrite/delete integration.
+- CI: dedicated Ubuntu workflow installs `libsecret-1-dev` and runs `:core:linuxX64Test`.
+- The connected Actions interface currently does not expose a run result for the latest PR #17 head, so no Linux CI success is claimed.
+
+### SECURITY REVIEW STATUS
+Linux source path has been statically reviewed for:
+- common-contract integration;
+- identifier/value bounds;
+- embedded-NUL trust-boundary handling;
+- Secret Service attribute separation from secret value;
+- native allocation/free paths;
+- explicit no-plaintext-fallback behavior;
+- failure-to-block behavior;
+- separation from authorization/capability/model/network/finance/execution authority.
+
+No demonstrated CRITICAL/HIGH/MEDIUM bypass has been identified source-level in this slice, but executable CI verification remains mandatory before merge.
+
+### CURRENT STOP POINT
+PR #17 is the active security work package. Do not merge it without exact-head Linux CI evidence and the cross-platform regression results required by the repository workflow.
+
+### NEXT ACTION
+Obtain exact-head PR #17 CI evidence; fix any compiler/native-runtime defects; then perform the consolidated Linux system-level review and merge only after the full work-package gate is satisfied. Continue without starting product UI.
