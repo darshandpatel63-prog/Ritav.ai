@@ -7,7 +7,7 @@ package ai.ritav.app.core.security
  * Resuming requires an explicit user action; future high-assurance flows may
  * additionally require device authentication before allowing reset.
  */
-class EmergencyStopController {
+internal class EmergencyStopController {
     @Volatile
     private var stopped: Boolean = false
 
