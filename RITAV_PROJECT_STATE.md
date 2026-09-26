@@ -1264,3 +1264,46 @@ Complete the Android launch/security gate with fresh release-build evidence when
 
 ### EXACT DOCUMENTATION CHECKPOINT
 - HANDOFF documentation commit: `6c698ad6641117d21203bb5591cbe0ecdb6cd040`.
+
+
+## 2026-09-26 PROJECT STATE — Windows DPAPI secure storage merged
+
+### CURRENT MAIN / PR STATE
+- PR #13 merged into `main` at `be2ef978884100896396396f521ec24ead1f55f6`.
+- Exact PR #13 head before merge: `fbc336c70218310a5ecdd044d91b5b1e7697da52`.
+- Windows storage-only runtime layer is now part of `main`.
+- No Windows Hello/device-authentication path has been added.
+
+### SECURITY LAYER COMPLETED
+The Windows layer now provides bounded DPAPI user-scoped secure local storage behind the common `PlatformSecureLocalStore` contract. Storage failures, oversize state and invalid keys fail closed; the implementation has no authorization, capability, model, network, finance or execution authority.
+
+### EXACT CI EVIDENCE ON PR HEAD
+- Windows Run #12 (`36144768794`) — SUCCESS.
+- Android Run #483 (`36144768824`) — SUCCESS.
+- iOS Run #80 (`36144768809`) — SUCCESS.
+
+### CONSOLIDATED SECURITY REVIEW
+The affected Windows layer was reviewed across call paths, data flow, native trust boundary, resource bounds, DPAPI allocation lifecycle, filesystem failure handling, path validation, privacy/egress and integration impact. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified.
+
+### REMAINING WINDOWS LIMITS
+- Physical Windows host testing and signed production packaging are unverified.
+- Windows Hello/device authentication is not implemented.
+- Full Windows product support is not claimed.
+- Replacement is not claimed crash-atomic; concurrent-writer race freedom is not claimed.
+- DPAPI user scope is not a same-user process isolation boundary.
+
+### POST-MERGE CI STATUS AT THIS CHECKPOINT
+The merge commit `be2ef978884100896396396f521ec24ead1f55f6` triggered:
+- Android Run #484 (`36217845176`) — in progress;
+- Windows Run #13 (`36217845304`) — in progress;
+- iOS Run #81 (`36217845197`) — in progress.
+
+Therefore the post-merge verification loop is **not yet closed** at this documentation checkpoint.
+
+### REMAINING GLOBAL ROADMAP
+- Fresh current-main Android release-build evidence and final Android launch/security consolidated review.
+- Windows authentication/application integration only when a concrete native runtime and permission model exists.
+- macOS, Linux and ChromeOS native security runtimes incrementally.
+- Physical-device/real-host validation.
+- Signed production release validation.
+- Final end-to-end integration and consolidated security audit.
