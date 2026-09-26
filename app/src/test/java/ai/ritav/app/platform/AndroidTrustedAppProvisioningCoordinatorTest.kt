@@ -1,6 +1,5 @@
 package ai.ritav.app.platform
 
-import ai.ritav.app.core.security.ActionAuthorizationGate
 import ai.ritav.app.core.security.ActionAuthorizationService
 import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.AppCapabilitySpec
@@ -45,43 +44,48 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     private fun coordinator(
         reader: MutableCertificateReader,
         store: FakeStore,
-        gate: ActionAuthorizationGate,
-        sessionManager: IdentitySessionManager,
-        deviceAuthorization: DeviceAuthorizationGateway
+        authorizationService: ActionAuthorizationService,
+        sessionManager: IdentitySessionManager
     ): AndroidTrustedAppProvisioningCoordinator {
-        val stop = gate.emergencyStopController()
+        val stop = authorizationService.emergencyStopController()
         val registry = AppCapabilityRegistry()
-        val service = TrustedAppProvisioningService(registry, store, gate, stop, sessionManager)
-        val auth = ActionAuthorizationService(
-            gate = gate,
-            deviceAuthorization = deviceAuthorization,
-            clockEpochMillis = { 1_002L },
-            emergencyStop = stop
+        val service = TrustedAppProvisioningService(
+            registry = registry,
+            entryStore = store,
+            authorizationService = authorizationService,
+            emergencyStop = stop,
+            identitySessionManager = sessionManager
         )
         return AndroidTrustedAppProvisioningCoordinator(
             evidenceReader = AndroidTrustedPackageEvidenceReader(reader),
             provisioningService = service,
-            authorizationService = auth,
+            authorizationService = authorizationService,
             identitySessionManager = sessionManager,
             clockEpochMillis = { 1_003L }
         )
     }
 
+    private fun authorizationService(
+        stop: EmergencyStopController,
+        deviceAuthorization: DeviceAuthorizationGateway
+    ) = ActionAuthorizationService(
+        deviceAuthorization = deviceAuthorization,
+        clockEpochMillis = { 1_003L },
+        emergencyStop = stop
+    )
+
     @Test
     fun changedEvidenceBeforeAuthenticationBlocksApproval() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
+        val authorizationService = authorizationService(
+            stop,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
         val reader = MutableCertificateReader(listOf(certificateBytes))
-        val coordinator = coordinator(
-            reader,
-            store,
-            gate,
-            sessionManager,
-            StubDeviceAuthorizationGateway(available = true, result = true)
-        )
+        val coordinator = coordinator(reader, store, authorizationService, sessionManager)
 
         val plan = requireNotNull(coordinator.prepare("com.example.safe", session))
         reader.certificates = listOf("changed".toByteArray())
@@ -96,27 +100,22 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun changedEvidenceAfterAuthenticationAlsoBlocksPersistence() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
-        val sessionManager = IdentitySessionManager(stop)
-        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
-        val store = FakeStore()
-        val reader = MutableCertificateReader(listOf(certificateBytes))
-
         val deviceAuthorization = object : DeviceAuthorizationGateway {
             override fun isDeviceAuthenticationAvailable(): Boolean = true
 
             override fun authenticate(reason: String, callback: (success: Boolean) -> Unit) {
-                reader.certificates = listOf("changed-after-auth".toByteArray())
+                readerForCallback?.certificates = listOf("changed-after-auth".toByteArray())
                 callback(true)
             }
         }
-        val coordinator = coordinator(
-            reader,
-            store,
-            gate,
-            sessionManager,
-            deviceAuthorization
-        )
+        var readerForCallback: MutableCertificateReader? = null
+        val authorizationService = authorizationService(stop, deviceAuthorization)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val reader = MutableCertificateReader(listOf(certificateBytes))
+        readerForCallback = reader
+        val coordinator = coordinator(reader, store, authorizationService, sessionManager)
 
         val plan = requireNotNull(coordinator.prepare("com.example.safe", session))
         var result: Boolean? = null
@@ -129,18 +128,15 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun successfulDeviceAuthenticationPersistsEvidenceBackedTrust() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
+        val authorizationService = authorizationService(
+            stop,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
         val reader = MutableCertificateReader(listOf(certificateBytes))
-        val coordinator = coordinator(
-            reader,
-            store,
-            gate,
-            sessionManager,
-            StubDeviceAuthorizationGateway(available = true, result = true)
-        )
+        val coordinator = coordinator(reader, store, authorizationService, sessionManager)
 
         val plan = requireNotNull(coordinator.prepare("com.example.safe", session))
         var result: Boolean? = null
@@ -150,21 +146,19 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
         assertTrue(store.entries.size == 1)
         assertTrue(store.entries.single().trustedCertificateSha256?.matches(Regex("^[a-f0-9]{64}$")) == true)
     }
+
     @Test
     fun successfulDeviceAuthenticationRemovesTrust() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
+        val authorizationService = authorizationService(
+            stop,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
         val reader = MutableCertificateReader(listOf(certificateBytes))
-        val coordinator = coordinator(
-            reader,
-            store,
-            gate,
-            sessionManager,
-            StubDeviceAuthorizationGateway(available = true, result = true)
-        )
+        val coordinator = coordinator(reader, store, authorizationService, sessionManager)
 
         val addPlan = requireNotNull(coordinator.prepare("com.example.safe", session))
         var addResult: Boolean? = null
@@ -182,18 +176,15 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
     @Test
     fun changedEvidenceBeforeRemovalAuthenticationBlocksApproval() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
+        val authorizationService = authorizationService(
+            stop,
+            StubDeviceAuthorizationGateway(available = true, result = true)
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
         val store = FakeStore()
         val reader = MutableCertificateReader(listOf(certificateBytes))
-        val coordinator = coordinator(
-            reader,
-            store,
-            gate,
-            sessionManager,
-            StubDeviceAuthorizationGateway(available = true, result = true)
-        )
+        val coordinator = coordinator(reader, store, authorizationService, sessionManager)
 
         val addPlan = requireNotNull(coordinator.prepare("com.example.safe", session))
         coordinator.approveAndPersist(addPlan, session, true) { }
@@ -206,29 +197,29 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
         assertFalse(result == true)
         assertTrue(store.entries.size == 1)
     }
+
     @Test
     fun changedEvidenceAfterRemovalAuthenticationAlsoBlocksPersistence() {
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 1_003L })
-        val sessionManager = IdentitySessionManager(stop)
-        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
-        val store = FakeStore()
-        val reader = MutableCertificateReader(listOf(certificateBytes))
         var mutateAfterAuthentication = false
-
+        var readerForCallback: MutableCertificateReader? = null
         val deviceAuthorization = object : DeviceAuthorizationGateway {
             override fun isDeviceAuthenticationAvailable(): Boolean = true
 
             override fun authenticate(reason: String, callback: (success: Boolean) -> Unit) {
                 if (mutateAfterAuthentication) {
-                    reader.certificates = listOf("changed-after-auth".toByteArray())
+                    readerForCallback?.certificates = listOf("changed-after-auth".toByteArray())
                 }
                 callback(true)
             }
         }
-        val coordinator = coordinator(
-            reader, store, gate, sessionManager, deviceAuthorization
-        )
+        val authorizationService = authorizationService(stop, deviceAuthorization)
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(IdentityLevel.TRUSTED_SIGNAL, 1_000L)
+        val store = FakeStore()
+        val reader = MutableCertificateReader(listOf(certificateBytes))
+        readerForCallback = reader
+        val coordinator = coordinator(reader, store, authorizationService, sessionManager)
 
         val addPlan = requireNotNull(coordinator.prepare("com.example.safe", session))
         coordinator.approveAndPersist(addPlan, session, true) { }
@@ -242,4 +233,5 @@ class AndroidTrustedAppProvisioningCoordinatorTest {
 
         assertFalse(result == true)
         assertTrue(store.entries.size == 1)
-    }}
+    }
+}
