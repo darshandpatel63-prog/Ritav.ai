@@ -3,8 +3,8 @@ package ai.ritav.app
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +37,8 @@ internal data class GlobalNavItem(
 @Composable
 internal fun GlobalAdaptiveFloatingNavigation(
     items: List<GlobalNavItem>,
+    initialPosition: NavigationPositionPreference,
+    onPositionSettled: (xFraction: Float, yFraction: Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (items.isEmpty()) return
@@ -49,25 +51,26 @@ internal fun GlobalAdaptiveFloatingNavigation(
     val itemPx = with(density) { itemSize.toPx() }
     val marginPx = with(density) { margin.toPx() }
 
-    var positionX by remember { mutableFloatStateOf(Float.NaN) }
-    var positionY by remember { mutableFloatStateOf(Float.NaN) }
+    var xFraction by remember { mutableFloatStateOf(initialPosition.xFraction.coerceIn(0f, 1f)) }
+    var yFraction by remember { mutableFloatStateOf(initialPosition.yFraction.coerceIn(0f, 1f)) }
     var expanded by remember { mutableStateOf(false) }
-    var dragStarted by remember { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = modifier) {
         val widthPx = with(density) { maxWidth.toPx() }
         val heightPx = with(density) { maxHeight.toPx() }
 
-        if (positionX.isNaN()) positionX = (widthPx - buttonPx) / 2f
-        if (positionY.isNaN()) positionY = (heightPx - buttonPx) / 2f
+        val minX = marginPx
+        val maxX = (widthPx - buttonPx - marginPx).coerceAtLeast(minX)
+        val minY = marginPx
+        val maxY = (heightPx - buttonPx - marginPx).coerceAtLeast(minY)
 
-        val safeX = positionX.coerceIn(marginPx, (widthPx - buttonPx - marginPx).coerceAtLeast(marginPx))
-        val safeY = positionY.coerceIn(marginPx, (heightPx - buttonPx - marginPx).coerceAtLeast(marginPx))
+        val positionX = minX + ((maxX - minX) * xFraction)
+        val positionY = minY + ((maxY - minY) * yFraction)
 
-        val nearLeft = safeX < widthPx * 0.28f
-        val nearRight = safeX > widthPx * 0.72f
-        val nearTop = safeY < heightPx * 0.28f
-        val nearBottom = safeY > heightPx * 0.72f
+        val nearLeft = positionX < widthPx * 0.28f
+        val nearRight = positionX > widthPx * 0.72f
+        val nearTop = positionY < heightPx * 0.28f
+        val nearBottom = positionY > heightPx * 0.72f
         val useLinear = nearLeft || nearRight || nearTop || nearBottom
 
         val menuRadius = maxOf(78f, itemPx * 1.55f)
@@ -75,28 +78,51 @@ internal fun GlobalAdaptiveFloatingNavigation(
 
         Box(
             modifier = Modifier
-                .offset { IntOffset(safeX.roundToInt(), safeY.roundToInt()) }
+                .offset { IntOffset(positionX.roundToInt(), positionY.roundToInt()) }
                 .size(buttonSize)
-                .pointerInput(widthPx, heightPx) {
+                .pointerInput(widthPx, heightPx, initialPosition.fixed) {
                     detectDragGestures(
-                        onDragStart = { dragStarted = true },
-                        onDragEnd = { dragStarted = false },
-                        onDragCancel = { dragStarted = false },
                         onDrag = { change, dragAmount ->
+                            if (initialPosition.fixed) return@detectDragGestures
                             change.consume()
-                            positionX = (positionX + dragAmount.x)
-                                .coerceIn(marginPx, (widthPx - buttonPx - marginPx).coerceAtLeast(marginPx))
-                            positionY = (positionY + dragAmount.y)
-                                .coerceIn(marginPx, (heightPx - buttonPx - marginPx).coerceAtLeast(marginPx))
+
+                            val nextX = (positionX + dragAmount.x).coerceIn(minX, maxX)
+                            val nextY = (positionY + dragAmount.y).coerceIn(minY, maxY)
+                            xFraction = if (maxX > minX) {
+                                ((nextX - minX) / (maxX - minX)).coerceIn(0f, 1f)
+                            } else {
+                                0.5f
+                            }
+                            yFraction = if (maxY > minY) {
+                                ((nextY - minY) / (maxY - minY)).coerceIn(0f, 1f)
+                            } else {
+                                0.5f
+                            }
+                        },
+                        onDragEnd = {
+                            if (!initialPosition.fixed) {
+                                onPositionSettled(xFraction, yFraction)
+                            }
+                        },
+                        onDragCancel = {
+                            if (!initialPosition.fixed) {
+                                onPositionSettled(xFraction, yFraction)
+                            }
                         }
                     )
                 }
-                .semantics { contentDescription = "Ritav global navigation" }
+                .semantics {
+                    contentDescription =
+                        if (initialPosition.fixed) {
+                            "Ritav global navigation, fixed"
+                        } else {
+                            "Ritav global navigation, movable"
+                        }
+                }
         ) {
             Surface(
-                onClick = {
-                    if (!dragStarted) expanded = !expanded
-                },
+                onClick = { expanded = !expanded },
+                enabled = true,
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary,
                 tonalElevation = 5.dp,
@@ -117,20 +143,23 @@ internal fun GlobalAdaptiveFloatingNavigation(
                         linearPlacement(
                             index = index,
                             count = visibleCount,
-                            x = safeX,
-                            y = safeY,
+                            centerX = buttonPx / 2f,
+                            centerY = buttonPx / 2f,
                             width = widthPx,
                             height = heightPx,
                             itemPx = itemPx,
+                            buttonX = positionX,
+                            buttonY = positionY,
                             margin = marginPx
                         )
                     } else {
                         radialPlacement(
                             index = index,
                             count = visibleCount,
-                            centerX = safeX + buttonPx / 2f,
-                            centerY = safeY + buttonPx / 2f,
-                            radius = menuRadius
+                            centerX = positionX + buttonPx / 2f,
+                            centerY = positionY + buttonPx / 2f,
+                            radius = menuRadius,
+                            itemPx = itemPx
                         )
                     }
 
@@ -142,8 +171,8 @@ internal fun GlobalAdaptiveFloatingNavigation(
                         modifier = Modifier
                             .offset {
                                 IntOffset(
-                                    (placement.x - safeX).roundToInt(),
-                                    (placement.y - safeY).roundToInt()
+                                    (placement.x - positionX).roundToInt(),
+                                    (placement.y - positionY).roundToInt()
                                 )
                             }
                             .size(itemSize)
@@ -173,29 +202,32 @@ private fun radialPlacement(
     count: Int,
     centerX: Float,
     centerY: Float,
-    radius: Float
+    radius: Float,
+    itemPx: Float
 ): MenuPlacement {
     val start = -Math.PI / 2.0
     val step = if (count <= 1) 0.0 else (Math.PI * 2.0) / count
     val angle = start + (step * index)
     return MenuPlacement(
-        x = centerX + cos(angle).toFloat() * radius - 24f,
-        y = centerY + sin(angle).toFloat() * radius - 24f
+        x = centerX + cos(angle).toFloat() * radius - itemPx / 2f,
+        y = centerY + sin(angle).toFloat() * radius - itemPx / 2f
     )
 }
 
 private fun linearPlacement(
     index: Int,
     count: Int,
-    x: Float,
-    y: Float,
+    centerX: Float,
+    centerY: Float,
     width: Float,
     height: Float,
     itemPx: Float,
+    buttonX: Float,
+    buttonY: Float,
     margin: Float
 ): MenuPlacement {
-    val buttonCenterX = x + 29f
-    val buttonCenterY = y + 29f
+    val buttonCenterX = buttonX + centerX
+    val buttonCenterY = buttonY + centerY
     val leftSpace = buttonCenterX
     val rightSpace = width - buttonCenterX
     val topSpace = buttonCenterY
@@ -206,19 +238,23 @@ private fun linearPlacement(
         val direction = if (rightSpace >= leftSpace) 1f else -1f
         val itemX = buttonCenterX + direction * (itemPx * 0.7f + 10f) - itemPx / 2f
         val total = (count - 1) * (itemPx + 8f)
-        val startY = (buttonCenterY - total / 2f).coerceIn(margin, height - margin - itemPx)
+        val startY = (buttonCenterY - total / 2f)
+            .coerceIn(margin + itemPx / 2f, height - margin - itemPx / 2f)
         return MenuPlacement(
             x = itemX.coerceIn(margin, width - margin - itemPx),
-            y = (startY + index * (itemPx + 8f)).coerceIn(margin, height - margin - itemPx)
+            y = (startY + index * (itemPx + 8f))
+                .coerceIn(margin, height - margin - itemPx)
         )
     }
 
     val direction = if (bottomSpace >= topSpace) 1f else -1f
     val itemY = buttonCenterY + direction * (itemPx * 0.7f + 10f) - itemPx / 2f
     val total = (count - 1) * (itemPx + 8f)
-    val startX = (buttonCenterX - total / 2f).coerceIn(margin, width - margin - itemPx)
+    val startX = (buttonCenterX - total / 2f)
+        .coerceIn(margin, width - margin - itemPx)
     return MenuPlacement(
-        x = (startX + index * (itemPx + 8f)).coerceIn(margin, width - margin - itemPx),
+        x = (startX + index * (itemPx + 8f))
+            .coerceIn(margin, width - margin - itemPx),
         y = itemY.coerceIn(margin, height - margin - itemPx)
     )
 }
