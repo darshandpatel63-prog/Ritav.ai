@@ -86,7 +86,7 @@ class AndroidRitavPlatformAdapter(
             else -> RitavFormFactor.PHONE
         }
     }
-    private companion object {
+    companion object {
         const val CHROMEOS_SYSTEM_FEATURE = "org.chromium.arc"
 
         internal fun detectPlatform(hasSystemFeature: (String) -> Boolean): RitavPlatform =
