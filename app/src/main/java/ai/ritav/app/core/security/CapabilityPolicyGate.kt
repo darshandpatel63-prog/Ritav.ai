@@ -4,7 +4,7 @@ package ai.ritav.app.core.security
  * Final capability boundary between an action request and an app adapter.
  * Registry metadata is treated as security policy, not as advisory information.
  */
-class CapabilityPolicyGate(
+internal class CapabilityPolicyGate(
     private val registry: AppCapabilityRegistry
 ) {
     fun evaluate(request: ActionRequest): PolicyDecision {
