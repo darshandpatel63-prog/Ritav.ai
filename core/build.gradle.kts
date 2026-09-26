@@ -14,6 +14,13 @@ kotlin {
                 definitionFile.set(
                     project.file("src/nativeInterop/cinterop/ritav_libsecret.def")
                 )
+                compilerOpts(
+                    "-I${project.file("src/nativeInterop/cinterop").absolutePath}",
+                    "-I/usr/include/libsecret-1",
+                    "-I/usr/include/glib-2.0",
+                    "-I/usr/lib/x86_64-linux-gnu/glib-2.0/include"
+                )
+                linkerOpts("-lsecret-1")
             }
         }
     }
