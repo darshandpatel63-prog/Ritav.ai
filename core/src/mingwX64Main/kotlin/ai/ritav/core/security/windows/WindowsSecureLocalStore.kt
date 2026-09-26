@@ -10,6 +10,7 @@ import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
+import kotlin.random.Random
 import platform.posix.closedir
 import platform.posix.fclose
 import platform.posix.ferror
@@ -21,18 +22,19 @@ import platform.posix.getenv
 import platform.posix.mkdir
 import platform.posix.remove
 import platform.posix.errno
-import platform.posix.rename
 import platform.posix.opendir
 import platform.windows.CRYPTPROTECT_UI_FORBIDDEN
 import platform.windows.CryptProtectData
 import platform.windows.CryptUnprotectData
 import platform.windows.DATA_BLOB
+import platform.windows.MoveFileExW
 import platform.windows.GetLastError
 import platform.windows.LocalFree
 
 internal const val MAX_WINDOWS_SECURE_VALUE_BYTES = 131_072
 internal const val MAX_WINDOWS_SECURE_KEY_LENGTH = 128
 private const val MAX_WINDOWS_SECURE_BLOB_BYTES = MAX_WINDOWS_SECURE_VALUE_BYTES * 2
+private const val MOVEFILE_REPLACE_EXISTING = 0x1u
 
 /**
  * Windows DPAPI-backed local store.
@@ -63,13 +65,14 @@ class WindowsSecureLocalStore(
 
         val protected = protect(plaintext)
         val target = fileFor(name)
-        val temp = target + ".tmp"
+        val temp = target + ".tmp-" + nextTemporarySuffix()
 
-        writeFile(temp, protected)
-        platform.posix.remove(target)
-        if (rename(temp, target) != 0) {
+        try {
+            writeFile(temp, protected)
+            replaceFile(temp, target)
+        } catch (failure: Throwable) {
             platform.posix.remove(temp)
-            error("Windows secure local replace failed")
+            throw failure
         }
     }
 
@@ -155,31 +158,45 @@ class WindowsSecureLocalStore(
     }
 
     private fun writeFile(path: String, bytes: ByteArray) {
-        val mode = "wb"
-        memScoped {
-            val file = fopen(path, mode)
-                    ?: error("Windows secure local open-for-write failed")
-                try {
-                    if (bytes.isNotEmpty()) {
-                        bytes.usePinned { bytesPinned ->
-                            val written = fwrite(
-                                bytesPinned.addressOf(0),
-                                1u,
-                                bytes.size.toULong(),
-                                file
-                            )
-                            check(written == bytes.size.toULong()) {
-                                "Windows secure local write failed"
-                            }
-                        }
-                    }
-                } finally {
-                    check(fclose(file) == 0) {
-                        "Windows secure local close failed"
+        val file = fopen(path, "wb")
+            ?: error("Windows secure local open-for-write failed")
+        var failure: Throwable? = null
+        try {
+            if (bytes.isNotEmpty()) {
+                bytes.usePinned { bytesPinned ->
+                    val written = fwrite(
+                        bytesPinned.addressOf(0),
+                        1u,
+                        bytes.size.toULong(),
+                        file
+                    )
+                    check(written == bytes.size.toULong()) {
+                        "Windows secure local write failed"
                     }
                 }
+            }
+        } catch (t: Throwable) {
+            failure = t
+            throw t
+        } finally {
+            if (fclose(file) != 0 && failure == null) {
+                error("Windows secure local close failed")
+            }
         }
     }
+
+    private fun replaceFile(temp: String, target: String) {
+        // MoveFileExW with replacement avoids the prior delete-then-rename
+        // availability gap and handles both first creation and overwrite.
+        val windowsTemp = temp.replace('/', '\\')
+        val windowsTarget = target.replace('/', '\\')
+        if (MoveFileExW(windowsTemp, windowsTarget, MOVEFILE_REPLACE_EXISTING) == 0) {
+            error("Windows secure local replace failed: error=" + GetLastError())
+        }
+    }
+
+    private fun nextTemporarySuffix(): String =
+        Random.nextLong().toString()
 
     private fun readFile(path: String): ByteArray? {
         memScoped {
@@ -263,6 +280,7 @@ class WindowsSecureLocalStore(
         val source = pbData ?: error("Windows DPAPI returned null data")
         return source.readBytes(size)
     }
+
 
     private companion object {
         fun defaultRootDirectory(): String {
