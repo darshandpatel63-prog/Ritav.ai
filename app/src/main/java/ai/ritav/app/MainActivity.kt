@@ -90,7 +90,7 @@ class MainActivity : FragmentActivity() {
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
-                if (session == null || securityState.isEmergencyStopActive()) {
+                if (session == null || securityControl.isEmergencyStopActive()) {
                     statusMessage = "Authenticate a protected identity session before approval."
                     return
                 }
