@@ -1664,3 +1664,42 @@ No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this reviewed toke
 ### NEXT SECURITY WORK
 Continue remaining launch-scope closure: physical-device/real-host validation where feasible, signed production-release validation, complete product/security integration, and the final consolidated adversarial/failure/race/resource/privacy/egress review. Keep UI closed until that security-before-UI gate is intentionally closed.
 
+## 2026-09-26 AUTHORITATIVE CURRENT CHECKPOINT — Authorization authority encapsulation merged
+
+### LIVE MAIN
+- PR #21 is merged into `main`.
+- Current `main` merge commit: `325d951a8d72a285be1366ff6a930ee0c859d9fc`.
+- PR #21 exact head: `1291d2d746dc08bceef8c033c9ad6762ba1caf7c`.
+- No separate open PR is currently part of the security implementation stream.
+
+### AUTHORIZATION AUTHORITY — COMPLETED
+- The former externally constructible `ActionAuthorizationGate` raw token issuer has been removed.
+- `ActionAuthorizationService` now owns the private token gate, issuance, and authoritative consumption.
+- Production execution, capability-grant, and trusted-app consumers receive/use the authority service rather than a raw token gate.
+- Raw token minting is inaccessible outside the private nested token authority.
+- Service-owned issuance clock, gate-owned consumption clock, exact plan binding, risk-appropriate authorization, Emergency Stop generation binding, one-time consumption and replay resistance remain enforced.
+- Deterministic raw issuance/consume probes exist only in test source via an isolated reflection harness.
+
+### EXACT VERIFICATION
+- Exact PR #21 head Run #529 (`36234236111`) — **SUCCESS**.
+- JVM unit tests: **SUCCESS**.
+- Android instrumentation tests on managed device: **SUCCESS**.
+- Earlier Run #528 failure was traced to the test reflection harness wrapping expected exceptions in `InvocationTargetException`; the harness was fixed and the exact new head passed.
+
+### CONSOLIDATED REVIEW
+Rechecked:
+- issuance -> private token authority -> authoritative consumption;
+- execution/capability/trusted-app call paths;
+- Emergency Stop identity/generation handling;
+- clock failure/negative-clock fail-closed paths;
+- async device-auth single-callback handling;
+- test-only versus production access surface.
+
+No demonstrated CRITICAL/HIGH/MEDIUM authorization bypass remains in this reviewed layer.
+
+### NEXT SECURITY CLOSURE FOUND BY REVIEW
+- `ExecutionBridge` and the Android launch adapter still expose construction/injection surfaces that should be narrowed before UI work, so callers cannot assemble alternate security/execution compositions or reach final dispatch outside the trusted runtime composition root.
+- Physical-device/real-host validation and signed-production validation are still pending.
+- Real model/provider runtime remains intentionally unavailable/fail-closed.
+- UI remains intentionally unstarted and blocked by the security-before-UI gate.
+
