@@ -25,7 +25,7 @@ class AndroidRitavPlatformAdapter(
 
     override fun deviceProfile(): DeviceProfile {
         return DeviceProfile(
-            platform = RitavPlatform.ANDROID,
+            platform = detectPlatform(),
             osVersion = Build.VERSION.RELEASE.orEmpty(),
             formFactor = detectFormFactor(),
             capabilities = PlatformCapabilities(
@@ -75,6 +75,16 @@ class AndroidRitavPlatformAdapter(
         val packagePrefix = context.packageName + "/"
         return enabled.split(':').any { it.startsWith(packagePrefix) }
     }
+
+    private fun detectPlatform(): RitavPlatform =
+        detectPlatform { feature -> hasFeature(feature) }
+
+    internal fun detectPlatform(hasSystemFeature: (String) -> Boolean): RitavPlatform =
+        if (hasSystemFeature(CHROMEOS_SYSTEM_FEATURE)) {
+            RitavPlatform.CHROMEOS
+        } else {
+            RitavPlatform.ANDROID
+        }
 
     private fun detectFormFactor(): RitavFormFactor {
         val smallestWidthDp = context.resources.configuration.smallestScreenWidthDp
