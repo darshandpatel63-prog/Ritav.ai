@@ -89,7 +89,7 @@ class LinuxSecureLocalStoreTest {
     }
 
     @Test
-    fun keychainRoundTripOverwriteAndDelete() {
+    fun secretServiceRoundTripOverwriteAndDelete() {
         if (!linuxSecretServiceIntegrationTestsEnabled()) return
         val store = LinuxSecureLocalStore(service = "ai.ritav.test")
         val key = "roundtrip"
