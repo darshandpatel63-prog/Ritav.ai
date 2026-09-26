@@ -1,0 +1,61 @@
+name: Linux platform runtime
+
+on:
+  pull_request:
+    paths:
+      - "core/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
+      - ".github/workflows/linux-platform-test.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "core/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "gradlew"
+      - "gradlew.bat"
+      - ".github/workflows/linux-platform-test.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-platform-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-platform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Secret Service development headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev pkg-config
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Verify libsecret toolchain
+        run: pkg-config --modversion libsecret-1
+
+      - name: Run Linux native security tests
+        run: gradle :core:linuxX64Test --no-daemon --stacktrace
