@@ -20,7 +20,7 @@ kotlin {
                     "-I/usr/include/glib-2.0",
                     "-I/usr/lib/x86_64-linux-gnu/glib-2.0/include"
                 )
-                linkerOpts("-lsecret-1")
+                linkerOpts("-L/usr/lib/x86_64-linux-gnu", "-lsecret-1")
             }
         }
     }
