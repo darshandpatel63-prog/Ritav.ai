@@ -1,7 +1,7 @@
 package ai.ritav.app.core.security
 
 /** Metadata describing what an app adapter is allowed to expose to Ritav. */
-data class AppCapabilitySpec(
+internal data class AppCapabilitySpec(
     val packageName: String,
     val capability: Capability,
     val actions: Set<String>,
@@ -27,7 +27,7 @@ data class CapabilityGrantCandidate(
  * rejected at construction time so adapter metadata cannot silently weaken the
  * deterministic security boundary.
  */
-class AppCapabilityRegistry(
+internal class AppCapabilityRegistry(
     specs: Collection<AppCapabilitySpec> = emptyList()
 ) {
     private var specsSnapshot = specs.map { it.copy(actions = it.actions.toSet()) }
