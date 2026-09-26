@@ -36,13 +36,17 @@ class AndroidExecutionRuntime(
         }
     )
 
-    private val authorizationGate = ActionAuthorizationGate(emergencyStop)
     private val identitySessionManager = IdentitySessionManager(emergencyStop)
     private val deviceAuthorization = AndroidDeviceAuthorizationGateway(activity)
+    val authorizationService: ActionAuthorizationService =
+        ActionAuthorizationService(
+            deviceAuthorization = deviceAuthorization,
+            emergencyStop = emergencyStop
+        )
     private val securityPipeline = SecurityExecutionPipeline(
         policyEngine = securityState.policyEngine,
         executionPolicyGate = ExecutionPolicyGate(securityState.policyEngine),
-        authorizationGate = authorizationGate,
+        authorizationService = authorizationService,
         identitySessionManager = identitySessionManager,
         auditLog = securityState.auditLog
     )
@@ -53,18 +57,11 @@ class AndroidExecutionRuntime(
         adapter = AndroidIntentActionAdapter(activity.applicationContext, capabilityRegistry)
     )
 
-    val authorizationService: ActionAuthorizationService =
-        ActionAuthorizationService(
-            gate = authorizationGate,
-            deviceAuthorization = deviceAuthorization,
-            emergencyStop = emergencyStop
-        )
-
     private val capabilityGrantService: CapabilityGrantService =
         CapabilityGrantService(
             registry = capabilityRegistry,
             permissionStore = securityState.mutablePermissionStore(),
-            authorizationGate = authorizationGate,
+            authorizationService = authorizationService,
             emergencyStop = emergencyStop,
             identitySessionManager = identitySessionManager
         )
@@ -81,7 +78,7 @@ class AndroidExecutionRuntime(
         TrustedAppProvisioningService(
             registry = capabilityRegistry,
             entryStore = trustedAppEntryStore,
-            authorizationGate = authorizationGate,
+            authorizationService = authorizationService,
             emergencyStop = emergencyStop,
             identitySessionManager = identitySessionManager
         )

@@ -20,37 +20,47 @@ class CapabilityGrantCoordinatorTest {
         )
     )
 
+    private fun coordinator(
+        registry: AppCapabilityRegistry,
+        store: MutablePermissionStore,
+        sessionManager: IdentitySessionManager,
+        authorizationService: ActionAuthorizationService,
+        clockEpochMillis: () -> Long = { 1_001L }
+    ): CapabilityGrantCoordinator {
+        val stop = authorizationService.emergencyStopController()
+        val service = CapabilityGrantService(
+            registry = registry,
+            permissionStore = store,
+            authorizationService = authorizationService,
+            emergencyStop = stop,
+            identitySessionManager = sessionManager
+        )
+        return CapabilityGrantCoordinator(
+            registry = registry,
+            grantService = service,
+            authorizationService = authorizationService,
+            identitySessionManager = sessionManager,
+            clockEpochMillis = clockEpochMillis
+        )
+    }
+
     @Test
     fun tierTwoApprovalCreatesSessionBoundGrantOnlyAfterExplicitConfirmation() {
         val registry = registryFor(RiskTier.TIER_1_REVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
+        val authorizationService = ActionAuthorizationService(
+            deviceAuthorization = StubDeviceAuthorizationGateway(),
+            clockEpochMillis = { 1_002L },
+            emergencyStop = stop
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
             nowEpochMillis = 1_000L
         )
         val store = InMemoryPermissionStore()
-        val service = CapabilityGrantService(
-            registry,
-            store,
-            gate,
-            stop,
-            sessionManager
-        )
-        val authService = ActionAuthorizationService(
-            gate = gate,
-            deviceAuthorization = StubDeviceAuthorizationGateway(),
-            clockEpochMillis = { 1_002L },
-            emergencyStop = stop
-        )
-        val coordinator = CapabilityGrantCoordinator(
-            registry = registry,
-            grantService = service,
-            authorizationService = authService,
-            identitySessionManager = sessionManager,
-            clockEpochMillis = { 1_001L }
-        )
+        val coordinator = coordinator(registry, store, sessionManager, authorizationService)
+
         val candidate = coordinator.options().single()
         val plan = requireNotNull(coordinator.prepare(candidate, session))
 
@@ -85,26 +95,19 @@ class CapabilityGrantCoordinatorTest {
     fun missingConfirmationNeverIssuesOrConsumesGrantAuthorization() {
         val registry = registryFor(RiskTier.TIER_1_REVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
+        val authorizationService = ActionAuthorizationService(
+            deviceAuthorization = StubDeviceAuthorizationGateway(),
+            clockEpochMillis = { 1_002L },
+            emergencyStop = stop
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
             nowEpochMillis = 1_000L
         )
         val store = InMemoryPermissionStore()
-        val service = CapabilityGrantService(registry, store, gate, stop, sessionManager)
-        val authService = ActionAuthorizationService(
-            gate = gate,
-            deviceAuthorization = StubDeviceAuthorizationGateway(),
-            emergencyStop = stop
-        )
-        val coordinator = CapabilityGrantCoordinator(
-            registry,
-            service,
-            authService,
-            sessionManager,
-            clockEpochMillis = { 1_001L }
-        )
+        val coordinator = coordinator(registry, store, sessionManager, authorizationService)
+
         val plan = requireNotNull(coordinator.prepare(coordinator.options().single(), session))
 
         var result: Boolean? = null
@@ -127,25 +130,19 @@ class CapabilityGrantCoordinatorTest {
     fun forgedOrStalePlansAndSessionsAreRejected() {
         val registry = registryFor(RiskTier.TIER_1_REVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
+        val authorizationService = ActionAuthorizationService(
+            deviceAuthorization = StubDeviceAuthorizationGateway(),
+            clockEpochMillis = { 2_005L },
+            emergencyStop = stop
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
             nowEpochMillis = 1_000L
         )
-        val service = CapabilityGrantService(registry, InMemoryPermissionStore(), gate, stop, sessionManager)
-        val authService = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(),
-            emergencyStop = stop
-        )
-        val coordinator = CapabilityGrantCoordinator(
-            registry,
-            service,
-            authService,
-            sessionManager,
-            clockEpochMillis = { 1_001L }
-        )
+        val store = InMemoryPermissionStore()
+        val coordinator = coordinator(registry, store, sessionManager, authorizationService)
+
         val plan = requireNotNull(coordinator.prepare(coordinator.options().single(), session))
 
         var wrongPlanResult: Boolean? = null
@@ -172,16 +169,7 @@ class CapabilityGrantCoordinatorTest {
     fun tierThreeApprovalRequiresSuccessfulDeviceAuthentication() {
         val registry = registryFor(RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
-        val sessionManager = IdentitySessionManager(stop)
-        val session = sessionManager.createSession(
-            identity = IdentityLevel.TRUSTED_SIGNAL,
-            nowEpochMillis = 1_000L
-        )
-        val store = InMemoryPermissionStore()
-        val service = CapabilityGrantService(registry, store, gate, stop, sessionManager)
-        val authService = ActionAuthorizationService(
-            gate = gate,
+        val authorizationService = ActionAuthorizationService(
             deviceAuthorization = StubDeviceAuthorizationGateway(
                 available = true,
                 result = true
@@ -189,13 +177,14 @@ class CapabilityGrantCoordinatorTest {
             clockEpochMillis = { 1_002L },
             emergencyStop = stop
         )
-        val coordinator = CapabilityGrantCoordinator(
-            registry,
-            service,
-            authService,
-            sessionManager,
-            clockEpochMillis = { 1_003L }
+        val sessionManager = IdentitySessionManager(stop)
+        val session = sessionManager.createSession(
+            identity = IdentityLevel.TRUSTED_SIGNAL,
+            nowEpochMillis = 1_000L
         )
+        val store = InMemoryPermissionStore()
+        val coordinator = coordinator(registry, store, sessionManager, authorizationService)
+
         val plan = requireNotNull(coordinator.prepare(coordinator.options().single(), session))
 
         var result: Boolean? = null
@@ -218,29 +207,22 @@ class CapabilityGrantCoordinatorTest {
     fun tierThreeApprovalFailsClosedWhenDeviceAuthenticationFails() {
         val registry = registryFor(RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
+        val authorizationService = ActionAuthorizationService(
+            deviceAuthorization = StubDeviceAuthorizationGateway(
+                available = true,
+                result = false
+            ),
+            clockEpochMillis = { 1_002L },
+            emergencyStop = stop
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
             nowEpochMillis = 1_000L
         )
         val store = InMemoryPermissionStore()
-        val service = CapabilityGrantService(registry, store, gate, stop, sessionManager)
-        val authService = ActionAuthorizationService(
-            gate = gate,
-            deviceAuthorization = StubDeviceAuthorizationGateway(
-                available = true,
-                result = false
-            ),
-            emergencyStop = stop
-        )
-        val coordinator = CapabilityGrantCoordinator(
-            registry,
-            service,
-            authService,
-            sessionManager,
-            clockEpochMillis = { 1_001L }
-        )
+        val coordinator = coordinator(registry, store, sessionManager, authorizationService)
+
         val plan = requireNotNull(coordinator.prepare(coordinator.options().single(), session))
 
         var result: Boolean? = null
@@ -263,28 +245,20 @@ class CapabilityGrantCoordinatorTest {
     fun emergencyStopBlocksApprovalAfterPlanPreparation() {
         val registry = registryFor(RiskTier.TIER_1_REVERSIBLE)
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_005L })
+        val authorizationService = ActionAuthorizationService(
+            deviceAuthorization = StubDeviceAuthorizationGateway(),
+            clockEpochMillis = { 1_002L },
+            emergencyStop = stop
+        )
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
             nowEpochMillis = 1_000L
         )
         val store = InMemoryPermissionStore()
-        val service = CapabilityGrantService(registry, store, gate, stop, sessionManager)
-        val authService = ActionAuthorizationService(
-            gate,
-            StubDeviceAuthorizationGateway(),
-            emergencyStop = stop
-        )
-        val coordinator = CapabilityGrantCoordinator(
-            registry,
-            service,
-            authService,
-            sessionManager,
-            clockEpochMillis = { 1_001L }
-        )
-        val plan = requireNotNull(coordinator.prepare(coordinator.options().single(), session))
+        val coordinator = coordinator(registry, store, sessionManager, authorizationService)
 
+        val plan = requireNotNull(coordinator.prepare(coordinator.options().single(), session))
         stop.activate()
 
         var result: Boolean? = null

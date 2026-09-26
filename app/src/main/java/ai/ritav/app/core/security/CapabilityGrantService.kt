@@ -10,8 +10,8 @@ package ai.ritav.app.core.security
 internal class CapabilityGrantService(
     private val registry: AppCapabilityRegistry,
     private val permissionStore: MutablePermissionStore,
-    private val authorizationGate: ActionAuthorizationGate,
-    private val emergencyStop: EmergencyStopController = authorizationGate.emergencyStopController(),
+    private val authorizationService: ActionAuthorizationService,
+    private val emergencyStop: EmergencyStopController = authorizationService.emergencyStopController(),
     private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(emergencyStop)
 ) {
     fun createGrantPlan(
@@ -92,7 +92,7 @@ internal class CapabilityGrantService(
                 }
             }
 
-            if (!authorizationGate.consume(
+            if (!authorizationService.consume(
                     authorizationToken.orEmpty(),
                     plan,
                     requiredAuthorizationFor(plan)

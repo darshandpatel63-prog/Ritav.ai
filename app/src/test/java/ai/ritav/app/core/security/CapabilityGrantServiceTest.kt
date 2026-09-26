@@ -19,7 +19,7 @@ class CapabilityGrantServiceTest {
     @Test
     fun grantRequiresExactAuthorizationAndCannotReplay() {
         val store = InMemoryPermissionStore()
-        val gate = ActionAuthorizationGate(clockEpochMillis = { 2_001L })
+        val gate = testAuthorizationService(clockEpochMillis = { 2_001L })
         val service = CapabilityGrantService(registry, store, gate)
         val plan = service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open")
 
@@ -35,7 +35,7 @@ class CapabilityGrantServiceTest {
     @Test
     fun callerSuppliedGrantTimeCannotExtendAuthorizationTokenLifetime() {
         val store = InMemoryPermissionStore()
-        val gate = ActionAuthorizationGate(clockEpochMillis = { 62_001L })
+        val gate = testAuthorizationService(clockEpochMillis = { 62_001L })
         val service = CapabilityGrantService(registry, store, gate)
         val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
@@ -47,7 +47,7 @@ class CapabilityGrantServiceTest {
     @Test
     fun wrongPlanCannotConsumeGrantAuthorization() {
         val store = InMemoryPermissionStore()
-        val gate = ActionAuthorizationGate(clockEpochMillis = { 2_001L })
+        val gate = testAuthorizationService(clockEpochMillis = { 2_001L })
         val service = CapabilityGrantService(registry, store, gate)
         val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
         val otherPlan = plan.copy(appId = "com.example.other")
@@ -60,7 +60,7 @@ class CapabilityGrantServiceTest {
     @Test
     fun unknownAndFinancialCapabilitiesCannotCreateGrantPlans() {
         val store = InMemoryPermissionStore()
-        val gate = ActionAuthorizationGate(clockEpochMillis = { 2_001L })
+        val gate = testAuthorizationService(clockEpochMillis = { 2_001L })
         val service = CapabilityGrantService(registry, store, gate)
 
         assertTrue(service.createGrantPlan("com.example.unknown", Capability.APP_LAUNCH, "open") == null)
@@ -70,7 +70,7 @@ class CapabilityGrantServiceTest {
     @Test
     fun grantAuthorizationClockFailureFailsClosed() {
         val store = InMemoryPermissionStore()
-        val gate = ActionAuthorizationGate(clockEpochMillis = { error("clock failure") })
+        val gate = testAuthorizationService(clockEpochMillis = { error("clock failure") })
         val service = CapabilityGrantService(registry, store, gate)
         val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
@@ -91,7 +91,7 @@ class CapabilityGrantServiceTest {
             )
         )
         val store = InMemoryPermissionStore()
-        val gate = ActionAuthorizationGate(clockEpochMillis = { 2_001L })
+        val gate = testAuthorizationService(clockEpochMillis = { 2_001L })
         val service = CapabilityGrantService(highRiskRegistry, store, gate)
         val forgedPlan = ActionPlan(
             appId = "com.example.external",
@@ -110,7 +110,7 @@ class CapabilityGrantServiceTest {
     fun emergencyStopBlocksCapabilityGrantWithoutAffectingRevocationPath() {
         val store = InMemoryPermissionStore()
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_001L })
+        val gate = testAuthorizationService(stop, clockEpochMillis = { 2_001L })
         val service = CapabilityGrantService(registry, store, gate)
         val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
@@ -125,7 +125,7 @@ class CapabilityGrantServiceTest {
     fun emergencyStopActivationCannotRacePastCapabilityGrantMutation() {
         val store = BlockingPermissionStore()
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_001L })
+        val gate = testAuthorizationService(stop, clockEpochMillis = { 2_001L })
         val service = CapabilityGrantService(registry, store, gate, stop)
         val plan = requireNotNull(service.createGrantPlan("com.example.safe", Capability.APP_LAUNCH, "open"))
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
@@ -193,7 +193,7 @@ class CapabilityGrantServiceTest {
     fun sessionBoundGrantRequiresMatchingActiveIdentitySession() {
         val store = InMemoryPermissionStore()
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_001L })
+        val gate = testAuthorizationService(stop, clockEpochMillis = { 2_001L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
@@ -231,7 +231,7 @@ class CapabilityGrantServiceTest {
     fun staleSessionCannotAuthorizeGrantAfterEmergencyStopReset() {
         val store = InMemoryPermissionStore()
         val stop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(stop, clockEpochMillis = { 2_001L })
+        val gate = testAuthorizationService(stop, clockEpochMillis = { 2_001L })
         val sessionManager = IdentitySessionManager(stop)
         val session = sessionManager.createSession(
             identity = IdentityLevel.TRUSTED_SIGNAL,
@@ -276,7 +276,7 @@ class CapabilityGrantServiceTest {
         val service = CapabilityGrantService(
             financialRegistry,
             InMemoryPermissionStore(),
-            ActionAuthorizationGate(clockEpochMillis = { 2_001L })
+            testAuthorizationService(clockEpochMillis = { 2_001L })
         )
 
         assertTrue(service.createGrantPlan("com.example.finance", Capability.FINANCIAL_ACTION, "pay") == null)

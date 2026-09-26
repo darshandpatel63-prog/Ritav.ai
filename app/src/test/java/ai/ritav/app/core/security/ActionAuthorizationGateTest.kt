@@ -4,7 +4,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class ActionAuthorizationGateTest {
+class ActionAuthorizationAuthorityTest {
     private val plan = ActionPlan(
         appId = "com.example.app",
         capability = Capability.SEND_MESSAGE,
@@ -17,7 +17,7 @@ class ActionAuthorizationGateTest {
     @Test
     fun emergencyStopBlocksGateLevelTokenMinting() {
         val emergencyStop = EmergencyStopController().apply { activate() }
-        val gate = ActionAuthorizationGate(emergencyStop)
+        val gate = testAuthorizationService(emergencyStop)
 
         try {
             gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
@@ -30,8 +30,10 @@ class ActionAuthorizationGateTest {
     @Test
     fun authorizationServiceDefaultsToGateEmergencyStop() {
         val emergencyStop = EmergencyStopController().apply { activate() }
-        val gate = ActionAuthorizationGate(emergencyStop)
-        val service = ActionAuthorizationService(gate, StubDeviceAuthorizationGateway())
+        val service = ActionAuthorizationService(
+            deviceAuthorization = StubDeviceAuthorizationGateway(),
+            emergencyStop = emergencyStop
+        )
 
         assertTrue(
             service.issueUserConfirmationToken(
@@ -43,7 +45,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun malformedPlanCannotMintAuthorizationToken() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val malformed = plan.copy(expectedState = "")
         try {
             gate.issue(malformed, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
@@ -55,7 +57,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun authorizationTtlCannotOverflowClock() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         try {
             gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, Long.MAX_VALUE, 1L)
             assertFalse(true)
@@ -67,7 +69,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun negativeAuthorizationClockCannotMintAuthorizationToken() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         try {
             gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, -1L)
             assertFalse(true)
@@ -78,7 +80,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun oversizedTokenIsRejectedWithoutChangingValidTokenState() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
         assertFalse(gate.consume("x".repeat(129), plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
         assertTrue(gate.consume(token, plan, AuthorizationLevel.USER_CONFIRMATION, 1_001L))
@@ -86,7 +88,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun negativeAuthorizationClockCannotConsumeAuthorizationToken() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         assertFalse(
@@ -102,7 +104,7 @@ class ActionAuthorizationGateTest {
     @Test
     fun tokenIssuedBeforeEmergencyStopCannotBeConsumedAfterResume() {
         val emergencyStop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(emergencyStop)
+        val gate = testAuthorizationService(emergencyStop)
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         emergencyStop.activate()
@@ -115,7 +117,7 @@ class ActionAuthorizationGateTest {
     @Test
     fun emergencyStopBlocksTokenConsumption() {
         val emergencyStop = EmergencyStopController()
-        val gate = ActionAuthorizationGate(emergencyStop)
+        val gate = testAuthorizationService(emergencyStop)
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
         emergencyStop.activate()
 
@@ -124,7 +126,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun tokenCanBeConsumedOnlyOnce() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(
             plan = plan,
             requiredLevel = AuthorizationLevel.USER_CONFIRMATION,
@@ -137,7 +139,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun tokenCannotBeReusedForDifferentAction() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(
             plan = plan,
             requiredLevel = AuthorizationLevel.USER_CONFIRMATION,
@@ -156,7 +158,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun rejectedWrongPlanAttemptDoesNotBurnValidToken() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         assertFalse(
@@ -172,7 +174,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun gateClockFailureFailsClosedOnTokenConsumption() {
-        val gate = ActionAuthorizationGate(clockEpochMillis = { error("clock failure") })
+        val gate = testAuthorizationService(clockEpochMillis = { error("clock failure") })
         val token = gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, 1_000L)
 
         assertFalse(
@@ -187,7 +189,7 @@ class ActionAuthorizationGateTest {
     @Test
     fun gateOwnedClockRejectsExpiredTokenEvenWhenLegacyCallerClockWouldAccept() {
         var now = 1_000L
-        val gate = ActionAuthorizationGate(clockEpochMillis = { now })
+        val gate = testAuthorizationService(clockEpochMillis = { now })
         val token = gate.issue(
             plan = plan,
             requiredLevel = AuthorizationLevel.USER_CONFIRMATION,
@@ -215,7 +217,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun expiredTokenIsRejected() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(
             plan = plan,
             requiredLevel = AuthorizationLevel.USER_CONFIRMATION,
@@ -228,7 +230,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun lowerAuthorizationTokenCannotBeMintedForHigherRiskPlan() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         try {
             gate.issue(plan.copy(riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE), AuthorizationLevel.USER_CONFIRMATION, 1_000L)
             assertFalse(true)
@@ -239,7 +241,7 @@ class ActionAuthorizationGateTest {
 
     @Test
     fun weakerAuthorizationCannotSatisfyStrongerToken() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(
             plan = plan.copy(riskTier = RiskTier.TIER_3_EXTERNAL_OR_IRREVERSIBLE),
             requiredLevel = AuthorizationLevel.DEVICE_AUTHENTICATION,
