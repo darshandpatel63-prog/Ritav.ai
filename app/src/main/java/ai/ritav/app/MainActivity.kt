@@ -47,6 +47,7 @@ class MainActivity : FragmentActivity() {
             var pendingTrustedRemovalPackage by remember { mutableStateOf<String?>(null) }
             var pendingTrustedRemovalPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var statusMessage by remember { mutableStateOf<String?>(null) }
+            var adminMode by remember { mutableStateOf(false) }
 
             val identitySession = activeIdentitySession?.takeIf {
                 it.isActive(System.currentTimeMillis())
