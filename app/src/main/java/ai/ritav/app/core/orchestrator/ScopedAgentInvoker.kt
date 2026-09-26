@@ -4,7 +4,7 @@ import ai.ritav.app.core.security.ActionPlan
 import ai.ritav.app.core.security.AppCapabilityRegistry
 import ai.ritav.app.core.security.Capability
 
-class ScopedAgentInvoker {
+internal class ScopedAgentInvoker {
     fun invoke(agent: SpecialistAgent, request: AgentRequest): AgentProposal? {
         val proposal = agent.propose(request) ?: return null
         if (proposal.taskId != request.taskId) return null
