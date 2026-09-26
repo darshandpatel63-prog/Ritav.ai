@@ -21,6 +21,8 @@ internal data class NetworkEgressDecision(
 )
 
 /**
+ * Security-internal policy evaluator; callers never receive network-I/O authority.
+ *
  * Defense-in-depth egress policy. The Android app currently has no INTERNET
  * permission, but this deterministic boundary also protects future connected
  * mode from accidentally sending private data through a new dependency.
