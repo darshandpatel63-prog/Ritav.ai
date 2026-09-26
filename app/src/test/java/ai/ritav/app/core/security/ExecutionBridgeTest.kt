@@ -503,6 +503,8 @@ class ExecutionBridgeTest {
             }
 
             override fun readAll(): List<AuditEvent> = baseLog.readAll()
+
+            override fun clear() = baseLog.clear()
         }
         val pipeline = SecurityExecutionPipeline(
             policy,
