@@ -16,7 +16,7 @@ class ActionPlanAuthorizationTest {
 
     @Test
     fun tokenIsBoundToExactPlan() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(plan(), AuthorizationLevel.DEVICE_AUTHENTICATION, 1_000L)
 
         assertFalse(gate.consume(token, plan("delete"), AuthorizationLevel.DEVICE_AUTHENTICATION, 1_001L))
@@ -24,7 +24,7 @@ class ActionPlanAuthorizationTest {
 
     @Test
     fun matchingPlanCanConsumeOnce() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(plan(), AuthorizationLevel.DEVICE_AUTHENTICATION, 1_000L)
 
         assertTrue(gate.consume(token, plan(), AuthorizationLevel.DEVICE_AUTHENTICATION, 1_001L))
@@ -33,7 +33,7 @@ class ActionPlanAuthorizationTest {
 
     @Test
     fun lowerAuthorizationLevelCannotSatisfyGrant() {
-        val gate = ActionAuthorizationGate()
+        val gate = testAuthorizationService()
         val token = gate.issue(plan(), AuthorizationLevel.DEVICE_AUTHENTICATION, 1_000L)
 
         assertFalse(gate.consume(token, plan(), AuthorizationLevel.USER_CONFIRMATION, 1_001L))
