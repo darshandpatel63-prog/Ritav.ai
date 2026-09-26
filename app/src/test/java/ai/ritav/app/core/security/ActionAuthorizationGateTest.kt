@@ -171,6 +171,35 @@ class ActionAuthorizationGateTest {
     }
 
     @Test
+    fun gateOwnedClockRejectsExpiredTokenEvenWhenLegacyCallerClockWouldAccept() {
+        var now = 1_000L
+        val gate = ActionAuthorizationGate(clockEpochMillis = { now })
+        val token = gate.issue(
+            plan = plan,
+            requiredLevel = AuthorizationLevel.USER_CONFIRMATION,
+            nowEpochMillis = 1_000L
+        )
+
+        now = 62_001L
+
+        assertFalse(
+            gate.consume(
+                token,
+                plan,
+                AuthorizationLevel.USER_CONFIRMATION
+            )
+        )
+        assertFalse(
+            gate.consume(
+                token,
+                plan,
+                AuthorizationLevel.USER_CONFIRMATION,
+                1_001L
+            )
+        )
+    }
+
+    @Test
     fun expiredTokenIsRejected() {
         val gate = ActionAuthorizationGate()
         val token = gate.issue(
