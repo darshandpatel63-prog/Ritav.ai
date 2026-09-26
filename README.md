@@ -847,3 +847,18 @@ No post-merge green claim is made until all three exact merge-commit runs comple
 
 ### NEXT ACTION
 Complete the Android launch/security gate with fresh current-main release-build evidence and then perform the final Android launch/security consolidated review. Preserve the deterministic authorization boundary while continuing native-platform work incrementally; do not add speculative cloud/provider integrations.
+
+
+## 2026-09-26 — Windows secure-storage hardening checkpoint
+
+- PR #14 was merged after exact-head verification.
+- Exact PR #14 head before merge: de51f3e17cd65afad08e1d2e3eece046cc94a7d6.
+- Merge commit: 23ae67057dcd180d2167d12e8c55174043b31981.
+- Exact-head verification: Windows Run #18 (36218828039) SUCCESS; Android Run #489 (36218828028) SUCCESS; iOS Run #86 (36218828034) SUCCESS.
+- Post-merge verification: Windows Run #19 (36219057179) SUCCESS; Android Run #490 (36219057164) SUCCESS; iOS Run #87 (36219057172) SUCCESS.
+- Android release validation Run #16 (36219057173) failed in the release unit-test/build step; one rerun also failed. This remains an outstanding CI issue and is not treated as Windows-layer validation failure.
+- Windows secure storage remains storage-only: no authorization, capability, model, network, finance or execution authority; Windows Hello is not implemented.
+- Replacement now uses Windows MoveFileExW replacement semantics with unique temporary files, removing the previous explicit delete-before-rename target-absence window.
+- Crash/power-loss durability is not claimed: stdio write+close does not establish a durability guarantee.
+- Same-key concurrent writers are not transactionally serialized; unique temporary names prevent shared-temp collisions, but the store is not a concurrency coordinator.
+- No physical Windows-host validation, signed Windows production packaging, or full Windows product support is claimed.
