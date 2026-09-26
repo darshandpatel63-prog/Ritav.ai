@@ -6,7 +6,7 @@ import java.lang.reflect.InvocationTargetException
  * Test-only construction/legacy authorization probes. Production code does not
  * expose the raw token gate or caller-controlled token minting surface.
  */
-fun testAuthorizationService(
+internal fun testAuthorizationService(
     emergencyStop: EmergencyStopController = EmergencyStopController(),
     clockEpochMillis: () -> Long = System::currentTimeMillis
 ): ActionAuthorizationService = ActionAuthorizationService(
@@ -19,7 +19,7 @@ fun testAuthorizationService(
  * Test-only raw issuance probe for low-level token-boundary regression coverage.
  * This uses reflection solely because the production raw issuer is private.
  */
-fun ActionAuthorizationService.issue(
+internal fun ActionAuthorizationService.issue(
     plan: ActionPlan,
     requiredLevel: AuthorizationLevel,
     nowEpochMillis: Long,
@@ -40,7 +40,7 @@ fun ActionAuthorizationService.issue(
 }
 
 /** Test-only deterministic consume probe for caller-time regression tests. */
-fun ActionAuthorizationService.consume(
+internal fun ActionAuthorizationService.consume(
     token: String,
     plan: ActionPlan,
     providedLevel: AuthorizationLevel,
