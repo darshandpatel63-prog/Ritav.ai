@@ -1307,3 +1307,39 @@ Therefore the post-merge verification loop is **not yet closed** at this documen
 - Physical-device/real-host validation.
 - Signed production release validation.
 - Final end-to-end integration and consolidated security audit.
+
+
+## 2026-09-26 — Windows secure-storage hardening completed
+
+### Live security-layer result
+- PR #14 merged at 23ae67057dcd180d2167d12e8c55174043b31981.
+- Exact PR head: de51f3e17cd65afad08e1d2e3eece046cc94a7d6.
+- Windows exact-head Run #18 (36218828039) — SUCCESS.
+- Android exact-head Run #489 (36218828028) — SUCCESS.
+- iOS exact-head Run #86 (36218828034) — SUCCESS.
+- Post-merge Windows Run #19 (36219057179) — SUCCESS.
+- Post-merge Android Run #490 (36219057164) — SUCCESS, including managed-device instrumentation.
+- Post-merge iOS Run #87 (36219057172) — SUCCESS.
+- Android release validation Run #16 (36219057173) failed in release unit-test/release-build validation; a rerun also failed. This is tracked separately and is not evidence against the Windows storage runtime itself.
+
+### Windows storage hardening
+- WindowsSecureLocalStore remains a PlatformSecureLocalStore implementation only.
+- Windows DPAPI remains user-scoped and local-only.
+- Plaintext, ciphertext, key length and path inputs remain bounded.
+- ensureDirectory() now closes the verification directory handle.
+- Write failures are not masked by close failures.
+- Replacement uses Windows MoveFileExW with MOVEFILE_REPLACE_EXISTING after writing a uniquely named sibling temporary file.
+- The previous explicit delete-before-rename availability/crash window has been removed.
+- Temporary-file cleanup remains fail-closed on replacement failure.
+
+### Security review result
+Reviewed call path, DPAPI allocation/free lifecycle, key/path validation, filesystem failure paths, replacement behavior, concurrent-writer behavior, resource bounds, privacy/egress and separation from authorization/capability/model/network/execution. No demonstrated CRITICAL/HIGH/MEDIUM bypass was identified in this layer.
+
+### Non-claims / remaining limits
+- No physical Windows-host validation.
+- No signed Windows production package validation.
+- Windows Hello/device authentication is not implemented.
+- Full Windows product/runtime support is not claimed.
+- Power-loss/crash durability is not guaranteed by the current stdio write+close path.
+- Same-key concurrent writers are not serialized by a transactional lock; the store is not a concurrency coordinator.
+- DPAPI user scope is not a same-user process isolation boundary.
