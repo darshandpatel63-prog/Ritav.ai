@@ -207,6 +207,7 @@ jobs:
           print(secrets.token_urlsafe(32))
           PY
           )"
+          echo "::add-mask::$password"
           umask 077
           keytool -genkeypair             -keystore "$keystore"             -storepass "$password"             -keypass "$password"             -alias ritav-ci-validation             -keyalg RSA             -keysize 2048             -validity 2             -dname "CN=Ritav CI Validation, OU=Security, O=Ritav.ai, L=CI, S=CI, C=US"             -noprompt
           {
@@ -220,10 +221,6 @@ jobs:
       - name: Validate release unit tests and signed release build
         run: >
           gradle --no-daemon
-          -PRITAV_SIGNING_STORE_FILE="$RITAV_SIGNING_STORE_FILE"
-          -PRITAV_SIGNING_STORE_PASSWORD="$RITAV_SIGNING_STORE_PASSWORD"
-          -PRITAV_SIGNING_KEY_ALIAS="$RITAV_SIGNING_KEY_ALIAS"
-          -PRITAV_SIGNING_KEY_PASSWORD="$RITAV_SIGNING_KEY_PASSWORD"
           :core:jvmTest
           testDebugUnitTest
           testReleaseUnitTest
