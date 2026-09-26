@@ -86,13 +86,7 @@ class MainActivity : FragmentActivity() {
                                 "Device authentication did not establish a trusted session."
                             }
                         }
-                    GlobalAdaptiveFloatingNavigation(
-                        items = listOf(
-                            GlobalNavItem("Home", "⌂") { adminMode = false },
-                            GlobalNavItem("Security", "◈") { adminMode = true }
-                        ),
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    }
                 }
             }
 
