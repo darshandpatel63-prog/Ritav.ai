@@ -234,13 +234,10 @@ class ActionAuthorizationServiceTest {
         service.issueDeviceAuthenticationToken(plan, "Authorize action") { token = it }
         assertNull(token)
 
-        // Simulate authentication completing after a significant delay.
         now = 120_000L
         authenticationCallback!!.invoke(true)
         assertNotNull(token)
 
-        // A token minted from the old pre-auth timestamp (1000 ms) would already
-        // be expired here. The post-auth timestamp keeps the intended full TTL.
         assertEquals(
             true,
             gate.consume(token!!, plan, AuthorizationLevel.DEVICE_AUTHENTICATION, 120_000L + 60_000L)
