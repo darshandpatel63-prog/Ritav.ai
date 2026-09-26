@@ -12,18 +12,26 @@ class ActionAuthorizationService(
     private val clockEpochMillis: () -> Long = System::currentTimeMillis,
     private val emergencyStop: EmergencyStopController = gate.emergencyStopController()
 ) {
+    /**
+     * Mints a one-time user-confirmation token using the service-owned clock at
+     * the authorization event itself. A caller-supplied timestamp is never
+     * trusted for token lifetime.
+     */
     fun issueUserConfirmationToken(
         plan: ActionPlan,
-        confirmedPlanHash: String,
-        nowEpochMillis: Long
+        confirmedPlanHash: String
     ): String? {
         if (!plan.isValid()) return null
         if (emergencyStop.isActive()) return null
         if (plan.riskTier != RiskTier.TIER_2_CONTENT_MUTATION) return null
         if (confirmedPlanHash != plan.stableHash()) return null
-        if (nowEpochMillis < 0) return null
+
         return runCatching {
-            gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, nowEpochMillis)
+            val now = clockEpochMillis()
+            if (now < 0L || emergencyStop.isActive()) {
+                return@runCatching null
+            }
+            gate.issue(plan, AuthorizationLevel.USER_CONFIRMATION, now)
         }.getOrNull()
     }
 
