@@ -22,14 +22,12 @@ import platform.posix.getenv
 import platform.posix.mkdir
 import platform.posix.remove
 import platform.posix.errno
-import platform.posix.rename
 import platform.posix.opendir
 import platform.windows.CRYPTPROTECT_UI_FORBIDDEN
 import platform.windows.CryptProtectData
 import platform.windows.CryptUnprotectData
 import platform.windows.DATA_BLOB
 import platform.windows.MoveFileExW
-import platform.windows.ReplaceFileW
 import platform.windows.GetLastError
 import platform.windows.LocalFree
 
@@ -188,18 +186,10 @@ class WindowsSecureLocalStore(
     }
 
     private fun replaceFile(temp: String, target: String) {
-        // ReplaceFileW removes the prior delete-then-rename availability gap.
-        // MoveFileExW covers first creation when the target does not yet exist.
-        if (ReplaceFileW(target.wcstr, temp.wcstr, null, 0u, null, null) != 0) {
-            return
-        }
-
-        val replaceError = GetLastError()
+        // MoveFileExW with replacement avoids the prior delete-then-rename
+        // availability gap and handles both first creation and overwrite.
         if (MoveFileExW(temp.wcstr, target.wcstr, MOVEFILE_REPLACE_EXISTING) == 0) {
-            error(
-                "Windows secure local replace failed: replaceError=" +
-                    replaceError + " moveError=" + GetLastError()
-            )
+            error("Windows secure local replace failed: error=" + GetLastError())
         }
     }
 
