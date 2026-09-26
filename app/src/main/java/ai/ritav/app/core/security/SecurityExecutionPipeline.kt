@@ -114,6 +114,9 @@ internal class SecurityExecutionPipeline(
 
     fun audit(): List<AuditEvent> = auditLog.readAll()
 
+    internal fun emergencyStopController(): EmergencyStopController =
+        authorizationService.emergencyStopController()
+
     private fun denyAndAudit(
         request: SecurityExecutionRequest,
         actionHash: String?,
