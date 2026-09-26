@@ -19,14 +19,14 @@ import ai.ritav.app.core.security.ExpectedActionStateRegistry
  * target-app foreground observation after launch dispatch. The common security
  * boundary remains authoritative.
  */
-class AndroidIntentActionAdapter internal constructor(
+internal class AndroidIntentActionAdapter internal constructor(
     private val dispatcher: AndroidAppLaunchDispatcher,
     private val isTrustedPackage: (String) -> Boolean,
     private val targetAppResultObserver: AndroidTargetAppResultObserver,
     private val clock: () -> Long = System::currentTimeMillis
 ) : AndroidActionAdapter {
 
-    constructor(
+    internal constructor(
         context: Context,
         registry: AppCapabilityRegistry
     ) : this(

@@ -38,7 +38,7 @@ class AndroidExecutionRuntime(
 
     private val identitySessionManager = IdentitySessionManager(emergencyStop)
     private val deviceAuthorization = AndroidDeviceAuthorizationGateway(activity)
-    val authorizationService: ActionAuthorizationService =
+    internal val authorizationService: ActionAuthorizationService =
         ActionAuthorizationService(
             deviceAuthorization = deviceAuthorization,
             emergencyStop = emergencyStop
@@ -51,7 +51,7 @@ class AndroidExecutionRuntime(
         auditLog = securityState.auditLog
     )
 
-    val executionBridge: ExecutionBridge = ExecutionBridge(
+    val executionBridge: SecureExecutionPort = ExecutionBridge(
         capabilityPolicyGate = CapabilityPolicyGate(capabilityRegistry),
         securityPipeline = securityPipeline,
         adapter = AndroidIntentActionAdapter(activity.applicationContext, capabilityRegistry)

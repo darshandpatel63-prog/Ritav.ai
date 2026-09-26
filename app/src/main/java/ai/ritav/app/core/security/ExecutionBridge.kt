@@ -1,7 +1,7 @@
 package ai.ritav.app.core.security
 
-/** Only approved Android adapters implement this interface. */
-interface AndroidActionAdapter {
+/** Internal adapter contract; final dispatch implementations are not a public app API. */
+internal interface AndroidActionAdapter {
     fun execute(plan: ActionPlan): ExecutionResult
 }
 
@@ -15,15 +15,8 @@ data class ExecutionResult(
     val verificationEvidence: VerificationEvidence? = null
 )
 
-/** Final execution boundary. No adapter execution occurs before the full security pipeline passes. */
-class ExecutionBridge(
-    private val capabilityPolicyGate: CapabilityPolicyGate,
-    private val securityPipeline: SecurityExecutionPipeline,
-    private val adapter: AndroidActionAdapter,
-    private val semanticResultVerifier: SemanticResultVerifier = SemanticResultVerifier(),
-    private val auditLog: AuditLog = securityPipeline.auditLog,
-    private val clock: () -> Long = { System.currentTimeMillis() }
-) {
+/** Public-safe execution port exposed by the trusted runtime composition root. */
+interface SecureExecutionPort {
     fun execute(
         plan: ActionPlan,
         userExplicitlyRequested: Boolean,
@@ -32,6 +25,26 @@ class ExecutionBridge(
         authorizationToken: String? = null,
         identitySession: SecuritySession? = null,
         inputText: String? = null
+    ): ExecutionResult
+}
+
+/** Final execution implementation. Construction is internal to the app security module. */
+internal class ExecutionBridge(
+    private val capabilityPolicyGate: CapabilityPolicyGate,
+    private val securityPipeline: SecurityExecutionPipeline,
+    private val adapter: AndroidActionAdapter,
+    private val semanticResultVerifier: SemanticResultVerifier = SemanticResultVerifier(),
+    private val auditLog: AuditLog = securityPipeline.auditLog,
+    private val clock: () -> Long = { System.currentTimeMillis() }
+) : SecureExecutionPort {
+    override fun execute(
+        plan: ActionPlan,
+        userExplicitlyRequested: Boolean,
+        authorizationLevel: AuthorizationLevel,
+        containsSensitiveData: Boolean,
+        authorizationToken: String?,
+        identitySession: SecuritySession?,
+        inputText: String?
     ): ExecutionResult {
         val now = runCatching { clock() }.getOrElse {
             return ExecutionResult(false, false, "Security clock unavailable")
