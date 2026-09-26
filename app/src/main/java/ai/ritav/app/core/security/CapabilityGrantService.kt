@@ -12,8 +12,7 @@ internal class CapabilityGrantService(
     private val permissionStore: MutablePermissionStore,
     private val authorizationGate: ActionAuthorizationGate,
     private val emergencyStop: EmergencyStopController = authorizationGate.emergencyStopController(),
-    private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(emergencyStop),
-    private val clockEpochMillis: () -> Long = System::currentTimeMillis
+    private val identitySessionManager: IdentitySessionManager = IdentitySessionManager(emergencyStop)
 ) {
     fun createGrantPlan(
         packageName: String,
@@ -70,10 +69,6 @@ internal class CapabilityGrantService(
         nowEpochMillis: Long,
         identitySession: SecuritySession? = null
     ): Boolean {
-        val securityNow = runCatching { clockEpochMillis() }
-            .getOrNull()
-            ?.takeIf { it >= 0L }
-            ?: return false
         return emergencyStop.runIfInactive {
             if (!plan.isValid() || plan.expectedState != GRANT_EXPECTED_STATE) return@runIfInactive false
             if (plan.action.length <= GRANT_ACTION_PREFIX.length ||
@@ -92,7 +87,7 @@ internal class CapabilityGrantService(
 
             if (plan.sessionId != null) {
                 if (identitySession == null || identitySession.id != plan.sessionId) return@runIfInactive false
-                if (!identitySessionManager.permitsProtectedCapability(identitySession)) {
+                if (!identitySessionManager.permitsProtectedCapability(identitySession, nowEpochMillis)) {
                     return@runIfInactive false
                 }
             }
