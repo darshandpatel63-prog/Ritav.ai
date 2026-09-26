@@ -1,7 +1,6 @@
 package ai.ritav.app.platform
 
 import android.content.Intent
-import android.provider.Settings
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import ai.ritav.app.MainActivity
@@ -12,7 +11,8 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class AndroidTargetAppForegroundObserverInstrumentationTest {
-    @Test fun usageStatsReaderCanObserveForegroundTransitionOnManagedDevice() {
+    @Test
+    fun usageStatsReaderCanObserveForegroundTransitionOnManagedDevice() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
 
@@ -25,24 +25,23 @@ class AndroidTargetAppForegroundObserverInstrumentationTest {
         val observer = AndroidTargetAppForegroundObserver(context)
         assertTrue(observer.canObserve(context.packageName))
 
-        val settingsIntent = Intent(Settings.ACTION_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val settingsPackage =
-            context.packageManager.resolveActivity(
-                settingsIntent,
-                android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
-            )?.activityInfo?.packageName
-        assertTrue(settingsPackage != null)
+        instrumentation.uiAutomation
+            .executeShellCommand("input keyevent KEYCODE_HOME")
+            .close()
+        Thread.sleep(200)
 
         val dispatchStartedAtMillis = System.currentTimeMillis()
-        context.startActivity(settingsIntent)
+        context.startActivity(
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
 
         val observation = observer.observeForegroundAfterDispatch(
-            packageName = settingsPackage!!,
+            packageName = context.packageName,
             dispatchStartedAtMillis = dispatchStartedAtMillis
         )
         assertTrue(observation != null)
-        assertEquals(settingsPackage, observation?.packageName)
+        assertEquals(context.packageName, observation?.packageName)
         assertTrue((observation?.observedAtMillis ?: -1L) >= dispatchStartedAtMillis)
     }
 }
