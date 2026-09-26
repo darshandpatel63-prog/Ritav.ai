@@ -13,7 +13,7 @@ data class AppCapabilitySpec(
 )
 
 /** Sanitized capability metadata suitable for user-facing authorization flows. */
-internal data class CapabilityGrantCandidate(
+data class CapabilityGrantCandidate(
     val packageName: String,
     val capability: Capability,
     val action: String,
