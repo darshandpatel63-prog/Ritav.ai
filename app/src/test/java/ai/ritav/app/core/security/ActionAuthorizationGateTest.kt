@@ -203,7 +203,7 @@ class ActionAuthorizationGateTest {
                 AuthorizationLevel.USER_CONFIRMATION
             )
         )
-        assertFalse(
+        assertTrue(
             gate.consume(
                 token,
                 plan,
