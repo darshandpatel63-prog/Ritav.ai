@@ -1,0 +1,39 @@
+name: macOS platform runtime
+
+on:
+  pull_request:
+    paths:
+      - "core/**"
+      - "build.gradle.kts"
+      - ".github/workflows/macos-platform-test.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "core/**"
+      - "build.gradle.kts"
+      - ".github/workflows/macos-platform-test.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-platform-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-platform:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+      - name: Verify macOS toolchain
+        run: sw_vers
+      - name: Run macOS native security tests
+        run: gradle :core:macosArm64Test --no-daemon --stacktrace
