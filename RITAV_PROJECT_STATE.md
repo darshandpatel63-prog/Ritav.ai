@@ -1840,3 +1840,29 @@ Revalidated the integrated security boundary on current `main` across:
 - Security-before-UI Gate: approximately **99%** planning estimate.
 - Product/conversational UI: **0%**.
 
+## 2026-09-26 AUTHORITATIVE SECURITY CLOSURE CHECKPOINT — Public-boundary hardening + Emergency Stop dispatch race closed
+
+### CURRENT LIVE MAIN
+- Current live `main` HEAD: `8fb9685e547c821bc395d34ce82404265999b7e6`.
+- No open pull requests remain after the latest security merge.
+
+### COMPLETED IN THIS CLOSURE PHASE
+- PR #27 merged at `cbb99ffc51c718fe7131bf54a8db57145f5cf2d0`: secure local storage and audit authorities were made module-internal.
+- PR #28 merged at `a70526733d4ba5ad94a85f5604d43ebeca70400f`: model runtime/output/gateway construction, policy/composition helpers, egress evaluator, and Android execution-runtime construction were restricted to internal composition boundaries. Exact PR-head Android Run #558 succeeded, including JVM tests/compile and managed-device instrumentation.
+- PR #29 merged at `8fb9685e547c821bc395d34ce82404265999b7e6`: the authoritative Emergency Stop controller now guards the final adapter-dispatch boundary, closing the authorization-to-dispatch TOCTOU window. Exact PR-head Run #561 succeeded, including JVM tests/compile and managed-device instrumentation. Run #560 failed only because the new test fake initially omitted the required `AuditLog.clear()` member; that test-only compile issue was corrected and Run #561 passed.
+- A consolidated review of the PR #29 call path covered policy approval, one-time authorization consumption, shared Emergency Stop state, final adapter dispatch, audit events and failure behavior. The new regression deterministically proves that when Emergency Stop becomes active after policy authorization but before dispatch, the adapter is not called.
+
+### SECURITY-BEFORE-UI STATUS
+Product/conversational UI remains intentionally blocked. Existing security/admin Compose UI continues to use only the safe `SecurityControlPort` boundary.
+
+### REMAINING LAUNCH-CLOSURE EVIDENCE
+These are validation/integration gates rather than a demonstrated bypass in the reviewed code:
+- Physical-device / real-host validation across the applicable platforms is still unverified.
+- Actual production signing/distribution identity validation remains pending; CI ephemeral signing validation is not production-key evidence.
+- The concrete production model/provider runtime remains intentionally unavailable/fail-closed until a reviewed provider/runtime is selected and integrated.
+- The production trusted external-app registry remains empty/deny-by-default until deliberate reviewed trust entries exist.
+- Sensitive-information detection remains pattern-based defense-in-depth, not complete contextual classification.
+- Post-merge workflow results for the latest merge commit are not claimed green when the connected workflow-run interface does not expose them.
+
+### UI GATE RULE
+Do not begin product/conversational UI implementation until the remaining launch-closure evidence and final consolidated system-level security review are complete. The safe security-control facade may be reused by future UI; raw authorization, permission-store, audit/storage, execution-adapter and model-provider authorities remain behind internal boundaries.
