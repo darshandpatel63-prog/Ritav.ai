@@ -1,6 +1,7 @@
 package ai.ritav.app.platform
 
 import android.content.Intent
+import android.provider.Settings
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import ai.ritav.app.MainActivity
@@ -24,18 +25,24 @@ class AndroidTargetAppForegroundObserverInstrumentationTest {
         val observer = AndroidTargetAppForegroundObserver(context)
         assertTrue(observer.canObserve(context.packageName))
 
+        val settingsIntent = Intent(Settings.ACTION_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val settingsPackage =
+            context.packageManager.resolveActivity(
+                settingsIntent,
+                android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
+            )?.activityInfo?.packageName
+        assertTrue(settingsPackage != null)
+
         val dispatchStartedAtMillis = System.currentTimeMillis()
-        context.startActivity(
-            Intent(context, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
+        context.startActivity(settingsIntent)
 
         val observation = observer.observeForegroundAfterDispatch(
-            packageName = context.packageName,
+            packageName = settingsPackage!!,
             dispatchStartedAtMillis = dispatchStartedAtMillis
         )
         assertTrue(observation != null)
-        assertEquals(context.packageName, observation?.packageName)
+        assertEquals(settingsPackage, observation?.packageName)
         assertTrue((observation?.observedAtMillis ?: -1L) >= dispatchStartedAtMillis)
     }
 }
