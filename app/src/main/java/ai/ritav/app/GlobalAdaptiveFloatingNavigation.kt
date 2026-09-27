@@ -40,6 +40,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
@@ -169,14 +170,6 @@ internal fun GlobalAdaptiveFloatingNavigation(
                         }
                     )
                 }
-                .semantics {
-                    contentDescription =
-                        if (initialPosition.fixed) {
-                            "Ritav global navigation, fixed"
-                        } else {
-                            "Ritav global navigation, movable"
-                        }
-                }
         ) {
             Surface(
                 onClick = {
@@ -186,7 +179,16 @@ internal fun GlobalAdaptiveFloatingNavigation(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary,
                 tonalElevation = 5.dp,
-                shadowElevation = 4.dp
+                shadowElevation = 4.dp,
+                modifier = Modifier.semantics {
+                    contentDescription =
+                        if (initialPosition.fixed) {
+                            "Ritav global navigation, fixed"
+                        } else {
+                            "Ritav global navigation, movable"
+                        }
+                    role = Role.Button
+                }
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
