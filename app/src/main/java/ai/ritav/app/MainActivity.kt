@@ -2,7 +2,6 @@ package ai.ritav.app
 
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.DisposableEffect
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,7 +24,6 @@ import ai.ritav.app.core.security.AndroidExecutionRuntime
 import ai.ritav.app.core.security.CapabilityGrantCandidate
 import ai.ritav.app.core.security.SecurityControlPort
 import ai.ritav.app.core.security.SecuritySession
-import ai.ritav.app.core.security.TaskRuntimeSnapshot
 
 class MainActivity : FragmentActivity() {
     private lateinit var executionRuntime: AndroidExecutionRuntime
@@ -57,19 +56,6 @@ class MainActivity : FragmentActivity() {
                     }
                 }
                 onDispose { subscription.close() }
-            }
-
-            fun activateEmergencyStopFromShell() {
-                securityControl.activateEmergencyStop()
-                stopped = true
-                activeIdentitySession = null
-                dismissPendingApproval()
-                dismissPendingTrustedApproval()
-                dismissPendingTrustedRemoval()
-                setStatus(
-                    "Emergency Stop activated. Protected actions are blocked.",
-                    RitavFeedbackTone.ERROR
-                )
             }
 
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
@@ -110,6 +96,19 @@ class MainActivity : FragmentActivity() {
             fun dismissPendingTrustedRemoval() {
                 pendingTrustedRemovalPackage = null
                 pendingTrustedRemovalPlan = null
+            }
+
+            fun activateEmergencyStopFromShell() {
+                securityControl.activateEmergencyStop()
+                stopped = true
+                activeIdentitySession = null
+                dismissPendingApproval()
+                dismissPendingTrustedApproval()
+                dismissPendingTrustedRemoval()
+                setStatus(
+                    "Emergency Stop activated. Protected actions are blocked.",
+                    RitavFeedbackTone.ERROR
+                )
             }
 
             fun authenticateProtectedActions() {
