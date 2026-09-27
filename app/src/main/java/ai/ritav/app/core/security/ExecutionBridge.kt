@@ -51,8 +51,8 @@ internal class ExecutionBridge(
         val now = runCatching { clock() }.getOrElse {
             taskRuntimeState.update(
                 state = TaskRuntimeState.BLOCKED,
-                taskId = plan.stableHash(),
-                taskName = "${plan.capability.name}: ${plan.action}",
+                taskId = null,
+                taskName = "Protected action",
                 currentStep = "Security validation",
                 summary = "Execution could not start because the security clock was unavailable."
             )
@@ -81,7 +81,7 @@ internal class ExecutionBridge(
             return ExecutionResult(false, false, "Action plan is malformed or exceeds security bounds")
         }
         val taskId = plan.stableHash()
-        val taskName = "\${plan.capability.name}: \${plan.action}"
+        val taskName = "${plan.capability.name}: ${plan.action}"
         val actionHash = taskId
         val action = ActionRequest(
             appId = plan.appId,
