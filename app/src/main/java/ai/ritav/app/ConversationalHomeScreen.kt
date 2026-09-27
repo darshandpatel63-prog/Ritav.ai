@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -22,6 +24,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import ai.ritav.app.core.security.SecurityControlPort
 
@@ -84,7 +90,26 @@ internal fun ConversationalHomeScreen(
             )
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription =
+                        if (stopped) {
+                            "Security status: Emergency Stop active. Protected actions are blocked."
+                        } else {
+                            "Security status: active. AI output does not authorize or execute actions."
+                        }
+                },
+            colors = CardDefaults.cardColors(
+                containerColor = if (stopped) {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                }
+            )
+        ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     if (stopped) "Protected actions are blocked." else "Security boundary active.",
@@ -96,15 +121,44 @@ internal fun ConversationalHomeScreen(
         }
 
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(messages) { message ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = message.text,
-                        modifier = Modifier.padding(12.dp)
-                    )
+                val label = if (message.fromUser) "You" else "Ritav"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (message.fromUser) {
+                        Arrangement.End
+                    } else {
+                        Arrangement.Start
+                    }
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth(0.86f)
+                            .semantics {
+                                contentDescription = label + " message: " + message.text
+                            },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (message.fromUser) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(text = message.text)
+                        }
+                    }
                 }
             }
         }
@@ -112,7 +166,11 @@ internal fun ConversationalHomeScreen(
         OutlinedTextField(
             value = input,
             onValueChange = { input = it.take(4096) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = "Message Ritav input"
+                },
             enabled = !stopped,
             minLines = 1,
             maxLines = 5,
