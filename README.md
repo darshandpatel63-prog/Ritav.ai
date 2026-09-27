@@ -1367,3 +1367,8 @@ The UI shell now consumes a read-only task runtime status facade connected to th
 
 Implementation checkpoint SHA before documentation-only commits: `e9194dac86184302d22bb87529834c3e1dd24cad`.
 CI/real-device verification remains explicitly separate and is not claimed until evidence is available.
+
+## Live Task Stop Control — 2026-09-27
+The live-task panel now exposes Emergency Stop while an authoritative task is executing or being verified. The control routes through the existing deterministic security authority rather than introducing UI-side execution control.
+
+Latest implementation checkpoint: `d14ac700272594019946b3dcf08d7b6e665fa6f5`.
