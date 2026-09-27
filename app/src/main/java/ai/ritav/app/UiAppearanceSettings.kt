@@ -22,6 +22,7 @@ internal fun UiAppearanceSettings(
     onThemeFamilyChanged: (UiThemeFamily) -> Unit,
     motionPreference: UiMotionPreference,
     onMotionPreferenceChanged: (UiMotionPreference) -> Unit,
+    onButtonStyleChanged: (UiButtonStyle) -> Unit,
     onNavigationFixedChanged: (Boolean) -> Unit,
     onResetNavigationPosition: () -> Unit
 ) {
@@ -77,6 +78,20 @@ internal fun UiAppearanceSettings(
                         selected = motionPreference == preference,
                         onClick = { onMotionPreferenceChanged(preference) },
                         label = { Text(preference.displayName()) }
+                    )
+                }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Button style", style = MaterialTheme.typography.titleMedium)
+            Text("Choose the shared presentation style for standard Ritav actions.")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                UiButtonStyle.values().forEach { style ->
+                    FilterChip(
+                        selected = uiPreferences.buttonStyle == style,
+                        onClick = { onButtonStyleChanged(style) },
+                        label = { Text(style.displayName()) }
                     )
                 }
             }
