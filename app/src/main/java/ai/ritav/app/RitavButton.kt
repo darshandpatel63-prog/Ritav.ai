@@ -9,7 +9,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun RitavButton(
@@ -22,12 +25,15 @@ internal fun RitavButton(
     content: (@Composable RowScope.() -> Unit)? = null
 ) {
     val contentBlock: @Composable RowScope.() -> Unit = content ?: { Text(label) }
+    val buttonModifier = modifier.heightIn(min = 48.dp)
+    val buttonShape = RoundedCornerShape(16.dp)
 
     when (style) {
         UiButtonStyle.FILLED -> Button(
             onClick = onClick,
-            modifier = modifier,
+            modifier = buttonModifier,
             enabled = enabled,
+            shape = buttonShape,
             colors = if (destructive) {
                 ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             } else {
@@ -37,8 +43,9 @@ internal fun RitavButton(
         )
         UiButtonStyle.TONAL -> FilledTonalButton(
             onClick = onClick,
-            modifier = modifier,
+            modifier = buttonModifier,
             enabled = enabled,
+            shape = buttonShape,
             colors = if (destructive) {
                 ButtonDefaults.filledTonalButtonColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -51,8 +58,9 @@ internal fun RitavButton(
         )
         UiButtonStyle.OUTLINED -> OutlinedButton(
             onClick = onClick,
-            modifier = modifier,
+            modifier = buttonModifier,
             enabled = enabled,
+            shape = buttonShape,
             colors = if (destructive) {
                 ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
             } else {
@@ -62,8 +70,9 @@ internal fun RitavButton(
         )
         UiButtonStyle.MINIMAL -> TextButton(
             onClick = onClick,
-            modifier = modifier,
+            modifier = buttonModifier,
             enabled = enabled,
+            shape = buttonShape,
             colors = if (destructive) {
                 ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
             } else {
