@@ -258,6 +258,7 @@ class MainActivity : FragmentActivity() {
                         when (destination) {
                             AppDestination.HOME -> ConversationalHomeScreen(
                                 securityControl = securityControl,
+                                buttonStyle = uiPreferences.buttonStyle,
                                 onOpenSecurityCenter = { destination = AppDestination.SECURITY }
                             )
                             AppDestination.SECURITY -> {
@@ -354,6 +355,10 @@ class MainActivity : FragmentActivity() {
                                 onMotionPreferenceChanged = { preference ->
                                     uiPreferences = uiPreferences.copy(motionPreference = preference)
                                     uiPreferencesStore.saveMotionPreference(preference)
+                                },
+                                onButtonStyleChanged = { style ->
+                                    uiPreferences = uiPreferences.copy(buttonStyle = style)
+                                    uiPreferencesStore.saveButtonStyle(style)
                                 },
                                 onNavigationFixedChanged = { fixed ->
                                     navigationPosition = navigationPosition.copy(fixed = fixed)
