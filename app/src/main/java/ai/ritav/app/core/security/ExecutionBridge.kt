@@ -52,7 +52,7 @@ internal class ExecutionBridge(
             taskRuntimeState.update(
                 state = TaskRuntimeState.BLOCKED,
                 taskId = plan.stableHash(),
-                taskName = "\${plan.capability.name}: \${plan.action}",
+                taskName = "${plan.capability.name}: ${plan.action}",
                 currentStep = "Security validation",
                 summary = "Execution could not start because the security clock was unavailable."
             )
