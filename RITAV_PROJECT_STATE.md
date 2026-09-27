@@ -1908,3 +1908,13 @@ Do not begin product/conversational UI implementation until the remaining launch
 - Security operation feedback is now tone-aware (success/info, warning, or error) through centralized UI state plumbing; security authority remains `SecurityControlPort`.
 - Latest UI implementation checkpoint SHA: `64a24671954065f66d471037696d509f9cd267af`.
 - CI Run #636 for this PR-triggered head is pending at the time of this checkpoint; no green CI claim is made.
+## 2026-09-27 UI CHECKPOINT — Runtime-backed task state facade integrated
+- Added a read-only `TaskRuntimeStatePort` / `TaskRuntimeSnapshot` surface from `AndroidExecutionRuntime`; it exposes observation/state only and cannot authorize or execute actions.
+- `ExecutionBridge` now publishes bounded lifecycle state for the authoritative execution path: BLOCKED, EXECUTING, VERIFYING, COMPLETED, FAILED_SAFELY, or STOPPED.
+- Malformed/invalid plans and security-clock failures do not compute a task hash before deterministic validation, keeping rejection paths resource-bounded.
+- Home subscribes to the runtime state through `DisposableEffect` and renders the verified state through `RitavLiveTaskPanel`.
+- Home Emergency Stop now delegates to the MainActivity shell callback so security stop state is synchronized across destinations.
+- Added JVM regression coverage for successful task lifecycle, blocked execution, Emergency Stop state, listener lifecycle, and bounded task-state strings.
+- Static integration review completed for the affected UI/security/execution path. Real build/CI completion and physical-device visual testing remain unverified at this checkpoint.
+- Implementation checkpoint SHA before documentation-only commits: `e9194dac86184302d22bb87529834c3e1dd24cad`.
+- Latest PR-triggered Android unit-test run observed at checkpoint: Run #648, **in progress**. No green CI claim is made.
