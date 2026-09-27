@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,19 +31,21 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusable
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.awaitPointerEvent
+import androidx.compose.ui.input.pointer.awaitPointerEventScope
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
@@ -287,11 +290,16 @@ internal fun GlobalAdaptiveFloatingNavigation(
                             .then(focusModifier)
                             .size(itemSize)
                             .focusable()
-                            .onPointerEvent(PointerEventType.Scroll) { event ->
-                                if (rotationCount > 1) {
-                                    val scroll = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
-                                    if (scroll != 0f) {
-                                        menuRotation += if (scroll > 0f) 0.45f else -0.45f
+                            .pointerInput(rotationCount) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        if (rotationCount > 1 && event.type == PointerEventType.Scroll) {
+                                            val scroll = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                                            if (scroll != 0f) {
+                                                menuRotation += if (scroll > 0f) 0.45f else -0.45f
+                                            }
+                                        }
                                     }
                                 }
                             }
