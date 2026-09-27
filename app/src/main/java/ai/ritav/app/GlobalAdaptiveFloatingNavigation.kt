@@ -295,17 +295,37 @@ internal fun GlobalAdaptiveFloatingNavigation(
                                     }
                                 }
                             }
-                            .pointerInput(rotationCount, itemPx, useLinear) {
+                            .pointerInput(
+                                rotationCount,
+                                itemPx,
+                                useLinear,
+                                index,
+                                rotationFraction,
+                                radialRadius
+                            ) {
                                 detectDragGestures(
                                     onDrag = { change, dragAmount ->
                                         if (rotationCount <= 1) return@detectDragGestures
                                         change.consume()
-                                        val axisDelta = if (useLinear) {
-                                            if (abs(dragAmount.x) >= abs(dragAmount.y)) dragAmount.x else dragAmount.y
+
+                                        if (useLinear) {
+                                            val axisDelta = if (abs(dragAmount.x) >= abs(dragAmount.y)) {
+                                                dragAmount.x
+                                            } else {
+                                                dragAmount.y
+                                            }
+                                            menuRotation -= axisDelta / (itemPx + 8f)
                                         } else {
-                                            dragAmount.x
+                                            val step = (Math.PI * 2.0 / visibleItems.size.coerceAtLeast(1)).toFloat()
+                                            val angle = (-Math.PI / 2.0).toFloat() +
+                                                (step * (index - rotationFraction))
+                                            val tangentX = -sin(angle)
+                                            val tangentY = cos(angle)
+                                            val tangentialDelta =
+                                                dragAmount.x * tangentX + dragAmount.y * tangentY
+                                            val safeRadius = radialRadius.coerceAtLeast(1f)
+                                            menuRotation -= tangentialDelta / (safeRadius * step.coerceAtLeast(0.001f))
                                         }
-                                        menuRotation -= axisDelta / (itemPx + 8f)
                                     }
                                 )
                             }
