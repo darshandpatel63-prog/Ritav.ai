@@ -591,6 +591,37 @@ class ExecutionBridgeTest {
         assertTrue(stop.isActive())
     }
 
+    @Test fun emergencyStopBeforeDispatchPublishesStoppedTaskState() {
+        val plan = ActionPlan(
+            "demo.app",
+            Capability.APP_LAUNCH,
+            "open",
+            RiskTier.TIER_1_REVERSIBLE,
+            expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE
+        )
+        val adapter = RecordingAdapter()
+        val stop = EmergencyStopController()
+        stop.activate()
+        val permissions = InMemoryPermissionStore(
+            setOf(CapabilityGrant(plan.appId, plan.capability, plan.action))
+        )
+        val policy = PolicyEngine(permissions, stop)
+        val taskState = TaskRuntimeStateStore { 300L }
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter,
+            taskRuntimeState = taskState
+        )
+
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+
+        assertFalse(result.success)
+        assertEquals(TaskRuntimeState.STOPPED, taskState.snapshot().state)
+        assertEquals("Security authorization", taskState.snapshot().currentStep)
+        assertEquals(0, adapter.calls)
+    }
+
     @Test fun emergencyStopBlocksExecution() {
         val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
