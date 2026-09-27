@@ -178,6 +178,7 @@ internal fun PermissionCenter(
         CapabilityGrantConfirmationDialog(
             candidate = candidate,
             plan = plan,
+            buttonStyle = buttonStyle,
             onDismiss = onDismissApproval,
             onConfirm = onApprove
         )
