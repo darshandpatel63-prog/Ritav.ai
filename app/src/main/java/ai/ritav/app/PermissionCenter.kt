@@ -58,6 +58,23 @@ internal fun PermissionCenter(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Permission Center", style = MaterialTheme.typography.headlineSmall)
+        RitavStatusChip(
+            label = when {
+                stopped -> "Emergency Stop"
+                identitySession != null -> "Identity Authenticated"
+                else -> "Authentication Required"
+            },
+            tone = when {
+                stopped -> RitavStatusTone.ERROR
+                identitySession != null -> RitavStatusTone.PROTECTED
+                else -> RitavStatusTone.WARNING
+            },
+            accessibleDescription = when {
+                stopped -> "Emergency Stop is active; protected approvals are blocked."
+                identitySession != null -> "A trusted identity session is active for protected approvals."
+                else -> "Authentication is required before protected approvals."
+            }
+        )
         Text(
             if (stopped) {
                 "Emergency Stop is active. Protected actions are blocked."
