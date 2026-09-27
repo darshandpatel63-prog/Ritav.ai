@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -36,6 +37,8 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -57,6 +60,7 @@ internal data class GlobalNavItem(
     val onClick: () -> Unit
 )
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun GlobalAdaptiveFloatingNavigation(
     items: List<GlobalNavItem>,
@@ -283,6 +287,18 @@ internal fun GlobalAdaptiveFloatingNavigation(
                             .then(focusModifier)
                             .size(itemSize)
                             .focusable()
+                            .onPointerEvent(PointerEventType.Scroll) { event ->
+                                if (rotationCount > 1) {
+                                    val deltaY = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                                    if (deltaY != 0f) {
+                                        menuOffset = if (deltaY > 0f) {
+                                            (safeOffset + 1) % rotationCount
+                                        } else {
+                                            (safeOffset - 1 + rotationCount) % rotationCount
+                                        }
+                                    }
+                                }
+                            }
                             .pointerInput(rotationCount, safeOffset) {
                                 var horizontalDrag = 0f
                                 detectDragGestures(
