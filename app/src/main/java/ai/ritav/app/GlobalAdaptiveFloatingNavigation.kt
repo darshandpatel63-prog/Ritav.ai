@@ -226,13 +226,13 @@ internal fun GlobalAdaptiveFloatingNavigation(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .offset(x = 6.dp, y = (-4).dp)
-                        .size(22.dp),
+                        .size(width = 30.dp, height = 22.dp),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "${safeOffset + 1}-${((safeOffset + visibleItems.size - 1) % items.size) + 1} / ${items.size}",
+                            text = "${safeOffset + 1}/${items.size}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
