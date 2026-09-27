@@ -14,6 +14,13 @@ internal enum class UiMotionPreference {
     OFF
 }
 
+internal enum class UiButtonStyle {
+    FILLED,
+    TONAL,
+    OUTLINED,
+    MINIMAL
+}
+
 internal enum class UiThemeFamily {
     RITAV_DEFAULT,
     OCEAN,
@@ -26,7 +33,8 @@ internal enum class UiThemeFamily {
 internal data class UiPreferences(
     val themeMode: UiThemeMode = UiThemeMode.SYSTEM,
     val themeFamily: UiThemeFamily = UiThemeFamily.RITAV_DEFAULT,
-    val motionPreference: UiMotionPreference = UiMotionPreference.AUTO
+    val motionPreference: UiMotionPreference = UiMotionPreference.AUTO,
+    val buttonStyle: UiButtonStyle = UiButtonStyle.FILLED
 )
 
 internal class UiPreferencesStore(context: Context) {
@@ -47,7 +55,12 @@ internal class UiPreferencesStore(context: Context) {
                 preferences.getString(KEY_MOTION, UiMotionPreference.AUTO.name) ?: UiMotionPreference.AUTO.name
             )
         }.getOrDefault(UiMotionPreference.AUTO)
-        return UiPreferences(mode, family, motion)
+        val buttonStyle = runCatching {
+            UiButtonStyle.valueOf(
+                preferences.getString(KEY_BUTTON_STYLE, UiButtonStyle.FILLED.name) ?: UiButtonStyle.FILLED.name
+            )
+        }.getOrDefault(UiButtonStyle.FILLED)
+        return UiPreferences(mode, family, motion, buttonStyle)
     }
 
     fun saveThemeMode(mode: UiThemeMode) {
@@ -62,9 +75,14 @@ internal class UiPreferencesStore(context: Context) {
         preferences.edit().putString(KEY_MOTION, preference.name).apply()
     }
 
+    fun saveButtonStyle(style: UiButtonStyle) {
+        preferences.edit().putString(KEY_BUTTON_STYLE, style.name).apply()
+    }
+
     private companion object {
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_THEME_FAMILY = "theme_family"
         const val KEY_MOTION = "motion_preference"
+        const val KEY_BUTTON_STYLE = "button_style"
     }
 }
