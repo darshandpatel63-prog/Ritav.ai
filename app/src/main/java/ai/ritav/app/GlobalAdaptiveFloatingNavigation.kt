@@ -102,7 +102,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
         mutableFloatStateOf(initialPosition.yFraction.coerceIn(0f, 1f))
     }
     var expanded by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(0) }
+    var menuRotation by remember { mutableFloatStateOf(0f) }
     val menuFocusRequester = remember { FocusRequester() }
 
     BoxWithConstraints(modifier = modifier) {
@@ -117,13 +117,14 @@ internal fun GlobalAdaptiveFloatingNavigation(
         val positionX = minX + ((maxX - minX) * xFraction)
         val positionY = minY + ((maxY - minY) * yFraction)
 
-        val nearLeft = positionX < widthPx * 0.28f
-        val nearRight = positionX > widthPx * 0.72f
-        val nearTop = positionY < heightPx * 0.28f
-        val nearBottom = positionY > heightPx * 0.72f
-        val useLinear = nearLeft || nearRight || nearTop || nearBottom
-
         val baseMenuRadius = maxOf(78f, itemPx * 1.55f)
+        val availableRadialRadius = minOf(
+            (positionX + buttonPx / 2f - marginPx - itemPx / 2f).coerceAtLeast(0f),
+            (widthPx - (positionX + buttonPx / 2f) - marginPx - itemPx / 2f).coerceAtLeast(0f),
+            (positionY + buttonPx / 2f - marginPx - itemPx / 2f).coerceAtLeast(0f),
+            (heightPx - (positionY + buttonPx / 2f) - marginPx - itemPx / 2f).coerceAtLeast(0f)
+        )
+        val useLinear = availableRadialRadius < itemPx * 1.35f
         val horizontalLinear =
             maxOf(positionX + buttonPx / 2f, widthPx - (positionX + buttonPx / 2f)) >=
                 maxOf(positionY + buttonPx / 2f, heightPx - (positionY + buttonPx / 2f))
@@ -137,20 +138,20 @@ internal fun GlobalAdaptiveFloatingNavigation(
             8,
             if (useLinear) linearAxisCapacity else 8
         )
-        val radialRadius = minOf(
-            baseMenuRadius,
-            (positionX + buttonPx / 2f - marginPx - itemPx / 2f).coerceAtLeast(0f),
-            (widthPx - (positionX + buttonPx / 2f) - marginPx - itemPx / 2f).coerceAtLeast(0f),
-            (positionY + buttonPx / 2f - marginPx - itemPx / 2f).coerceAtLeast(0f),
-            (heightPx - (positionY + buttonPx / 2f) - marginPx - itemPx / 2f).coerceAtLeast(0f)
-        )
+        val radialRadius = minOf(baseMenuRadius, availableRadialRadius)
         val rotationCount = if (items.size > visibleCount) items.size else 1
-        val safeOffset = if (rotationCount == 1) 0 else menuOffset % rotationCount
+        val normalizedRotation = if (rotationCount == 1) {
+            0f
+        } else {
+            ((menuRotation % rotationCount.toFloat()) + rotationCount.toFloat()) % rotationCount.toFloat()
+        }
+        val rotationIndex = normalizedRotation.toInt()
+        val rotationFraction = normalizedRotation - rotationIndex
         val visibleItems = List(minOf(visibleCount, items.size)) { index ->
-            items[(safeOffset + index) % items.size]
+            items[(rotationIndex + index) % items.size]
         }
 
-        LaunchedEffect(expanded, safeOffset) {
+        LaunchedEffect(expanded, rotationIndex) {
             if (expanded && visibleItems.isNotEmpty()) {
                 menuFocusRequester.requestFocus()
             }
@@ -195,7 +196,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
         ) {
             Surface(
                 onClick = {
-                    if (!expanded) menuOffset = 0
+                    if (!expanded) menuRotation = 0f
                     expanded = !expanded
                 },
                 shape = CircleShape,
@@ -232,7 +233,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "${safeOffset + 1}/${items.size}",
+                            text = "${rotationIndex + 1}/${items.size}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -247,7 +248,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                         .offset {
                             val placement = if (useLinear) {
                                 linearPlacement(
-                                    index = index,
+                                    index = index - rotationFraction,
                                     count = visibleItems.size,
                                     centerX = buttonPx / 2f,
                                     centerY = buttonPx / 2f,
@@ -289,31 +290,23 @@ internal fun GlobalAdaptiveFloatingNavigation(
                             .focusable()
                             .onPointerEvent(PointerEventType.Scroll) { event ->
                                 if (rotationCount > 1) {
-                                    val deltaY = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
-                                    if (deltaY != 0f) {
-                                        menuOffset = if (deltaY > 0f) {
-                                            (safeOffset + 1) % rotationCount
-                                        } else {
-                                            (safeOffset - 1 + rotationCount) % rotationCount
-                                        }
+                                    val scroll = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                                    if (scroll != 0f) {
+                                        menuRotation += if (scroll > 0f) 0.45f else -0.45f
                                     }
                                 }
                             }
-                            .pointerInput(rotationCount, safeOffset) {
-                                var horizontalDrag = 0f
+                            .pointerInput(rotationCount, itemPx, useLinear) {
                                 detectDragGestures(
                                     onDrag = { change, dragAmount ->
+                                        if (rotationCount <= 1) return@detectDragGestures
                                         change.consume()
-                                        horizontalDrag += dragAmount.x
-                                    },
-                                    onDragEnd = {
-                                        if (rotationCount > 1 && abs(horizontalDrag) >= 48f) {
-                                            menuOffset = if (horizontalDrag < 0f) {
-                                                (safeOffset + 1) % rotationCount
-                                            } else {
-                                                (safeOffset - 1 + rotationCount) % rotationCount
-                                            }
+                                        val axisDelta = if (useLinear) {
+                                            if (abs(dragAmount.x) >= abs(dragAmount.y)) dragAmount.x else dragAmount.y
+                                        } else {
+                                            dragAmount.x
                                         }
+                                        menuRotation -= axisDelta / (itemPx + 8f)
                                     }
                                 )
                             }
@@ -327,11 +320,11 @@ internal fun GlobalAdaptiveFloatingNavigation(
                                             true
                                         }
                                         (event.key == Key.PageDown || event.key == Key.DirectionRight || event.key == Key.DirectionDown) && rotationCount > 1 -> {
-                                            menuOffset = (safeOffset + 1) % rotationCount
+                                            menuRotation += 1f
                                             true
                                         }
                                         (event.key == Key.PageUp || event.key == Key.DirectionLeft || event.key == Key.DirectionUp) && rotationCount > 1 -> {
-                                            menuOffset = (safeOffset - 1 + rotationCount) % rotationCount
+                                            menuRotation -= 1f
                                             true
                                         }
                                         else -> false
