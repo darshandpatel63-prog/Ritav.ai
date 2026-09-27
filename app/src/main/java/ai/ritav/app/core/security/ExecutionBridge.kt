@@ -61,20 +61,18 @@ internal class ExecutionBridge(
         if (now < 0L) {
             taskRuntimeState.update(
                 state = TaskRuntimeState.BLOCKED,
-                taskId = plan.stableHash(),
-                taskName = "\${plan.capability.name}: \${plan.action}",
+                taskId = null,
+                taskName = "Protected action",
                 currentStep = "Security validation",
                 summary = "Execution could not start because the security clock was unavailable."
             )
             return ExecutionResult(false, false, "Security clock unavailable")
         }
-        val taskId = plan.stableHash()
-        val taskName = "\${plan.capability.name}: \${plan.action}"
         if (!plan.isValid()) {
             taskRuntimeState.update(
                 state = TaskRuntimeState.BLOCKED,
-                taskId = taskId,
-                taskName = taskName,
+                taskId = null,
+                taskName = "Protected action",
                 currentStep = "Security validation",
                 summary = "The action plan failed deterministic validation."
             )
@@ -82,7 +80,9 @@ internal class ExecutionBridge(
                 false, false, "Action plan is malformed or exceeds security bounds"))
             return ExecutionResult(false, false, "Action plan is malformed or exceeds security bounds")
         }
-        val actionHash = plan.stableHash()
+        val taskId = plan.stableHash()
+        val taskName = "\${plan.capability.name}: \${plan.action}"
+        val actionHash = taskId
         val action = ActionRequest(
             appId = plan.appId,
             action = plan.action,
