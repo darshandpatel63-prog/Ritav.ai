@@ -98,7 +98,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
         mutableFloatStateOf(initialPosition.yFraction.coerceIn(0f, 1f))
     }
     var expanded by remember { mutableStateOf(false) }
-    var menuPage by remember { mutableStateOf(0) }
+    var menuOffset by remember { mutableStateOf(0) }
     val menuFocusRequester = remember { FocusRequester() }
 
     BoxWithConstraints(modifier = modifier) {
@@ -140,14 +140,13 @@ internal fun GlobalAdaptiveFloatingNavigation(
             (positionY + buttonPx / 2f - marginPx - itemPx / 2f).coerceAtLeast(0f),
             (heightPx - (positionY + buttonPx / 2f) - marginPx - itemPx / 2f).coerceAtLeast(0f)
         )
-        val pageCount =
-            if (items.size <= visibleCount) 1
-            else (items.size + visibleCount - 1) / visibleCount
-        val safePage = menuPage.coerceIn(0, pageCount - 1)
-        val startIndex = safePage * visibleCount
-        val visibleItems = items.drop(startIndex).take(visibleCount)
+        val rotationCount = if (items.size > visibleCount) items.size else 1
+        val safeOffset = if (rotationCount == 1) 0 else menuOffset.mod(rotationCount)
+        val visibleItems = List(minOf(visibleCount, items.size)) { index ->
+            items[(safeOffset + index) % items.size]
+        }
 
-        LaunchedEffect(expanded, safePage) {
+        LaunchedEffect(expanded, safeOffset) {
             if (expanded && visibleItems.isNotEmpty()) {
                 menuFocusRequester.requestFocus()
             }
@@ -192,7 +191,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
         ) {
             Surface(
                 onClick = {
-                    if (!expanded) menuPage = 0
+                    if (!expanded) menuOffset = 0
                     expanded = !expanded
                 },
                 shape = CircleShape,
@@ -218,7 +217,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                 }
             }
 
-            if (pageCount > 1 && expanded) {
+            if (rotationCount > 1 && expanded) {
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -229,7 +228,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "${safePage + 1}/$pageCount",
+                            text = "${safeOffset + 1}-${((safeOffset + visibleItems.size - 1) % items.size) + 1} / ${items.size}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -284,7 +283,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                             .then(focusModifier)
                             .size(itemSize)
                             .focusable()
-                            .pointerInput(pageCount, safePage) {
+                            .pointerInput(rotationCount, safeOffset) {
                                 var horizontalDrag = 0f
                                 detectDragGestures(
                                     onDrag = { change, dragAmount ->
@@ -292,11 +291,11 @@ internal fun GlobalAdaptiveFloatingNavigation(
                                         horizontalDrag += dragAmount.x
                                     },
                                     onDragEnd = {
-                                        if (pageCount > 1 && abs(horizontalDrag) >= 48f) {
-                                            menuPage = if (horizontalDrag < 0f) {
-                                                (safePage + 1) % pageCount
+                                        if (rotationCount > 1 && abs(horizontalDrag) >= 48f) {
+                                            menuOffset = if (horizontalDrag < 0f) {
+                                                (safeOffset + 1) % rotationCount
                                             } else {
-                                                (safePage - 1 + pageCount) % pageCount
+                                                (safeOffset - 1 + rotationCount) % rotationCount
                                             }
                                         }
                                     }
@@ -311,12 +310,12 @@ internal fun GlobalAdaptiveFloatingNavigation(
                                             expanded = false
                                             true
                                         }
-                                        event.key == Key.PageDown && pageCount > 1 -> {
-                                            menuPage = (safePage + 1) % pageCount
+                                        event.key == Key.PageDown && rotationCount > 1 -> {
+                                            menuOffset = (safeOffset + 1) % rotationCount
                                             true
                                         }
-                                        event.key == Key.PageUp && pageCount > 1 -> {
-                                            menuPage = (safePage - 1 + pageCount) % pageCount
+                                        event.key == Key.PageUp && rotationCount > 1 -> {
+                                            menuOffset = (safeOffset - 1 + rotationCount) % rotationCount
                                             true
                                         }
                                         else -> false
