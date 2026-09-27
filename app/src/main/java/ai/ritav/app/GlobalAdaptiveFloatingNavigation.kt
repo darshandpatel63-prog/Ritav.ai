@@ -326,11 +326,11 @@ internal fun GlobalAdaptiveFloatingNavigation(
                                             expanded = false
                                             true
                                         }
-                                        event.key == Key.PageDown && rotationCount > 1 -> {
+                                        (event.key == Key.PageDown || event.key == Key.DirectionRight || event.key == Key.DirectionDown) && rotationCount > 1 -> {
                                             menuOffset = (safeOffset + 1) % rotationCount
                                             true
                                         }
-                                        event.key == Key.PageUp && rotationCount > 1 -> {
+                                        (event.key == Key.PageUp || event.key == Key.DirectionLeft || event.key == Key.DirectionUp) && rotationCount > 1 -> {
                                             menuOffset = (safeOffset - 1 + rotationCount) % rotationCount
                                             true
                                         }
