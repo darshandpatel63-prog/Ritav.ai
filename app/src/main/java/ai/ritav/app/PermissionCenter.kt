@@ -188,8 +188,21 @@ internal fun PermissionCenter(
         TrustedAppConfirmationDialog(
             packageName = trustedPackage,
             plan = trustedPlan,
+            buttonStyle = buttonStyle,
             onDismiss = onDismissTrustedApproval,
             onConfirm = onApproveTrustedApp
+        )
+    }
+
+    val trustedRemovalPackage = pendingTrustedRemovalPackage
+    val trustedRemovalPlan = pendingTrustedRemovalPlan
+    if (trustedRemovalPackage != null && trustedRemovalPlan != null) {
+        TrustedAppRemovalConfirmationDialog(
+            packageName = trustedRemovalPackage,
+            plan = trustedRemovalPlan,
+            buttonStyle = buttonStyle,
+            onDismiss = onDismissTrustedRemoval,
+            onConfirm = onApproveTrustedRemoval
         )
     }
 }
@@ -258,9 +271,11 @@ private fun TrustedAppConfirmationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Trust application")
-            }
+            RitavButton(
+                style = buttonStyle,
+                label = "Trust application",
+                onClick = onConfirm
+            )
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
@@ -275,6 +290,7 @@ private fun TrustedAppConfirmationDialog(
 private fun TrustedAppRemovalConfirmationDialog(
     packageName: String,
     plan: ActionPlan,
+    buttonStyle: UiButtonStyle,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -291,14 +307,18 @@ private fun TrustedAppRemovalConfirmationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Remove trust")
-            }
+            RitavButton(
+                style = buttonStyle,
+                label = "Remove trust",
+                onClick = onConfirm
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            RitavButton(
+                style = UiButtonStyle.MINIMAL,
+                label = "Cancel",
+                onClick = onDismiss
+            )
         }
     )
 }
