@@ -350,6 +350,11 @@ class MainActivity : FragmentActivity() {
                                     uiPreferences = uiPreferences.copy(themeFamily = family)
                                     uiPreferencesStore.saveThemeFamily(family)
                                 },
+                                motionPreference = uiPreferences.motionPreference,
+                                onMotionPreferenceChanged = { preference ->
+                                    uiPreferences = uiPreferences.copy(motionPreference = preference)
+                                    uiPreferencesStore.saveMotionPreference(preference)
+                                },
                                 onNavigationFixedChanged = { fixed ->
                                     navigationPosition = navigationPosition.copy(fixed = fixed)
                                     navigationPositionStore.setFixed(fixed)
@@ -366,11 +371,12 @@ class MainActivity : FragmentActivity() {
 
                         GlobalAdaptiveFloatingNavigation(
                             items = listOf(
-                                GlobalNavItem("Home", "⌂") { destination = AppDestination.HOME },
-                                GlobalNavItem("Security", "◈") { destination = AppDestination.SECURITY },
-                                GlobalNavItem("Settings", "⚙") { destination = AppDestination.SETTINGS }
+                                GlobalNavItem("Home", "⌂", selected = destination == AppDestination.HOME) { destination = AppDestination.HOME },
+                                GlobalNavItem("Security", "◈", selected = destination == AppDestination.SECURITY) { destination = AppDestination.SECURITY },
+                                GlobalNavItem("Settings", "⚙", selected = destination == AppDestination.SETTINGS) { destination = AppDestination.SETTINGS }
                             ),
                             initialPosition = navigationPosition,
+                            motionPreference = uiPreferences.motionPreference,
                             onPositionSettled = { xFraction, yFraction ->
                                 navigationPosition = navigationPosition.copy(
                                     xFraction = xFraction,
