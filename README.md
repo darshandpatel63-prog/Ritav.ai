@@ -1351,3 +1351,9 @@ These are validation/integration gates rather than a demonstrated bypass in the 
 
 ### UI GATE RULE
 Do not begin product/conversational UI implementation until the remaining launch-closure evidence and final consolidated system-level security review are complete. The safe security-control facade may be reused by future UI; raw authorization, permission-store, audit/storage, execution-adapter and model-provider authorities remain behind internal boundaries.
+
+
+## Current UI Development Status (2026-09-27)
+The active product UI work is being developed on the separate `ui/conversational-shell` branch and is not yet merged into `main`. The branch includes the Global Adaptive Floating Navigation, shared button system, responsive/IME-safe app shell, accessible conversation presentation, security/runtime status chips, and an honest live-task surface. Because the production model/provider runtime and authoritative live-task runtime are not connected yet, the UI does not fabricate inference or execution progress.
+
+Latest UI branch head: `2c2eea45bdd6ddbfc3b28fea238674deb4343c47`.
