@@ -4,12 +4,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -27,7 +31,9 @@ internal fun UiAppearanceSettings(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
@@ -35,13 +41,22 @@ internal fun UiAppearanceSettings(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Theme", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                UiThemeMode.values().forEach { mode ->
-                    FilterChip(
-                        selected = uiPreferences.themeMode == mode,
-                        onClick = { onThemeModeChanged(mode) },
-                        label = { Text(mode.displayName()) }
-                    )
+            UiThemeMode.values().toList().chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row.forEach { mode ->
+                        FilterChip(
+                            selected = uiPreferences.themeMode == mode,
+                            onClick = { onThemeModeChanged(mode) },
+                            label = { Text(mode.displayName()) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (row.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -71,13 +86,22 @@ internal fun UiAppearanceSettings(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Animation", style = MaterialTheme.typography.titleMedium)
             Text("Controls non-essential interface motion. Security states remain understandable without animation.")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                UiMotionPreference.values().forEach { preference ->
-                    FilterChip(
-                        selected = motionPreference == preference,
-                        onClick = { onMotionPreferenceChanged(preference) },
-                        label = { Text(preference.displayName()) }
-                    )
+            UiMotionPreference.values().toList().chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row.forEach { preference ->
+                        FilterChip(
+                            selected = motionPreference == preference,
+                            onClick = { onMotionPreferenceChanged(preference) },
+                            label = { Text(preference.displayName()) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (row.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -85,13 +109,19 @@ internal fun UiAppearanceSettings(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Button style", style = MaterialTheme.typography.titleMedium)
             Text("Choose the shared presentation style for standard Ritav actions.")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                UiButtonStyle.values().forEach { style ->
-                    FilterChip(
-                        selected = uiPreferences.buttonStyle == style,
-                        onClick = { onButtonStyleChanged(style) },
-                        label = { Text(style.displayName()) }
-                    )
+            UiButtonStyle.values().toList().chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row.forEach { style ->
+                        FilterChip(
+                            selected = uiPreferences.buttonStyle == style,
+                            onClick = { onButtonStyleChanged(style) },
+                            label = { Text(style.displayName()) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
