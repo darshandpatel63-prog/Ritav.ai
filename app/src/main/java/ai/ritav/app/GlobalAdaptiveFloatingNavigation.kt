@@ -141,7 +141,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
             (heightPx - (positionY + buttonPx / 2f) - marginPx - itemPx / 2f).coerceAtLeast(0f)
         )
         val rotationCount = if (items.size > visibleCount) items.size else 1
-        val safeOffset = if (rotationCount == 1) 0 else menuOffset.mod(rotationCount)
+        val safeOffset = if (rotationCount == 1) 0 else menuOffset % rotationCount
         val visibleItems = List(minOf(visibleCount, items.size)) { index ->
             items[(safeOffset + index) % items.size]
         }
