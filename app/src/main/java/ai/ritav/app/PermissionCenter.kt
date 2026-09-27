@@ -24,6 +24,7 @@ import ai.ritav.app.core.security.SecuritySession
 @Composable
 internal fun PermissionCenter(
     stopped: Boolean,
+    buttonStyle: UiButtonStyle,
     identitySession: SecuritySession?,
     candidates: List<CapabilityGrantCandidate>,
     pendingCandidate: CapabilityGrantCandidate?,
@@ -67,9 +68,12 @@ internal fun PermissionCenter(
         )
 
         if (identitySession == null && !stopped) {
-            Button(onClick = onAuthenticate) {
-                Text("Authenticate protected actions")
-            }
+            RitavButton(
+                style = buttonStyle,
+                label = "Authenticate protected actions",
+                onClick = onAuthenticate,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         if (identitySession != null && !stopped) {
@@ -88,13 +92,13 @@ internal fun PermissionCenter(
                 label = { Text("Android package name") },
                 supportingText = { Text("Certificate details are verified internally and are not shown here.") }
             )
-            Button(
+            RitavButton(
+                style = buttonStyle,
+                label = "Review trusted-app approval",
                 onClick = onPrepareTrustedApp,
                 enabled = trustedPackageInput.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Review trusted-app approval")
-            }
+            )
         }
 
         if (identitySession != null && trustedPackages.isNotEmpty() && !stopped) {
@@ -149,9 +153,11 @@ internal fun PermissionCenter(
                         )
                         Text("Risk: " + candidate.riskTier.name)
                     }
-                    Button(onClick = { onCandidateSelected(candidate) }) {
-                        Text("Review")
-                    }
+                    RitavButton(
+                        style = buttonStyle,
+                        label = "Review",
+                        onClick = { onCandidateSelected(candidate) }
+                    )
                 }
                 HorizontalDivider()
             }
@@ -164,12 +170,13 @@ internal fun PermissionCenter(
             )
         }
 
-        Button(
+        RitavButton(
+            style = buttonStyle,
+            label = if (stopped) "Resume Ritav" else "Emergency Stop",
             onClick = if (stopped) onResume else onEmergencyStop,
+            destructive = !stopped,
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (stopped) "Resume Ritav" else "Emergency Stop")
-        }
+        )
     }
 
     val candidate = pendingCandidate
