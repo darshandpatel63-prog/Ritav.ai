@@ -8,7 +8,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -52,26 +51,26 @@ internal class GlobalAdaptiveFloatingNavigationTest {
                         .performClick()
 
         composeRule.onNodeWithContentDescription("Item 0, selected").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Item 7").assertExists().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Item 7").assertIsDisplayed()
 
         composeRule
             .onNodeWithContentDescription("Item 0, selected")
             .performTouchInput { swipeLeft() }
 
-        composeRule.onNodeWithContentDescription("Item 8").assertExists().assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Item 1").assertExists().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Item 8").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Item 1").assertIsDisplayed()
 
         composeRule
             .onNodeWithContentDescription("Item 1")
             .performTouchInput { swipeRight() }
 
-        composeRule.onNodeWithContentDescription("Item 0, selected").assertExists().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Item 0, selected").assertIsDisplayed()
 
         composeRule
             .onNodeWithContentDescription("Item 0, selected")
             .performTouchInput { swipeRight() }
 
-        composeRule.onNodeWithContentDescription("Item 8").assertExists().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Item 8").assertIsDisplayed()
     }
 
 
