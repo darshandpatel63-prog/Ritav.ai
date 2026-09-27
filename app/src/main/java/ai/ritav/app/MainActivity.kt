@@ -210,7 +210,7 @@ class MainActivity : FragmentActivity() {
             }
 
             fun reviewTrustedRemoval(packageName: String) {
-                statusMessage = null
+                setStatus(null)
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
@@ -384,7 +384,7 @@ class MainActivity : FragmentActivity() {
                                     onCandidateSelected = ::reviewCandidate,
                                     onDismissApproval = {
                                         dismissPendingApproval()
-                                        statusMessage = null
+                                        setStatus(null)
                                     },
                                     onApprove = ::approvePendingGrant
                                 )
