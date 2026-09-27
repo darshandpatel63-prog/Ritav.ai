@@ -237,7 +237,11 @@ private fun CapabilityGrantConfirmationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            RitavButton(
+                style = buttonStyle,
+                label = "Trust application",
+                onClick = onConfirm
+            )
                 Text("Approve")
             }
         },
