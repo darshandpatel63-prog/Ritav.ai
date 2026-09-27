@@ -20,6 +20,8 @@ internal fun UiAppearanceSettings(
     navigationFixed: Boolean,
     onThemeModeChanged: (UiThemeMode) -> Unit,
     onThemeFamilyChanged: (UiThemeFamily) -> Unit,
+    motionPreference: UiMotionPreference,
+    onMotionPreferenceChanged: (UiMotionPreference) -> Unit,
     onNavigationFixedChanged: (Boolean) -> Unit,
     onResetNavigationPosition: () -> Unit
 ) {
@@ -67,6 +69,20 @@ internal fun UiAppearanceSettings(
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Animation", style = MaterialTheme.typography.titleMedium)
+            Text("Controls non-essential interface motion. Security states remain understandable without animation.")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                UiMotionPreference.values().forEach { preference ->
+                    FilterChip(
+                        selected = motionPreference == preference,
+                        onClick = { onMotionPreferenceChanged(preference) },
+                        label = { Text(preference.displayName()) }
+                    )
+                }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Global navigation", style = MaterialTheme.typography.titleMedium)
             Text(
                 if (navigationFixed) {
@@ -98,6 +114,12 @@ private fun UiThemeMode.displayName(): String = when (this) {
     UiThemeMode.SYSTEM -> "System"
     UiThemeMode.LIGHT -> "Light"
     UiThemeMode.DARK -> "Dark"
+}
+
+private fun UiMotionPreference.displayName(): String = when (this) {
+    UiMotionPreference.AUTO -> "Auto"
+    UiMotionPreference.ON -> "On"
+    UiMotionPreference.OFF -> "Off"
 }
 
 private fun UiThemeFamily.displayName(): String = when (this) {
