@@ -107,7 +107,6 @@ class MainActivity : FragmentActivity() {
                                 RitavFeedbackTone.ERROR
                             }
                         )
-                        }
                     }
                 }
             }
@@ -139,7 +138,7 @@ class MainActivity : FragmentActivity() {
             }
 
             fun reviewTrustedApp() {
-                statusMessage = null
+                setStatus(null)
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
@@ -275,7 +274,10 @@ class MainActivity : FragmentActivity() {
                 val plan = pendingGrantPlan ?: return
                 val session = activeIdentitySession ?: run {
                     dismissPendingApproval()
-                    statusMessage = "Trusted identity session is unavailable."
+                    setStatus(
+                        "Trusted identity session is unavailable.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
