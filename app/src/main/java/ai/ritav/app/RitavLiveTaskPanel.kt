@@ -32,6 +32,8 @@ internal fun RitavLiveTaskPanel(
     taskName: String? = null,
     currentStep: String? = null,
     summary: String? = null,
+    buttonStyle: UiButtonStyle = UiButtonStyle.OUTLINED,
+    onEmergencyStop: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val title = when (state) {
@@ -132,6 +134,18 @@ internal fun RitavLiveTaskPanel(
                     text = "No task is currently being executed. Ritav will only show live progress when an authoritative runtime state exists.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = contentColor
+                )
+            }
+
+            if (
+                onEmergencyStop != null &&
+                (state == RitavTaskUiState.EXECUTING || state == RitavTaskUiState.VERIFYING)
+            ) {
+                RitavButton(
+                    style = buttonStyle,
+                    label = "Emergency Stop",
+                    destructive = true,
+                    onClick = onEmergencyStop
                 )
             }
         }
