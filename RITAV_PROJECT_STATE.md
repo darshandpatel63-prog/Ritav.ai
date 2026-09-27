@@ -1886,7 +1886,7 @@ Do not begin product/conversational UI implementation until the remaining launch
 
 ### VERIFICATION STATUS
 - Static source/call-path verification completed after the latest UI changes.
-- Latest branch head: `2c2eea45bdd6ddbfc3b28fea238674deb4343c47`.
+- Latest UI implementation checkpoint SHA (before documentation-only commits): `2c2eea45bdd6ddbfc3b28fea238674deb4343c47`.
 - Latest connected GitHub Actions status must be treated as runtime/CI evidence only when the workflow exposes a completed result; local real-device visual verification remains unclaimed.
 - The connected environment has not provided a completed successful workflow result for the latest UI head yet.
 
