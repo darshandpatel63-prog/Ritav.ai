@@ -281,9 +281,11 @@ private fun TrustedAppConfirmationDialog(
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            RitavButton(
+                style = UiButtonStyle.MINIMAL,
+                label = "Cancel",
+                onClick = onDismiss
+            )
         }
     )
 }
