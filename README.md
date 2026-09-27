@@ -1356,4 +1356,4 @@ Do not begin product/conversational UI implementation until the remaining launch
 ## Current UI Development Status (2026-09-27)
 The active product UI work is being developed on the separate `ui/conversational-shell` branch and is not yet merged into `main`. The branch includes the Global Adaptive Floating Navigation, shared button system, responsive/IME-safe app shell, accessible conversation presentation, security/runtime status chips, and an honest live-task surface. Because the production model/provider runtime and authoritative live-task runtime are not connected yet, the UI does not fabricate inference or execution progress.
 
-Latest UI branch head: `2c2eea45bdd6ddbfc3b28fea238674deb4343c47`.
+Latest UI implementation checkpoint SHA (before documentation-only commits): `2c2eea45bdd6ddbfc3b28fea238674deb4343c47`.
