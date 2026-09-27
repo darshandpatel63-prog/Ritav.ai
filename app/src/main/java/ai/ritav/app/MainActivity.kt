@@ -1,6 +1,7 @@
 package ai.ritav.app
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +41,9 @@ class MainActivity : FragmentActivity() {
             val uiPreferencesStore = remember { UiPreferencesStore(this@MainActivity) }
             var uiPreferences by remember { mutableStateOf(uiPreferencesStore.load()) }
             var destination by remember { mutableStateOf(AppDestination.HOME) }
+            BackHandler(enabled = destination != AppDestination.HOME) {
+                destination = AppDestination.HOME
+            }
             var stopped by remember { mutableStateOf(securityControl.isEmergencyStopActive()) }
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
