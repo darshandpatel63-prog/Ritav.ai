@@ -13,7 +13,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -112,9 +111,11 @@ internal fun PermissionCenter(
                         packageName,
                         modifier = Modifier.weight(1f).padding(end = 8.dp)
                     )
-                    TextButton(onClick = { onTrustedPackageSelectedForRemoval(packageName) }) {
-                        Text("Remove trust")
-                    }
+                    RitavButton(
+                        style = UiButtonStyle.MINIMAL,
+                        label = "Remove trust",
+                        onClick = { onTrustedPackageSelectedForRemoval(packageName) }
+                    )
                 }
                 HorizontalDivider()
             }
@@ -241,9 +242,11 @@ private fun CapabilityGrantConfirmationDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            RitavButton(
+                style = UiButtonStyle.MINIMAL,
+                label = "Cancel",
+                onClick = onDismiss
+            )
         }
     )
 }
