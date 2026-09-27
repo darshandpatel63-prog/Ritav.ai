@@ -1362,3 +1362,8 @@ Latest UI implementation checkpoint SHA (before documentation-only commits): `2c
 The active UI branch now includes structured empty/error feedback cards and tone-aware security feedback. These are presentation-only and continue to reflect verified runtime/security state rather than inventing execution or model results.
 
 Latest UI implementation checkpoint SHA: `64a24671954065f66d471037696d509f9cd267af`.
+## Runtime-backed Task State UI — 2026-09-27
+The UI shell now consumes a read-only task runtime status facade connected to the authoritative execution path. The UI can display verified blocked/executing/verifying/completed/failed/stopped states without gaining execution authority or fabricating progress.
+
+Implementation checkpoint SHA before documentation-only commits: `e9194dac86184302d22bb87529834c3e1dd24cad`.
+CI/real-device verification remains explicitly separate and is not claimed until evidence is available.
