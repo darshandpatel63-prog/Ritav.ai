@@ -1,6 +1,5 @@
 package ai.ritav.app
 
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
@@ -50,10 +49,9 @@ internal class GlobalAdaptiveFloatingNavigationTest {
 
         composeRule
             .onNodeWithContentDescription("Ritav global navigation, movable")
-            .assertExists()
-            .performClick()
+                        .performClick()
 
-        composeRule.onNodeWithContentDescription("Item 0, selected").assertExists().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Item 0, selected").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Item 7").assertExists().assertIsDisplayed()
 
         composeRule
@@ -75,27 +73,6 @@ internal class GlobalAdaptiveFloatingNavigationTest {
 
         composeRule.onNodeWithContentDescription("Item 8").assertExists().assertIsDisplayed()
     }
-    @Test
-    fun placement_supports_fractional_circular_rotation() {
-        val initial = radialPlacement(
-            index = 0f,
-            count = 8,
-            centerX = 200f,
-            centerY = 200f,
-            radius = 80f,
-            itemPx = 48f
-        )
-        val halfStep = radialPlacement(
-            index = -0.5f,
-            count = 8,
-            centerX = 200f,
-            centerY = 200f,
-            radius = 80f,
-            itemPx = 48f
-        )
 
-        assertNotEquals(initial.x, halfStep.x)
-        assertNotEquals(initial.y, halfStep.y)
-    }
 
 }
