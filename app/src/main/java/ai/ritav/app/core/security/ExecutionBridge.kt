@@ -36,7 +36,8 @@ internal class ExecutionBridge(
     private val semanticResultVerifier: SemanticResultVerifier = SemanticResultVerifier(),
     private val auditLog: AuditLog = securityPipeline.auditLog,
     private val clock: () -> Long = { System.currentTimeMillis() },
-    private val emergencyStop: EmergencyStopController = securityPipeline.emergencyStopController()
+    private val emergencyStop: EmergencyStopController = securityPipeline.emergencyStopController(),
+    private val taskRuntimeState: TaskRuntimeStateStore = TaskRuntimeStateStore(clock)
 ) : SecureExecutionPort {
     override fun execute(
         plan: ActionPlan,
@@ -48,12 +49,35 @@ internal class ExecutionBridge(
         inputText: String?
     ): ExecutionResult {
         val now = runCatching { clock() }.getOrElse {
+            taskRuntimeState.update(
+                state = TaskRuntimeState.BLOCKED,
+                taskId = plan.stableHash(),
+                taskName = "\${plan.capability.name}: \${plan.action}",
+                currentStep = "Security validation",
+                summary = "Execution could not start because the security clock was unavailable."
+            )
             return ExecutionResult(false, false, "Security clock unavailable")
         }
         if (now < 0L) {
+            taskRuntimeState.update(
+                state = TaskRuntimeState.BLOCKED,
+                taskId = plan.stableHash(),
+                taskName = "\${plan.capability.name}: \${plan.action}",
+                currentStep = "Security validation",
+                summary = "Execution could not start because the security clock was unavailable."
+            )
             return ExecutionResult(false, false, "Security clock unavailable")
         }
+        val taskId = plan.stableHash()
+        val taskName = "\${plan.capability.name}: \${plan.action}"
         if (!plan.isValid()) {
+            taskRuntimeState.update(
+                state = TaskRuntimeState.BLOCKED,
+                taskId = taskId,
+                taskName = taskName,
+                currentStep = "Security validation",
+                summary = "The action plan failed deterministic validation."
+            )
             auditLog.append(AuditEvent(safeClock(now), plan.sessionId, null, AuditEventType.POLICY_DECISION,
                 false, false, "Action plan is malformed or exceeds security bounds"))
             return ExecutionResult(false, false, "Action plan is malformed or exceeds security bounds")
@@ -72,6 +96,13 @@ internal class ExecutionBridge(
 
         val capabilityDecision = capabilityPolicyGate.evaluate(action)
         if (!capabilityDecision.allowed) {
+            taskRuntimeState.update(
+                state = TaskRuntimeState.BLOCKED,
+                taskId = taskId,
+                taskName = taskName,
+                currentStep = "Capability policy",
+                summary = "Execution was blocked by capability policy."
+            )
             auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
                 false, false, capabilityDecision.reason))
             return ExecutionResult(false, false, capabilityDecision.reason)
@@ -88,6 +119,21 @@ internal class ExecutionBridge(
             )
         )
         if (!securityDecision.allowed) {
+            taskRuntimeState.update(
+                state = if (emergencyStop.isActive()) {
+                    TaskRuntimeState.STOPPED
+                } else {
+                    TaskRuntimeState.BLOCKED
+                },
+                taskId = taskId,
+                taskName = taskName,
+                currentStep = "Security authorization",
+                summary = if (emergencyStop.isActive()) {
+                    "Emergency Stop is active; protected execution is unavailable."
+                } else {
+                    "Execution was blocked by deterministic security authorization."
+                }
+            )
             auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
                 false, false, securityDecision.reason))
             return ExecutionResult(false, false, securityDecision.reason)
@@ -96,11 +142,26 @@ internal class ExecutionBridge(
         auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.POLICY_DECISION,
             true, false, "Capability and security pipeline checks passed"))
 
+        taskRuntimeState.update(
+            state = TaskRuntimeState.EXECUTING,
+            taskId = taskId,
+            taskName = taskName,
+            currentStep = "Dispatching approved action",
+            summary = "Approved action is being dispatched through the security-owned adapter."
+        )
+
         val adapterAttempt = emergencyStop.runIfInactive {
             runCatching { adapter.execute(plan) }
         }
 
         if (adapterAttempt == null) {
+            taskRuntimeState.update(
+                state = TaskRuntimeState.STOPPED,
+                taskId = taskId,
+                taskName = taskName,
+                currentStep = "Dispatch",
+                summary = "Emergency Stop became active before adapter dispatch."
+            )
             auditLog.append(AuditEvent(
                 safeClock(now), plan.sessionId, actionHash, AuditEventType.EXECUTION,
                 false, false, "Emergency Stop became active before adapter dispatch"
@@ -113,6 +174,13 @@ internal class ExecutionBridge(
         }
 
         val adapterResult = adapterAttempt.getOrElse {
+            taskRuntimeState.update(
+                state = TaskRuntimeState.FAILED_SAFELY,
+                taskId = taskId,
+                taskName = taskName,
+                currentStep = "Dispatch",
+                summary = "The execution adapter failed; success was not reported."
+            )
             auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.EXECUTION,
                 false, false, "Adapter execution failed"))
             auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
@@ -125,6 +193,13 @@ internal class ExecutionBridge(
             if (adapterResult.success) "Adapter execution succeeded" else "Adapter execution failed"))
 
         if (!adapterResult.success) {
+            taskRuntimeState.update(
+                state = TaskRuntimeState.FAILED_SAFELY,
+                taskId = taskId,
+                taskName = taskName,
+                currentStep = "Verification",
+                summary = "The action did not complete successfully; verification was not reported as successful."
+            )
             auditLog.append(AuditEvent(
                 safeClock(now),
                 plan.sessionId,
@@ -143,11 +218,26 @@ internal class ExecutionBridge(
             )
         }
 
+        taskRuntimeState.update(
+            state = TaskRuntimeState.VERIFYING,
+            taskId = taskId,
+            taskName = taskName,
+            currentStep = "Result verification",
+            summary = "The execution result is being checked against the expected state."
+        )
+
         val verificationCheckedAtMillis = runCatching { clock() }
             .getOrNull()
             ?.takeIf { it >= 0L }
 
         if (verificationCheckedAtMillis == null) {
+            taskRuntimeState.update(
+                state = TaskRuntimeState.FAILED_SAFELY,
+                taskId = taskId,
+                taskName = taskName,
+                currentStep = "Result verification",
+                summary = "Verification could not complete because the security clock was unavailable."
+            )
             auditLog.append(AuditEvent(
                 safeClock(now),
                 plan.sessionId,
@@ -173,6 +263,21 @@ internal class ExecutionBridge(
             executionSucceeded = adapterResult.success,
             observedState = adapterResult.observedState,
             evidence = adapterResult.verificationEvidence
+        )
+        taskRuntimeState.update(
+            state = if (verification.verified) {
+                TaskRuntimeState.COMPLETED
+            } else {
+                TaskRuntimeState.FAILED_SAFELY
+            },
+            taskId = taskId,
+            taskName = taskName,
+            currentStep = "Result verification",
+            summary = if (verification.verified) {
+                "Observed result state matched the expected state."
+            } else {
+                "Observed result state did not satisfy deterministic verification."
+            }
         )
         auditLog.append(AuditEvent(safeClock(now), plan.sessionId, actionHash, AuditEventType.VERIFICATION,
             true, verification.verified,
