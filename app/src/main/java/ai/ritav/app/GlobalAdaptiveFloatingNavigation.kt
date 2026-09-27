@@ -208,7 +208,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "\${safePage + 1}/$pageCount",
+                            text = "${safePage + 1}/$pageCount",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -304,7 +304,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                             }
                             .semantics {
                                 contentDescription =
-                                    if (item.selected) "\${item.label}, selected"
+                                    if (item.selected) "${item.label}, selected"
                                     else item.label
                                 selected = item.selected
                             },
