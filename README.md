@@ -1372,3 +1372,15 @@ CI/real-device verification remains explicitly separate and is not claimed until
 The live-task panel now exposes Emergency Stop while an authoritative task is executing or being verified. The control routes through the existing deterministic security authority rather than introducing UI-side execution control.
 
 Latest implementation checkpoint: `d14ac700272594019946b3dcf08d7b6e665fa6f5`.
+
+
+## UI Build Fix — 2026-09-27
+A PR-triggered Android workflow exposed a compile failure in the UI shell at Run #658 (36299564746). The failure was traced to Compose API/import compatibility in GlobalAdaptiveFloatingNavigation.kt (focusable, role, and onPointerEvent) plus a missing Row import in MainActivity.kt.
+
+The fix:
+- uses androidx.compose.foundation.focusable;
+- imports the semantics role extension;
+- replaces the unavailable onPointerEvent modifier with the supported pointerInput/awaitPointerEvent scroll path for the pinned Compose BOM;
+- adds the missing Row import.
+
+A new PR verification Run #660 (36299746203) is queued for commit 599bbac8db0f3514d044ecb6f0770b46f168d93d. No green CI claim is made until that run completes.
