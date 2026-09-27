@@ -2,6 +2,7 @@ package ai.ritav.app
 
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.DisposableEffect
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,7 @@ import ai.ritav.app.core.security.AndroidExecutionRuntime
 import ai.ritav.app.core.security.CapabilityGrantCandidate
 import ai.ritav.app.core.security.SecurityControlPort
 import ai.ritav.app.core.security.SecuritySession
+import ai.ritav.app.core.security.TaskRuntimeSnapshot
 
 class MainActivity : FragmentActivity() {
     private lateinit var executionRuntime: AndroidExecutionRuntime
@@ -45,6 +47,31 @@ class MainActivity : FragmentActivity() {
                 destination = AppDestination.HOME
             }
             var stopped by remember { mutableStateOf(securityControl.isEmergencyStopActive()) }
+            var taskRuntimeSnapshot by remember {
+                mutableStateOf(executionRuntime.taskRuntimeState.snapshot())
+            }
+            DisposableEffect(executionRuntime.taskRuntimeState) {
+                val subscription = executionRuntime.taskRuntimeState.observe { snapshot ->
+                    runOnUiThread {
+                        taskRuntimeSnapshot = snapshot
+                    }
+                }
+                onDispose { subscription.close() }
+            }
+
+            fun activateEmergencyStopFromShell() {
+                securityControl.activateEmergencyStop()
+                stopped = true
+                activeIdentitySession = null
+                dismissPendingApproval()
+                dismissPendingTrustedApproval()
+                dismissPendingTrustedRemoval()
+                setStatus(
+                    "Emergency Stop activated. Protected actions are blocked.",
+                    RitavFeedbackTone.ERROR
+                )
+            }
+
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var trustedPackageInput by remember { mutableStateOf("") }
@@ -312,7 +339,9 @@ class MainActivity : FragmentActivity() {
                             AppDestination.HOME -> ConversationalHomeScreen(
                                 securityControl = securityControl,
                                 buttonStyle = uiPreferences.buttonStyle,
-                                onOpenSecurityCenter = { destination = AppDestination.SECURITY }
+                                taskSnapshot = taskRuntimeSnapshot,
+                                onOpenSecurityCenter = { destination = AppDestination.SECURITY },
+                                onEmergencyStop = ::activateEmergencyStopFromShell
                             )
                             AppDestination.SECURITY -> {
                             Column(
@@ -353,18 +382,7 @@ class MainActivity : FragmentActivity() {
                                     },
                                     onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
                                     onAuthenticate = ::authenticateProtectedActions,
-                                    onEmergencyStop = {
-                                        securityControl.activateEmergencyStop()
-                                        stopped = true
-                                        activeIdentitySession = null
-                                        dismissPendingApproval()
-                                        dismissPendingTrustedApproval()
-                                        dismissPendingTrustedRemoval()
-                                        setStatus(
-                                            "Emergency Stop activated. Protected actions are blocked.",
-                                            RitavFeedbackTone.ERROR
-                                        )
-                                    },
+                                    onEmergencyStop = ::activateEmergencyStopFromShell,
                                     onResume = {
                                         securityControl.resumeAfterUserConfirmation()
                                         stopped = securityControl.isEmergencyStopActive()
