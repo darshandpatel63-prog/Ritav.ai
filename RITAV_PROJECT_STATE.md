@@ -1866,3 +1866,37 @@ These are validation/integration gates rather than a demonstrated bypass in the 
 
 ### UI GATE RULE
 Do not begin product/conversational UI implementation until the remaining launch-closure evidence and final consolidated system-level security review are complete. The safe security-control facade may be reused by future UI; raw authorization, permission-store, audit/storage, execution-adapter and model-provider authorities remain behind internal boundaries.
+
+## 2026-09-27 UI DEVELOPMENT CHECKPOINT — Adaptive shell, shared components, and honest task surface
+
+### BRANCH SCOPE
+- Active implementation branch: `ui/conversational-shell`.
+- This checkpoint is branch-scoped and is **not merged into `main`**.
+- Current UI PR: #31, still open/draft.
+
+### COMPLETED UI WORK IN THIS STREAM
+- Global Adaptive Floating Navigation now uses continuous fractional rotation for radial/linear overflow, actual available viewport space, keyboard/mouse/touch interaction, accessibility semantics, reduced-motion handling, and persisted Free/Fixed positioning.
+- Shared `RitavButton` presentation styles are centralized with consistent 48dp minimum touch targets and destructive-state semantics.
+- Security/admin UI remains behind `SecurityControlPort`; no UI path was added around authorization, Emergency Stop, permission storage, audit storage, execution adapters, or model-provider authorities.
+- App shell now supports system Back from Security/Settings to Home and IME-safe layouts for Home and Permission Center.
+- Conversation Home now visually separates user/assistant messages, exposes accessible sender/message descriptions, and explicitly presents the verified model-unavailable state without fabricating inference.
+- Reusable `RitavStatusChip` and `RitavLiveTaskPanel` components were added for consistent security/runtime state presentation.
+- The live-task surface currently exposes only authoritative-safe UI states: **No active task** or **Task stopped**. No fake Executing/Completed state is generated because no authoritative live-task runtime observer exists yet.
+- Appearance settings are vertically scrollable, IME-safe, and wrapped for narrow windows.
+
+### VERIFICATION STATUS
+- Static source/call-path verification completed after the latest UI changes.
+- Latest branch head: `2c2eea45bdd6ddbfc3b28fea238674deb4343c47`.
+- Latest connected GitHub Actions status must be treated as runtime/CI evidence only when the workflow exposes a completed result; local real-device visual verification remains unclaimed.
+- The connected environment has not provided a completed successful workflow result for the latest UI head yet.
+
+### KNOWN UI LIMITATIONS
+- No production model/provider runtime is connected; Home remains fail-closed and must not imply real inference.
+- No authoritative live-task runtime state is exposed to the UI yet, so the task panel intentionally remains idle/stopped rather than simulating progress.
+- Physical-device visual QA and real keyboard/touch/accessibility behavior remain unverified in this environment.
+- PR #31 has not been merged into `main`.
+
+### NEXT UI WORK
+- Continue reusable live-task/security-state presentation only when backed by real runtime state.
+- Expand accessible/failure/empty-state components and responsive behavior.
+- After the UI shell is logically complete, perform a consolidated UI + security boundary + failure-path + accessibility + performance review before marking the shell complete.
