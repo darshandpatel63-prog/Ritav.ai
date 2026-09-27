@@ -216,6 +216,7 @@ internal fun PermissionCenter(
 private fun CapabilityGrantConfirmationDialog(
     candidate: CapabilityGrantCandidate,
     plan: ActionPlan,
+    buttonStyle: UiButtonStyle,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -239,11 +240,9 @@ private fun CapabilityGrantConfirmationDialog(
         confirmButton = {
             RitavButton(
                 style = buttonStyle,
-                label = "Trust application",
+                label = "Approve",
                 onClick = onConfirm
             )
-                Text("Approve")
-            }
         },
         dismissButton = {
             RitavButton(
@@ -260,6 +259,7 @@ private fun CapabilityGrantConfirmationDialog(
 private fun TrustedAppConfirmationDialog(
     packageName: String,
     plan: ActionPlan,
+    buttonStyle: UiButtonStyle,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
