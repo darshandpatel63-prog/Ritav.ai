@@ -271,6 +271,7 @@ class MainActivity : FragmentActivity() {
                             ) {
                                 PermissionCenter(
                                     stopped = stopped,
+                                    buttonStyle = uiPreferences.buttonStyle,
                                     identitySession = identitySession,
                                     candidates = securityControl.capabilityGrantOptions(),
                                     pendingCandidate = pendingCandidate,
