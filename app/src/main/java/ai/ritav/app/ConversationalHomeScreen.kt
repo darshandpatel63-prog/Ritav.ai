@@ -133,6 +133,12 @@ internal fun ConversationalHomeScreen(
             }
         }
 
+        RitavFeedbackCard(
+            title = "Model runtime unavailable",
+            message = "No model response was generated. You can continue using the available local interface, or revisit this screen when an approved model runtime is connected.",
+            tone = RitavFeedbackTone.WARNING
+        )
+
         RitavLiveTaskPanel(
             state = if (stopped) {
                 RitavTaskUiState.STOPPED
