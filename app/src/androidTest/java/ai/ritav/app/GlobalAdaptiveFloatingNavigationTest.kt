@@ -7,6 +7,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -19,7 +20,7 @@ internal class GlobalAdaptiveFloatingNavigationTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun navigation_opens_with_active_item_and_persists_scrollable_overflow_behavior() {
+    fun navigation_opens_with_active_item_and_circular_overflow_rotation() {
         val items = (0 until 9).map { index ->
             GlobalNavItem(
                 label = "Item $index",
@@ -57,6 +58,19 @@ internal class GlobalAdaptiveFloatingNavigationTest {
         composeRule
             .onNodeWithContentDescription("Item 0, selected")
             .performTouchInput { swipeLeft() }
+
+        composeRule.onNodeWithContentDescription("Item 8").assertExists().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Item 1").assertExists().assertIsDisplayed()
+
+        composeRule
+            .onNodeWithContentDescription("Item 1")
+            .performTouchInput { swipeRight() }
+
+        composeRule.onNodeWithContentDescription("Item 0, selected").assertExists().assertIsDisplayed()
+
+        composeRule
+            .onNodeWithContentDescription("Item 0, selected")
+            .performTouchInput { swipeRight() }
 
         composeRule.onNodeWithContentDescription("Item 8").assertExists().assertIsDisplayed()
     }
