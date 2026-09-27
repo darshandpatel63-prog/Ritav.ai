@@ -1948,3 +1948,10 @@ Do not begin product/conversational UI implementation until the remaining launch
 ### EXACT CURRENT HEAD
 - Documentation checkpoint commit: `f05bd11722830683d72985ef9a5a94ee2daa833b`
 - Implementation checkpoint before documentation-only follow-up: `e9194dac86184302d22bb87529834c3e1dd24cad`
+
+
+## 2026-09-27 UI FOLLOW-UP — Live Task Stop control
+- Live Task panel now exposes an Emergency Stop control while the authoritative runtime state is EXECUTING or VERIFYING.
+- The control delegates to the existing MainActivity shell callback and therefore the deterministic `SecurityControlPort` Emergency Stop authority; the panel gains no execution authority.
+- Latest implementation checkpoint for this UI addition: `d14ac700272594019946b3dcf08d7b6e665fa6f5`.
+- PR-triggered Android unit-test workflow Run #655 is pending; no completed CI/test claim is made yet.
