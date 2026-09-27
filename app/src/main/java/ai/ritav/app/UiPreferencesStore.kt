@@ -8,6 +8,12 @@ internal enum class UiThemeMode {
     DARK
 }
 
+internal enum class UiMotionPreference {
+    AUTO,
+    ON,
+    OFF
+}
+
 internal enum class UiThemeFamily {
     RITAV_DEFAULT,
     OCEAN,
@@ -19,7 +25,8 @@ internal enum class UiThemeFamily {
 
 internal data class UiPreferences(
     val themeMode: UiThemeMode = UiThemeMode.SYSTEM,
-    val themeFamily: UiThemeFamily = UiThemeFamily.RITAV_DEFAULT
+    val themeFamily: UiThemeFamily = UiThemeFamily.RITAV_DEFAULT,
+    val motionPreference: UiMotionPreference = UiMotionPreference.AUTO
 )
 
 internal class UiPreferencesStore(context: Context) {
@@ -35,7 +42,12 @@ internal class UiPreferencesStore(context: Context) {
                     ?: UiThemeFamily.RITAV_DEFAULT.name
             )
         }.getOrDefault(UiThemeFamily.RITAV_DEFAULT)
-        return UiPreferences(mode, family)
+        val motion = runCatching {
+            UiMotionPreference.valueOf(
+                preferences.getString(KEY_MOTION, UiMotionPreference.AUTO.name) ?: UiMotionPreference.AUTO.name
+            )
+        }.getOrDefault(UiMotionPreference.AUTO)
+        return UiPreferences(mode, family, motion)
     }
 
     fun saveThemeMode(mode: UiThemeMode) {
@@ -46,8 +58,13 @@ internal class UiPreferencesStore(context: Context) {
         preferences.edit().putString(KEY_THEME_FAMILY, family.name).apply()
     }
 
+    fun saveMotionPreference(preference: UiMotionPreference) {
+        preferences.edit().putString(KEY_MOTION, preference.name).apply()
+    }
+
     private companion object {
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_THEME_FAMILY = "theme_family"
+        const val KEY_MOTION = "motion_preference"
     }
 }
