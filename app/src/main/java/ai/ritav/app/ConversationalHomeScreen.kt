@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +33,7 @@ internal data class ConversationMessage(
 @Composable
 internal fun ConversationalHomeScreen(
     securityControl: SecurityControlPort,
+    buttonStyle: UiButtonStyle,
     onOpenSecurityCenter: () -> Unit
 ) {
     var input by remember { mutableStateOf("") }
@@ -114,23 +114,24 @@ internal fun ConversationalHomeScreen(
             label = { Text("Message Ritav") }
         )
 
-        Button(
+        RitavButton(
+            style = buttonStyle,
+            label = "Send",
             onClick = ::send,
             enabled = input.isNotBlank() && !stopped,
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Send")
-        }
+        )
 
-        Button(
+        RitavButton(
+            style = buttonStyle,
+            label = "Emergency Stop",
             onClick = {
                 securityControl.activateEmergencyStop()
                 stopped = true
             },
             enabled = !stopped,
+            destructive = true,
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Emergency Stop")
-        }
+        )
     }
 }
