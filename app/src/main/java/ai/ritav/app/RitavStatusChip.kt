@@ -61,7 +61,7 @@ internal fun RitavStatusChip(
             .semantics {
                 contentDescription = accessibleDescription
             },
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(50.dp),
         color = containerColor
     ) {
         Row(
