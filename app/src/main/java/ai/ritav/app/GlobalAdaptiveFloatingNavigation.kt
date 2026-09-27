@@ -1,6 +1,7 @@
 package ai.ritav.app
 
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
@@ -58,6 +59,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
         mutableFloatStateOf(initialPosition.yFraction.coerceIn(0f, 1f))
     }
     var expanded by remember { mutableStateOf(false) }
+    var menuPage by remember { mutableStateOf(0) }
 
     BoxWithConstraints(modifier = modifier) {
         val widthPx = with(density) { maxWidth.toPx() }
@@ -79,6 +81,10 @@ internal fun GlobalAdaptiveFloatingNavigation(
 
         val menuRadius = maxOf(78f, itemPx * 1.55f)
         val visibleCount = minOf(items.size, 8)
+        val pageCount = if (items.size <= visibleCount) 1 else ((items.size + visibleCount - 1) / visibleCount)
+        val safePage = menuPage.coerceIn(0, pageCount - 1)
+        val startIndex = safePage * visibleCount
+        val visibleItems = items.drop(startIndex).take(visibleCount)
 
         Box(
             modifier = Modifier
@@ -116,6 +122,23 @@ internal fun GlobalAdaptiveFloatingNavigation(
                         }
                     )
                 }
+                .then(
+                    if (expanded && pageCount > 1) {
+                        Modifier.pointerInput(pageCount, safePage) {
+                            detectDragGestures(
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    if (kotlin.math.abs(dragAmount.x) > kotlin.math.abs(dragAmount.y)) {
+                                        val direction = if (dragAmount.x < 0f) 1 else -1
+                                        menuPage = (safePage + direction + pageCount) % pageCount
+                                    }
+                                }
+                            )
+                        }
+                    } else {
+                        Modifier
+                    }
+                )
                 .semantics {
                     contentDescription =
                         if (initialPosition.fixed) {
@@ -143,11 +166,11 @@ internal fun GlobalAdaptiveFloatingNavigation(
             }
 
             if (expanded) {
-                items.take(visibleCount).forEachIndexed { index, item ->
+                visibleItems.forEachIndexed { index, item ->
                     val placement = if (useLinear) {
                         linearPlacement(
                             index = index,
-                            count = visibleCount,
+                            count = visibleItems.size,
                             centerX = buttonPx / 2f,
                             centerY = buttonPx / 2f,
                             width = widthPx,
@@ -160,7 +183,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                     } else {
                         radialPlacement(
                             index = index,
-                            count = visibleCount,
+                            count = visibleItems.size,
                             centerX = positionX + buttonPx / 2f,
                             centerY = positionY + buttonPx / 2f,
                             radius = menuRadius,
