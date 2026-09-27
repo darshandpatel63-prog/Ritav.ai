@@ -95,6 +95,70 @@ class ExecutionBridgeTest {
         identitySessionManager = identityManager
     )
 
+    @Test fun successfulExecutionPublishesAuthoritativeTaskLifecycle() {
+        val plan = ActionPlan(
+            "demo.app",
+            Capability.APP_LAUNCH,
+            "open",
+            RiskTier.TIER_1_REVERSIBLE,
+            expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE
+        )
+        val adapter = RecordingAdapter()
+        val permissions = InMemoryPermissionStore(setOf(CapabilityGrant(plan.appId, plan.capability, plan.action)))
+        val policy = PolicyEngine(permissions)
+        val taskState = TaskRuntimeStateStore { 100L }
+        val observed = mutableListOf<TaskRuntimeState>()
+        taskState.observe { observed += it.state }
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter,
+            taskRuntimeState = taskState
+        )
+
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+
+        assertTrue(result.success)
+        assertEquals(
+            listOf(
+                TaskRuntimeState.IDLE,
+                TaskRuntimeState.EXECUTING,
+                TaskRuntimeState.VERIFYING,
+                TaskRuntimeState.COMPLETED
+            ),
+            observed
+        )
+        assertEquals(TaskRuntimeState.COMPLETED, taskState.snapshot().state)
+        assertEquals(plan.stableHash(), taskState.snapshot().taskId)
+    }
+
+    @Test fun blockedExecutionPublishesBlockedTaskState() {
+        val plan = ActionPlan(
+            "demo.app",
+            Capability.APP_LAUNCH,
+            "open",
+            RiskTier.TIER_1_REVERSIBLE,
+            expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE
+        )
+        val adapter = RecordingAdapter()
+        val taskState = TaskRuntimeStateStore { 200L }
+        val permissions = InMemoryPermissionStore()
+        val policy = PolicyEngine(permissions)
+        val bridge = ExecutionBridge(
+            CapabilityPolicyGate(registryFor(plan)),
+            pipelineFor(policy, IdentitySessionManager()),
+            adapter,
+            taskRuntimeState = taskState
+        )
+
+        val result = bridge.execute(plan, userExplicitlyRequested = true)
+
+        assertFalse(result.success)
+        assertEquals(TaskRuntimeState.BLOCKED, taskState.snapshot().state)
+        assertEquals("Capability policy", taskState.snapshot().currentStep)
+        assertEquals(0, adapter.calls)
+    }
+
     @Test fun clockFailureFailsClosedBeforeAdapterExecution() {
         val plan = ActionPlan("demo.app", Capability.APP_LAUNCH, "open", RiskTier.TIER_1_REVERSIBLE, expectedState = ExpectedActionStateRegistry.LAUNCH_DISPATCHED_STATE)
         val adapter = RecordingAdapter()
