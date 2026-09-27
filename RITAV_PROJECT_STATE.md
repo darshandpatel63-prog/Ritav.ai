@@ -1918,3 +1918,33 @@ Do not begin product/conversational UI implementation until the remaining launch
 - Static integration review completed for the affected UI/security/execution path. Real build/CI completion and physical-device visual testing remain unverified at this checkpoint.
 - Implementation checkpoint SHA before documentation-only commits: `e9194dac86184302d22bb87529834c3e1dd24cad`.
 - Latest PR-triggered Android unit-test run observed at checkpoint: Run #648, **in progress**. No green CI claim is made.
+
+## 2026-09-27 CURRENT STOP POINT — Runtime-backed task UI integration
+### CURRENT BRANCH / PR
+- Branch: `ui/conversational-shell`
+- PR #31: open, draft, not merged into `main`
+- Branch remains 0 commits behind `main`.
+
+### COMPLETED
+- Read-only `TaskRuntimeStatePort` integrated from `AndroidExecutionRuntime` into Compose through lifecycle-aware observation.
+- `ExecutionBridge` publishes bounded deterministic task states without granting the UI any execution or authorization authority.
+- Home maps runtime states to the reusable Live Task panel and centralizes Emergency Stop state through the shell callback.
+- JVM regression tests added for task lifecycle, blocked execution, Emergency Stop state, observer lifecycle, and bounded state text.
+- Feedback/empty-state components, shared buttons, status chips, responsive settings, GAFN, and accessibility semantics remain integrated.
+
+### VERIFIED / SOURCE-LEVEL
+- Static call-path/source review completed for UI → runtime status facade → execution boundary.
+- Security authority remains behind `SecurityControlPort` / internal execution composition; the new task facade is read-only.
+- Malformed plans are validated before task-state hashing in the execution path.
+
+### NOT VERIFIED
+- GitHub Android Run #648 was **cancelled** before JVM tests/instrumentation execution; no completed green CI evidence is available for this checkpoint.
+- Physical-device visual/accessibility/touch QA remains unverified.
+- Production model/provider runtime remains intentionally unavailable/fail-closed.
+
+### NEXT ACTION
+- Re-check the latest branch with completed CI evidence before considering this UI/runtime integration verified; then continue broader UI shell refinement and consolidated UI/security/accessibility/performance review.
+
+### EXACT CURRENT HEAD
+- Documentation checkpoint commit: `f05bd11722830683d72985ef9a5a94ee2daa833b`
+- Implementation checkpoint before documentation-only follow-up: `e9194dac86184302d22bb87529834c3e1dd24cad`
