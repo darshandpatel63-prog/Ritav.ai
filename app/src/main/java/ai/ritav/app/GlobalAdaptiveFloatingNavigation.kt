@@ -119,8 +119,27 @@ internal fun GlobalAdaptiveFloatingNavigation(
         val nearBottom = positionY > heightPx * 0.72f
         val useLinear = nearLeft || nearRight || nearTop || nearBottom
 
-        val menuRadius = maxOf(78f, itemPx * 1.55f)
-        val visibleCount = minOf(items.size, 8)
+        val baseMenuRadius = maxOf(78f, itemPx * 1.55f)
+        val horizontalLinear =
+            maxOf(positionX + buttonPx / 2f, widthPx - (positionX + buttonPx / 2f)) >=
+                maxOf(positionY + buttonPx / 2f, heightPx - (positionY + buttonPx / 2f))
+        val linearAxisCapacity = if (horizontalLinear) {
+            ((widthPx - (marginPx * 2f)) / (itemPx + 8f)).toInt()
+        } else {
+            ((heightPx - (marginPx * 2f)) / (itemPx + 8f)).toInt()
+        }.coerceAtLeast(1)
+        val visibleCount = minOf(
+            items.size,
+            8,
+            if (useLinear) linearAxisCapacity else 8
+        )
+        val radialRadius = minOf(
+            baseMenuRadius,
+            (positionX + buttonPx / 2f - marginPx - itemPx / 2f).coerceAtLeast(0f),
+            (widthPx - (positionX + buttonPx / 2f) - marginPx - itemPx / 2f).coerceAtLeast(0f),
+            (positionY + buttonPx / 2f - marginPx - itemPx / 2f).coerceAtLeast(0f),
+            (heightPx - (positionY + buttonPx / 2f) - marginPx - itemPx / 2f).coerceAtLeast(0f)
+        )
         val pageCount =
             if (items.size <= visibleCount) 1
             else (items.size + visibleCount - 1) / visibleCount
@@ -242,7 +261,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                                     count = visibleItems.size,
                                     centerX = positionX + buttonPx / 2f,
                                     centerY = positionY + buttonPx / 2f,
-                                    radius = menuRadius,
+                                    radius = radialRadius,
                                     itemPx = itemPx
                                 )
                             }
