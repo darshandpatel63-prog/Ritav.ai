@@ -163,7 +163,9 @@ internal fun ConversationalHomeScreen(
             } else {
                 taskSnapshot.summary
                     ?: "No task is currently being executed."
-            }
+            },
+            buttonStyle = buttonStyle,
+            onEmergencyStop = onEmergencyStop
         )
 
         LazyColumn(
