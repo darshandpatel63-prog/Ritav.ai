@@ -1955,3 +1955,39 @@ Do not begin product/conversational UI implementation until the remaining launch
 - The control delegates to the existing MainActivity shell callback and therefore the deterministic `SecurityControlPort` Emergency Stop authority; the panel gains no execution authority.
 - Latest implementation checkpoint for this UI addition: `d14ac700272594019946b3dcf08d7b6e665fa6f5`.
 - PR-triggered Android unit-test workflow Run #655 was cancelled before JVM/instrumentation test execution; no completed CI/test claim is made.
+
+
+## 2026-09-27 CURRENT UI VERIFICATION CHECKPOINT — Compose compile failure fixed
+### CURRENT BRANCH / PR
+- Branch: ui/conversational-shell
+- PR #31: open, draft, not merged into main
+- Current branch is still 0 commits behind main.
+
+### DIAGNOSIS
+- PR-triggered Android Run #658 (36299564746) reached the Gradle compile step and failed in the UI shell.
+- The failure was concrete compile incompatibility, not a runtime/security bypass:
+  - GlobalAdaptiveFloatingNavigation.kt used focusable from the wrong package.
+  - The semantics role extension property was not imported.
+  - onPointerEvent is not available in the pinned Compose dependency set, so its lambda also produced cascading unresolved symbols.
+  - MainActivity.kt was missing the Row layout import.
+
+### FIX IMPLEMENTED
+- GlobalAdaptiveFloatingNavigation.kt now uses androidx.compose.foundation.focusable.
+- The semantics role extension is imported explicitly.
+- Scroll rotation uses the compatible pointerInput/awaitPointerEvent path while preserving PointerEventType.Scroll and scrollDelta behavior.
+- MainActivity.kt imports Row.
+- Security authority, execution boundaries, task runtime read-only facade, and Emergency Stop path were not expanded or bypassed by this fix.
+
+### VERIFICATION STATUS
+- Source-level call-path review completed after the fix.
+- Run #660 (36299746203) for head commit 599bbac8db0f3514d044ecb6f0770b46f168d93d was observed as queued.
+- Run #660 is the required next executable verification; no green CI claim is made yet.
+- Physical-device visual/accessibility/touch testing remains unverified.
+
+### NEXT ACTION
+- Verify Run #660 through JVM tests, Android instrumentation-test compilation, and managed-device instrumentation.
+- If it passes, perform the consolidated UI + security-boundary + accessibility + failure-path + performance review for this logically complete shell slice.
+- If it fails, diagnose the concrete failure before adding unrelated UI functionality.
+
+### EXACT CURRENT CODE HEAD BEFORE THIS DOCUMENTATION CHECKPOINT
+- 599bbac8db0f3514d044ecb6f0770b46f168d93d
