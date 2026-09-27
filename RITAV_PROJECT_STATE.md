@@ -1900,3 +1900,11 @@ Do not begin product/conversational UI implementation until the remaining launch
 - Continue reusable live-task/security-state presentation only when backed by real runtime state.
 - Expand accessible/failure/empty-state components and responsive behavior.
 - After the UI shell is logically complete, perform a consolidated UI + security boundary + failure-path + accessibility + performance review before marking the shell complete.
+
+## 2026-09-27 UI FOLLOW-UP — Empty/error feedback hardening
+- Added shared `RitavFeedbackCard` for INFO/WARNING/ERROR/empty-state presentation with accessible live-region semantics.
+- Home now explicitly communicates the verified model-unavailable state without implying inference or execution.
+- Permission Center now has structured empty states for no trusted applications and no reviewable capability options.
+- Security operation feedback is now tone-aware (success/info, warning, or error) through centralized UI state plumbing; security authority remains `SecurityControlPort`.
+- Latest UI implementation checkpoint SHA: `64a24671954065f66d471037696d509f9cd267af`.
+- CI Run #636 for this PR-triggered head is pending at the time of this checkpoint; no green CI claim is made.
