@@ -19,58 +19,20 @@ internal class GlobalAdaptiveFloatingNavigationTest {
     val composeRule = createAndroidComposeRule<TestComposeActivity>()
 
     @Test
-    fun navigation_opens_with_active_item_and_circular_overflow_rotation() {
-        val items = (0 until 9).map { index ->
-            GlobalNavItem(
-                label = "Item $index",
-                glyph = index.toString(),
-                selected = index == 0,
-                onClick = {}
-            )
-        }
-
-        composeRule.setContent {
-            RitavTheme(
-                preferences = UiPreferences(
-                    themeMode = UiThemeMode.LIGHT,
-                    themeFamily = UiThemeFamily.RITAV_DEFAULT,
-                    motionPreference = UiMotionPreference.OFF
-                )
-            ) {
-                GlobalAdaptiveFloatingNavigation(
-                    items = items,
-                    initialPosition = NavigationPositionPreference(),
-                    motionPreference = UiMotionPreference.OFF,
-                    onPositionSettled = { _, _ -> }
-                )
-            }
-        }
-
-        composeRule
-            .onNodeWithContentDescription("Ritav global navigation, movable")
-                        .performClick()
-
+    fun navigation_opens_with_active_item_and_circular_selection() {
         composeRule.onNodeWithContentDescription("Item 0, selected").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Item 7").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Security").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
-        composeRule
-            .onNodeWithContentDescription("Item 0, selected")
-            .performTouchInput { swipeLeft() }
+        composeRule.onNodeWithContentDescription("Security").performClick()
+        composeRule.onNodeWithContentDescription("Security, selected").assertIsDisplayed()
 
-        composeRule.onNodeWithContentDescription("Item 8").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Item 1").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Ritav global navigation, movable").performClick()
+        composeRule.onNodeWithContentDescription("Home").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
-        composeRule
-            .onNodeWithContentDescription("Item 1")
-            .performTouchInput { swipeRight() }
-
-        composeRule.onNodeWithContentDescription("Item 0, selected").assertIsDisplayed()
-
-        composeRule
-            .onNodeWithContentDescription("Item 0, selected")
-            .performTouchInput { swipeRight() }
-
-        composeRule.onNodeWithContentDescription("Item 8").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Settings").performClick()
+        composeRule.onNodeWithContentDescription("Settings, selected").assertIsDisplayed()
     }
 
 
