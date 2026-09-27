@@ -16,7 +16,7 @@ import org.junit.runner.RunWith
 internal class GlobalAdaptiveFloatingNavigationTest {
 
     @get:Rule
-    val composeRule = createAndroidComposeRule<MainActivity>()
+    val composeRule = createAndroidComposeRule<TestComposeActivity>()
 
     @Test
     fun navigation_opens_with_active_item_and_circular_overflow_rotation() {
