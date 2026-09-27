@@ -56,6 +56,15 @@ class MainActivity : FragmentActivity() {
             var pendingTrustedRemovalPackage by remember { mutableStateOf<String?>(null) }
             var pendingTrustedRemovalPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var statusMessage by remember { mutableStateOf<String?>(null) }
+            var statusTone by remember { mutableStateOf(RitavFeedbackTone.INFO) }
+
+            fun setStatus(
+                message: String?,
+                tone: RitavFeedbackTone = RitavFeedbackTone.INFO
+            ) {
+                statusMessage = message
+                statusTone = if (message == null) RitavFeedbackTone.INFO else tone
+            }
 
             val identitySession = activeIdentitySession?.takeIf {
                 it.isActive(System.currentTimeMillis())
@@ -77,7 +86,7 @@ class MainActivity : FragmentActivity() {
             }
 
             fun authenticateProtectedActions() {
-                statusMessage = null
+                setStatus(null)
                 securityControl.authenticateProtectedActions(
                     reason = "Authorize protected Ritav actions"
                 ) { session ->
@@ -85,30 +94,43 @@ class MainActivity : FragmentActivity() {
                         activeIdentitySession = session?.takeIf {
                             it.isActive(System.currentTimeMillis())
                         }
-                        statusMessage =
-                            if (activeIdentitySession != null) {
+                        val authenticated = activeIdentitySession != null
+                        setStatus(
+                            if (authenticated) {
                                 "Protected identity session established."
                             } else {
                                 "Device authentication did not establish a trusted session."
+                            },
+                            if (authenticated) {
+                                RitavFeedbackTone.INFO
+                            } else {
+                                RitavFeedbackTone.ERROR
                             }
+                        )
                         }
                     }
                 }
             }
 
             fun reviewCandidate(candidate: CapabilityGrantCandidate) {
-                statusMessage = null
+                setStatus(null)
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
                 if (session == null || securityControl.isEmergencyStopActive()) {
-                    statusMessage = "Authenticate a protected identity session before approval."
+                    setStatus(
+                        "Authenticate a protected identity session before approval.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 val plan = securityControl.prepareCapabilityGrant(candidate, session)
                 if (plan == null) {
-                    statusMessage = "Capability approval could not be prepared."
+                    setStatus(
+                        "Capability approval could not be prepared.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
@@ -122,13 +144,19 @@ class MainActivity : FragmentActivity() {
                     it.isActive(System.currentTimeMillis())
                 }
                 if (session == null || securityControl.isEmergencyStopActive()) {
-                    statusMessage = "Authenticate a protected identity session before trusting an application."
+                    setStatus(
+                        "Authenticate a protected identity session before trusting an application.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 val packageName = trustedPackageInput.trim()
                 if (packageName.isEmpty()) {
-                    statusMessage = "Enter an installed Android package name."
+                    setStatus(
+                        "Enter an installed Android package name.",
+                        RitavFeedbackTone.WARNING
+                    )
                     return
                 }
 
@@ -137,7 +165,10 @@ class MainActivity : FragmentActivity() {
                     identitySession = session
                 )
                 if (plan == null) {
-                    statusMessage = "The installed package identity could not be verified or is not eligible for trust."
+                    setStatus(
+                        "The installed package identity could not be verified or is not eligible for trust.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
@@ -149,12 +180,15 @@ class MainActivity : FragmentActivity() {
                 val plan = pendingTrustedPlan ?: return
                 val session = activeIdentitySession ?: run {
                     dismissPendingTrustedApproval()
-                    statusMessage = "Trusted identity session is unavailable."
+                    setStatus(
+                        "Trusted identity session is unavailable.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 dismissPendingTrustedApproval()
-                statusMessage = "Authorizing trusted-application approval..."
+                setStatus("Authorizing trusted-application approval...")
 
                 securityControl.approveTrustedApp(
                     plan = plan,
@@ -162,14 +196,16 @@ class MainActivity : FragmentActivity() {
                     userConfirmed = true
                 ) { success ->
                     runOnUiThread {
-                        statusMessage =
+                        setStatus(
                             if (success) {
                                 trustedPackageInput = ""
                                 trustedPackages = (trustedPackages + plan.appId).distinct().sorted()
                                 "Trusted application added. Capability access still requires its separate grant flow."
                             } else {
                                 "Trusted-application approval was denied or became invalid."
-                            }
+                            },
+                            if (success) RitavFeedbackTone.INFO else RitavFeedbackTone.ERROR
+                        )
                     }
                 }
             }
@@ -180,7 +216,10 @@ class MainActivity : FragmentActivity() {
                     it.isActive(System.currentTimeMillis())
                 }
                 if (session == null || securityControl.isEmergencyStopActive()) {
-                    statusMessage = "Authenticate a protected identity session before removing trusted access."
+                    setStatus(
+                        "Authenticate a protected identity session before removing trusted access.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
@@ -189,7 +228,10 @@ class MainActivity : FragmentActivity() {
                     identitySession = session
                 )
                 if (plan == null) {
-                    statusMessage = "Trusted-app removal could not be prepared; installed identity or stored trust state changed."
+                    setStatus(
+                        "Trusted-app removal could not be prepared; installed identity or stored trust state changed.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
@@ -201,12 +243,15 @@ class MainActivity : FragmentActivity() {
                 val plan = pendingTrustedRemovalPlan ?: return
                 val session = activeIdentitySession ?: run {
                     dismissPendingTrustedRemoval()
-                    statusMessage = "Trusted identity session is unavailable."
+                    setStatus(
+                        "Trusted identity session is unavailable.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 dismissPendingTrustedRemoval()
-                statusMessage = "Authorizing trusted-application removal..."
+                setStatus("Authorizing trusted-application removal...")
 
                 securityControl.approveTrustedRemoval(
                     plan = plan,
@@ -214,13 +259,15 @@ class MainActivity : FragmentActivity() {
                     userConfirmed = true
                 ) { success ->
                     runOnUiThread {
-                        statusMessage =
+                        setStatus(
                             if (success) {
                                 trustedPackages = trustedPackages.filterNot { it == plan.appId }
                                 "Trusted application removed."
                             } else {
                                 "Trusted-application removal was denied or became invalid."
-                            }
+                            },
+                            if (success) RitavFeedbackTone.INFO else RitavFeedbackTone.ERROR
+                        )
                     }
                 }
             }
@@ -233,7 +280,7 @@ class MainActivity : FragmentActivity() {
                 }
 
                 dismissPendingApproval()
-                statusMessage = "Authorizing capability approval..."
+                setStatus("Authorizing capability approval...")
 
                 securityControl.approveCapabilityGrant(
                     plan = plan,
@@ -241,12 +288,14 @@ class MainActivity : FragmentActivity() {
                     userConfirmed = true
                 ) { success ->
                     runOnUiThread {
-                        statusMessage =
+                        setStatus(
                             if (success) {
                                 "Capability approved for the current trusted identity session."
                             } else {
                                 "Capability approval was denied or became invalid."
-                            }
+                            },
+                            if (success) RitavFeedbackTone.INFO else RitavFeedbackTone.ERROR
+                        )
                     }
                 }
             }
@@ -279,6 +328,7 @@ class MainActivity : FragmentActivity() {
                                     pendingCandidate = pendingCandidate,
                                     pendingPlan = pendingGrantPlan,
                                     statusMessage = statusMessage,
+                                    statusTone = statusTone,
                                     trustedPackageInput = trustedPackageInput,
                                     onTrustedPackageInputChanged = { value ->
                                         trustedPackageInput = value.take(256)
@@ -288,7 +338,7 @@ class MainActivity : FragmentActivity() {
                                     pendingTrustedPlan = pendingTrustedPlan,
                                     onDismissTrustedApproval = {
                                         dismissPendingTrustedApproval()
-                                        statusMessage = null
+                                        setStatus(null)
                                     },
                                     onApproveTrustedApp = ::approvePendingTrustedApp,
                                     trustedPackages = trustedPackages,
@@ -297,7 +347,7 @@ class MainActivity : FragmentActivity() {
                                     pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
                                     onDismissTrustedRemoval = {
                                         dismissPendingTrustedRemoval()
-                                        statusMessage = null
+                                        setStatus(null)
                                     },
                                     onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
                                     onAuthenticate = ::authenticateProtectedActions,
@@ -308,7 +358,10 @@ class MainActivity : FragmentActivity() {
                                         dismissPendingApproval()
                                         dismissPendingTrustedApproval()
                                         dismissPendingTrustedRemoval()
-                                        statusMessage = "Emergency Stop activated. Protected actions are blocked."
+                                        setStatus(
+                                            "Emergency Stop activated. Protected actions are blocked.",
+                                            RitavFeedbackTone.ERROR
+                                        )
                                     },
                                     onResume = {
                                         securityControl.resumeAfterUserConfirmation()
@@ -317,12 +370,14 @@ class MainActivity : FragmentActivity() {
                                         dismissPendingApproval()
                                         dismissPendingTrustedApproval()
                                         dismissPendingTrustedRemoval()
-                                        statusMessage =
+                                        setStatus(
                                             if (stopped) {
                                                 "Emergency Stop remains active."
                                             } else {
                                                 "Ritav resumed. Protected actions require fresh authentication."
-                                            }
+                                            },
+                                            if (stopped) RitavFeedbackTone.ERROR else RitavFeedbackTone.INFO
+                                        )
                                     },
                                     onCandidateSelected = ::reviewCandidate,
                                     onDismissApproval = {
