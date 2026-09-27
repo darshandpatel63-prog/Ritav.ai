@@ -1,5 +1,13 @@
 package ai.ritav.app
 
+import android.provider.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -18,12 +27,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -31,6 +52,7 @@ import kotlin.math.sin
 internal data class GlobalNavItem(
     val label: String,
     val glyph: String,
+    val selected: Boolean = false,
     val onClick: () -> Unit
 )
 
@@ -38,11 +60,13 @@ internal data class GlobalNavItem(
 internal fun GlobalAdaptiveFloatingNavigation(
     items: List<GlobalNavItem>,
     initialPosition: NavigationPositionPreference,
+    motionPreference: UiMotionPreference,
     onPositionSettled: (xFraction: Float, yFraction: Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (items.isEmpty()) return
 
+    val context = LocalContext.current
     val density = LocalDensity.current
     val buttonSize = 58.dp
     val itemSize = 48.dp
@@ -50,6 +74,21 @@ internal fun GlobalAdaptiveFloatingNavigation(
     val buttonPx = with(density) { buttonSize.toPx() }
     val itemPx = with(density) { itemSize.toPx() }
     val marginPx = with(density) { margin.toPx() }
+
+    val systemAllowsMotion = remember {
+        runCatching {
+            Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f
+            ) > 0f
+        }.getOrDefault(true)
+    }
+    val animationsEnabled = when (motionPreference) {
+        UiMotionPreference.AUTO -> systemAllowsMotion
+        UiMotionPreference.ON -> true
+        UiMotionPreference.OFF -> false
+    }
 
     var xFraction by remember(initialPosition.xFraction, initialPosition.yFraction, initialPosition.fixed) {
         mutableFloatStateOf(initialPosition.xFraction.coerceIn(0f, 1f))
@@ -59,6 +98,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
     }
     var expanded by remember { mutableStateOf(false) }
     var menuPage by remember { mutableStateOf(0) }
+    val menuFocusRequester = remember { FocusRequester() }
 
     BoxWithConstraints(modifier = modifier) {
         val widthPx = with(density) { maxWidth.toPx() }
@@ -80,10 +120,18 @@ internal fun GlobalAdaptiveFloatingNavigation(
 
         val menuRadius = maxOf(78f, itemPx * 1.55f)
         val visibleCount = minOf(items.size, 8)
-        val pageCount = if (items.size <= visibleCount) 1 else ((items.size + visibleCount - 1) / visibleCount)
+        val pageCount =
+            if (items.size <= visibleCount) 1
+            else (items.size + visibleCount - 1) / visibleCount
         val safePage = menuPage.coerceIn(0, pageCount - 1)
         val startIndex = safePage * visibleCount
         val visibleItems = items.drop(startIndex).take(visibleCount)
+
+        LaunchedEffect(expanded, safePage) {
+            if (expanded && visibleItems.isNotEmpty()) {
+                menuFocusRequester.requestFocus()
+            }
+        }
 
         Box(
             modifier = Modifier
@@ -121,23 +169,6 @@ internal fun GlobalAdaptiveFloatingNavigation(
                         }
                     )
                 }
-                .then(
-                    if (expanded && pageCount > 1) {
-                        Modifier.pointerInput(pageCount, safePage) {
-                            detectDragGestures(
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    if (kotlin.math.abs(dragAmount.x) > kotlin.math.abs(dragAmount.y)) {
-                                        val direction = if (dragAmount.x < 0f) 1 else -1
-                                        menuPage = (safePage + direction + pageCount) % pageCount
-                                    }
-                                }
-                            )
-                        }
-                    } else {
-                        Modifier
-                    }
-                )
                 .semantics {
                     contentDescription =
                         if (initialPosition.fixed) {
@@ -148,8 +179,10 @@ internal fun GlobalAdaptiveFloatingNavigation(
                 }
         ) {
             Surface(
-                onClick = { expanded = !expanded },
-                enabled = true,
+                onClick = {
+                    if (!expanded) menuPage = 0
+                    expanded = !expanded
+                },
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary,
                 tonalElevation = 5.dp,
@@ -164,49 +197,124 @@ internal fun GlobalAdaptiveFloatingNavigation(
                 }
             }
 
-            if (expanded) {
-                visibleItems.forEachIndexed { index, item ->
-                    val placement = if (useLinear) {
-                        linearPlacement(
-                            index = index,
-                            count = visibleItems.size,
-                            centerX = buttonPx / 2f,
-                            centerY = buttonPx / 2f,
-                            width = widthPx,
-                            height = heightPx,
-                            itemPx = itemPx,
-                            buttonX = positionX,
-                            buttonY = positionY,
-                            margin = marginPx
-                        )
-                    } else {
-                        radialPlacement(
-                            index = index,
-                            count = visibleItems.size,
-                            centerX = positionX + buttonPx / 2f,
-                            centerY = positionY + buttonPx / 2f,
-                            radius = menuRadius,
-                            itemPx = itemPx
+            if (pageCount > 1 && expanded) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = (-4).dp)
+                        .size(22.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "\${safePage + 1}/$pageCount",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
+                }
+            }
 
+            visibleItems.forEachIndexed { index, item ->
+                AnimatedVisibility(
+                    visible = expanded,
+                    modifier = Modifier
+                        .offset {
+                            val placement = if (useLinear) {
+                                linearPlacement(
+                                    index = index,
+                                    count = visibleItems.size,
+                                    centerX = buttonPx / 2f,
+                                    centerY = buttonPx / 2f,
+                                    width = widthPx,
+                                    height = heightPx,
+                                    itemPx = itemPx,
+                                    buttonX = positionX,
+                                    buttonY = positionY,
+                                    margin = marginPx
+                                )
+                            } else {
+                                radialPlacement(
+                                    index = index,
+                                    count = visibleItems.size,
+                                    centerX = positionX + buttonPx / 2f,
+                                    centerY = positionY + buttonPx / 2f,
+                                    radius = menuRadius,
+                                    itemPx = itemPx
+                                )
+                            }
+                            IntOffset(
+                                (placement.x - positionX).roundToInt(),
+                                (placement.y - positionY).roundToInt()
+                            )
+                        },
+                    enter = if (animationsEnabled) fadeIn() + scaleIn() else EnterTransition.None,
+                    exit = if (animationsEnabled) fadeOut() + scaleOut() else ExitTransition.None
+                ) {
+                    val focusModifier =
+                        if (index == 0) Modifier.focusRequester(menuFocusRequester) else Modifier
                     Surface(
                         onClick = {
                             expanded = false
                             item.onClick()
                         },
                         modifier = Modifier
-                            .offset {
-                                IntOffset(
-                                    (placement.x - positionX).roundToInt(),
-                                    (placement.y - positionY).roundToInt()
+                            .then(focusModifier)
+                            .size(itemSize)
+                            .focusable()
+                            .pointerInput(pageCount, safePage) {
+                                var horizontalDrag = 0f
+                                detectDragGestures(
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        horizontalDrag += dragAmount.x
+                                    },
+                                    onDragEnd = {
+                                        if (pageCount > 1 && abs(horizontalDrag) >= 48f) {
+                                            menuPage = if (horizontalDrag < 0f) {
+                                                (safePage + 1) % pageCount
+                                            } else {
+                                                (safePage - 1 + pageCount) % pageCount
+                                            }
+                                        }
+                                    }
                                 )
                             }
-                            .size(itemSize)
-                            .semantics { contentDescription = item.label },
+                            .onPreviewKeyEvent { event ->
+                                if (event.type != KeyEventType.KeyDown) {
+                                    false
+                                } else {
+                                    when {
+                                        event.key == Key.Escape -> {
+                                            expanded = false
+                                            true
+                                        }
+                                        event.key == Key.PageDown && pageCount > 1 -> {
+                                            menuPage = (safePage + 1) % pageCount
+                                            true
+                                        }
+                                        event.key == Key.PageUp && pageCount > 1 -> {
+                                            menuPage = (safePage - 1 + pageCount) % pageCount
+                                            true
+                                        }
+                                        else -> false
+                                    }
+                                }
+                            }
+                            .semantics {
+                                contentDescription =
+                                    if (item.selected) "\${item.label}, selected"
+                                    else item.label
+                                selected = item.selected
+                            },
                         shape = if (useLinear) RoundedCornerShape(16.dp) else CircleShape,
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 3.dp,
+                        color = if (item.selected) {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        tonalElevation = if (item.selected) 5.dp else 3.dp,
                         shadowElevation = 3.dp
                     ) {
                         Box(contentAlignment = Alignment.Center) {
