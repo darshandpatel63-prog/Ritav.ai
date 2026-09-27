@@ -261,7 +261,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                                 )
                             } else {
                                 radialPlacement(
-                                    index = index,
+                                    index = index - rotationFraction,
                                     count = visibleItems.size,
                                     centerX = positionX + buttonPx / 2f,
                                     centerY = positionY + buttonPx / 2f,
@@ -362,7 +362,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
 private data class MenuPlacement(val x: Float, val y: Float)
 
 private fun radialPlacement(
-    index: Int,
+    index: Float,
     count: Int,
     centerX: Float,
     centerY: Float,
@@ -379,7 +379,7 @@ private fun radialPlacement(
 }
 
 private fun linearPlacement(
-    index: Int,
+    index: Float,
     count: Int,
     centerX: Float,
     centerY: Float,
