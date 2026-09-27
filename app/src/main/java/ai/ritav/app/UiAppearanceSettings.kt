@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -118,9 +117,11 @@ internal fun UiAppearanceSettings(
                     label = { Text("Fixed") }
                 )
             }
-            TextButton(onClick = onResetNavigationPosition) {
-                Text("Reset navigation position")
-            }
+            RitavButton(
+                style = uiPreferences.buttonStyle,
+                label = "Reset navigation position",
+                onClick = onResetNavigationPosition
+            )
         }
     }
 }
