@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -332,12 +330,16 @@ class MainActivity : FragmentActivity() {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    TextButton(onClick = { destination = AppDestination.HOME }) {
-                                        Text("Back to Ritav")
-                                    }
-                                    TextButton(onClick = { destination = AppDestination.SETTINGS }) {
-                                        Text("UI & Appearance")
-                                    }
+                                    RitavButton(
+                                        style = uiPreferences.buttonStyle,
+                                        label = "Back to Ritav",
+                                        onClick = { destination = AppDestination.HOME }
+                                    )
+                                    RitavButton(
+                                        style = uiPreferences.buttonStyle,
+                                        label = "UI & Appearance",
+                                        onClick = { destination = AppDestination.SETTINGS }
+                                    )
                                 }
                             }
                         }
