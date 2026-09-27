@@ -81,6 +81,20 @@ internal fun ConversationalHomeScreen(
                     if (stopped) "Emergency Stop active" else "Secure local-first assistant",
                     style = MaterialTheme.typography.bodyMedium
                 )
+                RitavStatusChip(
+                    label = if (stopped) "Emergency Stop" else "Security Active",
+                    tone = if (stopped) RitavStatusTone.ERROR else RitavStatusTone.PROTECTED,
+                    accessibleDescription = if (stopped) {
+                        "Emergency Stop is active; protected actions are blocked."
+                    } else {
+                        "Security boundary is active."
+                    }
+                )
+                RitavStatusChip(
+                    label = "Model unavailable",
+                    tone = RitavStatusTone.WARNING,
+                    accessibleDescription = "Production model runtime is unavailable; no model response has been generated."
+                )
             }
             RitavButton(
                 style = buttonStyle,
