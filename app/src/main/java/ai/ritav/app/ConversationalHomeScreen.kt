@@ -29,6 +29,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import ai.ritav.app.core.security.SecurityControlPort
+import ai.ritav.app.core.security.TaskRuntimeSnapshot
+import ai.ritav.app.core.security.TaskRuntimeState
 
 internal data class ConversationMessage(
     val text: String,
@@ -39,7 +41,9 @@ internal data class ConversationMessage(
 internal fun ConversationalHomeScreen(
     securityControl: SecurityControlPort,
     buttonStyle: UiButtonStyle,
-    onOpenSecurityCenter: () -> Unit
+    taskSnapshot: TaskRuntimeSnapshot,
+    onOpenSecurityCenter: () -> Unit,
+    onEmergencyStop: () -> Unit
 ) {
     var input by remember { mutableStateOf("") }
     var stopped by remember { mutableStateOf(securityControl.isEmergencyStopActive()) }
@@ -140,15 +144,25 @@ internal fun ConversationalHomeScreen(
         )
 
         RitavLiveTaskPanel(
-            state = if (stopped) {
-                RitavTaskUiState.STOPPED
-            } else {
-                RitavTaskUiState.IDLE
+            state = when {
+                stopped -> RitavTaskUiState.STOPPED
+                else -> when (taskSnapshot.state) {
+                    TaskRuntimeState.IDLE -> RitavTaskUiState.IDLE
+                    TaskRuntimeState.BLOCKED -> RitavTaskUiState.BLOCKED
+                    TaskRuntimeState.EXECUTING -> RitavTaskUiState.EXECUTING
+                    TaskRuntimeState.VERIFYING -> RitavTaskUiState.VERIFYING
+                    TaskRuntimeState.COMPLETED -> RitavTaskUiState.COMPLETED
+                    TaskRuntimeState.FAILED_SAFELY -> RitavTaskUiState.FAILED_SAFELY
+                    TaskRuntimeState.STOPPED -> RitavTaskUiState.STOPPED
+                }
             },
+            taskName = taskSnapshot.taskName,
+            currentStep = taskSnapshot.currentStep,
             summary = if (stopped) {
                 "Emergency Stop is active. No protected task execution is available."
             } else {
-                "Live progress will appear here only when an authoritative task runtime becomes available."
+                taskSnapshot.summary
+                    ?: "No task is currently being executed."
             }
         )
 
@@ -221,7 +235,7 @@ internal fun ConversationalHomeScreen(
             style = buttonStyle,
             label = "Emergency Stop",
             onClick = {
-                securityControl.activateEmergencyStop()
+                onEmergencyStop()
                 stopped = true
             },
             enabled = !stopped,
