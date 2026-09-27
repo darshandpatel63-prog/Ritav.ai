@@ -30,6 +30,7 @@ internal fun PermissionCenter(
     pendingCandidate: CapabilityGrantCandidate?,
     pendingPlan: ActionPlan?,
     statusMessage: String?,
+    statusTone: RitavFeedbackTone,
     trustedPackageInput: String,
     onTrustedPackageInputChanged: (String) -> Unit,
     onPrepareTrustedApp: () -> Unit,
@@ -144,10 +145,17 @@ internal fun PermissionCenter(
         }
 
         if (candidates.isEmpty() && trustedPackages.isEmpty()) {
-            Text("No trusted external applications are currently configured.")
-            Text("External actions remain blocked.")
+            RitavFeedbackCard(
+                title = "No trusted external applications",
+                message = "No external application trust entries are configured. External actions remain blocked until a trusted application and separate capability grant are approved.",
+                tone = RitavFeedbackTone.WARNING
+            )
         } else if (candidates.isEmpty()) {
-            Text("Capability actions for trusted applications remain separately permission-controlled.")
+            RitavFeedbackCard(
+                title = "No capability approvals available",
+                message = "Trusted applications may exist, but there is no currently reviewable capability grant option.",
+                tone = RitavFeedbackTone.INFO
+            )
         } else if (identitySession == null && !stopped) {
             Text("A trusted identity session is required before capability approval.")
         } else if (stopped) {
@@ -182,9 +190,10 @@ internal fun PermissionCenter(
         }
 
         if (!statusMessage.isNullOrBlank()) {
-            Text(
-                text = statusMessage,
-                style = MaterialTheme.typography.bodyMedium
+            RitavFeedbackCard(
+                title = "Security status",
+                message = statusMessage,
+                tone = statusTone
             )
         }
 
