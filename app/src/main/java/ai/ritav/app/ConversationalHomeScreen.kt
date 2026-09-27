@@ -133,6 +133,19 @@ internal fun ConversationalHomeScreen(
             }
         }
 
+        RitavLiveTaskPanel(
+            state = if (stopped) {
+                RitavTaskUiState.STOPPED
+            } else {
+                RitavTaskUiState.IDLE
+            },
+            summary = if (stopped) {
+                "Emergency Stop is active. No protected task execution is available."
+            } else {
+                "Live progress will appear here only when an authoritative task runtime becomes available."
+            }
+        )
+
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
