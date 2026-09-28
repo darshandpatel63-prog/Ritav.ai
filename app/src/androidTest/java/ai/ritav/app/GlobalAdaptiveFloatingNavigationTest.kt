@@ -19,7 +19,6 @@ internal class GlobalAdaptiveFloatingNavigationTest {
     fun navigation_opens_with_active_item_and_circular_selection() {
         composeRule.onNodeWithContentDescription("Ritav global navigation, movable").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Ritav global navigation, movable").performClick()
-        composeRule.onNodeWithContentDescription("Ritav global navigation, movable").performClick()
         composeRule.onNodeWithContentDescription("Security").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
