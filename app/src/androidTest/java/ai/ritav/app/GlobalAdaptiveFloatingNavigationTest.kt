@@ -17,21 +17,23 @@ internal class GlobalAdaptiveFloatingNavigationTest {
 
     @Test
     fun navigation_opens_with_active_item_and_circular_selection() {
-        composeRule.onNodeWithContentDescription("Ritav global navigation, movable").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Ritav global navigation, movable").performClick()
+        val toggle = composeRule.onNodeWithContentDescription("Ritav global navigation, movable")
+
+        toggle.assertIsDisplayed()
+        toggle.performClick()
         composeRule.onNodeWithContentDescription("Security").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Security").performClick()
+        toggle.performClick()
         composeRule.onNodeWithContentDescription("Security, selected").assertIsDisplayed()
 
-        composeRule.onNodeWithContentDescription("Ritav global navigation, movable").performClick()
+        toggle.performClick()
         composeRule.onNodeWithContentDescription("Home").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Settings").performClick()
+        toggle.performClick()
         composeRule.onNodeWithContentDescription("Settings, selected").assertIsDisplayed()
     }
-
-
 }
