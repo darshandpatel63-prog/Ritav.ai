@@ -22,6 +22,7 @@ internal class GlobalAdaptiveFloatingNavigationTest {
 
         toggle.assertIsDisplayed()
         toggle.performClick()
+        composeRule.onNodeWithContentDescription("Home, selected").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Security").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
@@ -30,9 +31,6 @@ internal class GlobalAdaptiveFloatingNavigationTest {
 
         toggle.performClick()
         composeRule.onNodeWithContentDescription("Security, selected").assertIsDisplayed()
-
-        toggle.performClick()
-        composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Settings").performClick()
         composeRule.onNodeWithText("UI & Appearance").assertIsDisplayed()
