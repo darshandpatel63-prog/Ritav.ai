@@ -2,6 +2,7 @@ package ai.ritav.app
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -16,7 +17,7 @@ internal class GlobalAdaptiveFloatingNavigationTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun navigation_opens_with_active_item_and_circular_selection() {
+    fun navigation_opens_and_selection_tracks_current_destination() {
         val toggle = composeRule.onNodeWithContentDescription("Ritav global navigation, movable")
 
         toggle.assertIsDisplayed()
@@ -25,14 +26,17 @@ internal class GlobalAdaptiveFloatingNavigationTest {
         composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Security").performClick()
+        composeRule.onNodeWithText("Permission Center").assertIsDisplayed()
+
         toggle.performClick()
         composeRule.onNodeWithContentDescription("Security, selected").assertIsDisplayed()
 
         toggle.performClick()
-        composeRule.onNodeWithContentDescription("Home").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Settings").performClick()
+        composeRule.onNodeWithText("UI & Appearance").assertIsDisplayed()
+
         toggle.performClick()
         composeRule.onNodeWithContentDescription("Settings, selected").assertIsDisplayed()
     }
