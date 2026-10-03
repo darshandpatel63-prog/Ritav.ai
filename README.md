@@ -1386,3 +1386,12 @@ The fix:
 - adds the missing Row import.
 
 A new PR verification Run #660 (36299746203) is queued for commit 599bbac8db0f3514d044ecb6f0770b46f168d93d. No green CI claim is made until that run completes.
+
+
+## Product UI checkpoint — 2026-10-03
+
+The active UI branch now includes a first-run onboarding surface that clearly communicates Ritav's user-control, deterministic-security and model-runtime limitations before entering the main shell. Onboarding completion is stored locally and does not grant permissions or execution authority.
+
+The conversational shell also bounds stored conversation history to 100 messages and caps each stored message at 8,192 characters. New messages automatically bring the conversation viewport to the latest entry without introducing model or execution authority.
+
+The current UI implementation head is tracked separately from CI evidence. Android Actions Run #690 is still in progress for the latest UI hardening commit; physical-device visual/touch/keyboard/accessibility QA remains unverified.
