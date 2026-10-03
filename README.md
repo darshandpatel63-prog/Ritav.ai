@@ -18,13 +18,15 @@ The cross-platform scope is defined by `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.m
 Before changing code:
 1. Read `docs/RITAV_COMMON_AI_WORKFLOW.md`.
 2. Read `docs/RITAV_ELITE_SECURITY_ADDENDUM.md`.
-3. Read `README.md`.
-4. Read `RITAV_PROJECT_STATE.md`.
-5. Read `RITAV_BLUEPRINT.md`.
-6. Read `docs/MASTER_REQUIREMENTS_MATRIX.md`.
-7. Read `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` when doing cross-platform work.
-8. Inspect current `main`, latest commits, relevant source, tests and CI.
-9. Search the repository for existing responsibility-equivalent code before creating a new component.
+3. Read `skills/ultra-secure-app-builder/SKILL.md`.
+4. Read `docs/RITAV_ULTRA_SECURE_APP_BUILDER.md`.
+5. Read `README.md`.
+6. Read `RITAV_PROJECT_STATE.md`.
+7. Read `RITAV_BLUEPRINT.md`.
+8. Read `docs/MASTER_REQUIREMENTS_MATRIX.md`.
+9. Read `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` when doing cross-platform work.
+10. Inspect current `main`, latest commits, relevant source, tests and CI.
+11. Search the repository for existing responsibility-equivalent code before creating a new component.
 
 Workflow: inspect → map call paths/data flow → search/reuse → design → implement → integrate → continuously verify → test → adversarial security review → verify → document/state update → CI verification.
 

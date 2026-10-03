@@ -1991,3 +1991,30 @@ Do not begin product/conversational UI implementation until the remaining launch
 
 ### EXACT CURRENT CODE HEAD BEFORE THIS DOCUMENTATION CHECKPOINT
 - 599bbac8db0f3514d044ecb6f0770b46f168d93d
+
+## 2026-10-03 — Ultra Secure App Builder adoption + current UI branch verification
+
+### CURRENT DEVELOPMENT STATE
+- Current development branch: `ui/conversational-shell`.
+- PR #31 (`UI shell`) is open, draft and unmerged.
+- Exact PR head: `f92e84d6e9898a9d93a632b9e09b288cad7b5831`.
+- Branch comparison against current `main` base: **132 commits ahead, 0 behind** at this checkpoint.
+- Exact PR-head Android Actions Run #680 — **SUCCESS**.
+
+### SKILL ADOPTION
+- The user-provided `ultra-secure-app-builder.skill` is now adopted as a repository-local additive development contract.
+- Durable bindings are stored in `skills/ultra-secure-app-builder/SKILL.md` and `docs/RITAV_ULTRA_SECURE_APP_BUILDER.md`.
+- Important decisions are recorded in `DECISIONS.md`.
+- Adoption does not change the existing deterministic security boundary and does not reopen completed security layers.
+- Ritav is handled as Tier 3 for process depth.
+- Because Ritav is an existing project, future changes use the skill's existing-app workflow rather than restarting the whole process.
+
+### CURRENT PRODUCT PROGRESS
+- The first product/conversational UI shell slice is implemented on PR #31 but remains unmerged.
+- Existing security/admin UI remains behind safe security-control facades.
+- The actual model/provider runtime remains intentionally fail-closed/unavailable until a concrete provider path is separately reviewed.
+- Cross-platform target scope remains unchanged; full native product support and physical-device/real-host validation are not claimed.
+- Overall project progress remains an **informal planning estimate of ~57%**, not a formal metric; security foundation remains tracked at roughly **99%** planning completion.
+
+### CURRENT STOP POINT
+Skill adoption is complete as a documentation/process work package. Before the next product slice, apply the repository-local skill to the feature-specific workflow and continue from the live PR/branch state.
