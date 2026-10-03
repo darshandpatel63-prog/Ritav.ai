@@ -36,7 +36,6 @@ class ConversationalHomeStateTest {
             messages
         )
     }
-}
 
     @Test
     fun appendConversationMessages_bounds_each_message() {
@@ -48,3 +47,4 @@ class ConversationalHomeStateTest {
         assertEquals(MAX_CONVERSATION_MESSAGE_LENGTH, messages[0].text.length)
         assertEquals(MAX_CONVERSATION_MESSAGE_LENGTH, messages[1].text.length)
     }
+}
