@@ -27,3 +27,18 @@ Adopt the user-provided `ultra-secure-app-builder.skill` as a mandatory additive
 
 ### Next-use rule
 For future `Start/Continue`, apply the repository-local skill together with the existing startup workflow, then choose the next logically complete work package from the live repository state.
+
+
+## 2026-10-03 — Bound conversational history and IME submission
+
+### Decision
+Keep the current conversational shell intentionally local/fail-closed while adding bounded UI-state retention and keyboard-friendly submission.
+
+### Rationale
+- The message list previously grew without a bound during a session.
+- A hard bound of 100 messages limits memory growth without changing the product's current non-persistent conversation semantics.
+- IME Send reuses the existing send path and therefore does not introduce a new execution or model authority.
+- Input remains bounded at 4096 characters.
+
+### Security / privacy impact
+No new permission, network path, provider, SDK, privileged capability, or persistent data surface was introduced.

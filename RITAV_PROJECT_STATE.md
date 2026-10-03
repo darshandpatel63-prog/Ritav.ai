@@ -2018,3 +2018,32 @@ Do not begin product/conversational UI implementation until the remaining launch
 
 ### CURRENT STOP POINT
 Skill adoption is complete as a documentation/process work package. Before the next product slice, apply the repository-local skill to the feature-specific workflow and continue from the live PR/branch state.
+
+
+## 2026-10-03 — Conversational shell bounded-history + IME checkpoint
+
+### IMPLEMENTED
+- Conversation message history is now bounded to 100 messages, preventing unbounded in-memory growth during a long session.
+- The existing 4096-character input limit is centralized as MAX_CONVERSATION_INPUT_LENGTH.
+- Android IME action is explicitly Send and reuses the existing send() path; no model/provider or execution authority was added.
+- Input length is exposed through an accessible supporting-text description.
+
+### TEST COVERAGE
+- Added JVM regression coverage for bounded conversation history and user/assistant message ordering.
+- Static call-path review confirms UI input remains local UI state and still does not authorize, execute, or bypass the deterministic security boundary.
+
+### VERIFICATION STATUS
+- Source/diff verification: completed.
+- GitHub Actions verification for commit 326665ba726fe60bda2701a528f4a797c4d1c80b: not yet exposed by the connected workflow-run API at checkpoint time.
+- Physical-device visual/IME/accessibility verification: not performed.
+
+### KNOWN LIMITATIONS
+- Production model/provider runtime remains intentionally unavailable/fail-closed.
+- Conversation persistence is not implemented; the bounded history is in-memory UI state only.
+- PR #31 remains open/draft and unmerged.
+
+### CURRENT STOP POINT
+Complete CI verification when exposed. If green, perform the consolidated UI + security-boundary + resource + accessibility review for this work package, then continue the next UI slice.
+
+### EXACT COMMIT SHA
+- 326665ba726fe60bda2701a528f4a797c4d1c80b
