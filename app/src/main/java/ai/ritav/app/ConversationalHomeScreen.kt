@@ -28,6 +28,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import ai.ritav.app.core.security.SecurityControlPort
 import ai.ritav.app.core.security.TaskRuntimeSnapshot
 import ai.ritav.app.core.security.TaskRuntimeState
@@ -36,6 +39,22 @@ internal data class ConversationMessage(
     val text: String,
     val fromUser: Boolean
 )
+
+internal const val MAX_CONVERSATION_MESSAGES = 100
+internal const val MAX_CONVERSATION_INPUT_LENGTH = 4096
+
+internal fun appendConversationMessages(
+    messages: MutableList<ConversationMessage>,
+    userText: String,
+    assistantText: String
+) {
+    messages += ConversationMessage(userText, fromUser = true)
+    messages += ConversationMessage(assistantText, fromUser = false)
+    val overflow = messages.size - MAX_CONVERSATION_MESSAGES
+    if (overflow > 0) {
+        repeat(overflow) { messages.removeAt(0) }
+    }
+}
 
 @Composable
 internal fun ConversationalHomeScreen(
@@ -60,9 +79,7 @@ internal fun ConversationalHomeScreen(
         val text = input.trim()
         if (text.isEmpty()) return
         input = ""
-        messages += ConversationMessage(text, true)
-        messages += ConversationMessage(
-            if (stopped || securityControl.isEmergencyStopActive()) {
+        val assistantText = if (stopped || securityControl.isEmergencyStopActive()) {
                 "Emergency Stop is active. The request was not sent to any execution path."
             } else {
                 "The conversational UI received your message, but the production model runtime is currently unavailable. No model/provider bypass was attempted."
@@ -213,7 +230,7 @@ internal fun ConversationalHomeScreen(
 
         OutlinedTextField(
             value = input,
-            onValueChange = { input = it.take(4096) },
+            onValueChange = { input = it.take(MAX_CONVERSATION_INPUT_LENGTH) },
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics {
@@ -222,7 +239,17 @@ internal fun ConversationalHomeScreen(
             enabled = !stopped,
             minLines = 1,
             maxLines = 5,
-            label = { Text("Message Ritav") }
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { send() }),
+            label = { Text("Message Ritav") },
+            supportingText = {
+                Text(
+                    "${input.length}/$MAX_CONVERSATION_INPUT_LENGTH",
+                    modifier = Modifier.semantics {
+                        contentDescription = "Message length ${input.length} of $MAX_CONVERSATION_INPUT_LENGTH characters"
+                    }
+                )
+            }
         )
 
         RitavButton(
