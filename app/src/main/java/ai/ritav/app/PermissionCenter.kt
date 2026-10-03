@@ -4,16 +4,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,11 +24,13 @@ import ai.ritav.app.core.security.SecuritySession
 @Composable
 internal fun PermissionCenter(
     stopped: Boolean,
+    buttonStyle: UiButtonStyle,
     identitySession: SecuritySession?,
     candidates: List<CapabilityGrantCandidate>,
     pendingCandidate: CapabilityGrantCandidate?,
     pendingPlan: ActionPlan?,
     statusMessage: String?,
+    statusTone: RitavFeedbackTone,
     trustedPackageInput: String,
     onTrustedPackageInputChanged: (String) -> Unit,
     onPrepareTrustedApp: () -> Unit,
@@ -53,10 +54,28 @@ internal fun PermissionCenter(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .imePadding()
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Permission Center", style = MaterialTheme.typography.headlineSmall)
+        RitavStatusChip(
+            label = when {
+                stopped -> "Emergency Stop"
+                identitySession != null -> "Identity Authenticated"
+                else -> "Authentication Required"
+            },
+            tone = when {
+                stopped -> RitavStatusTone.ERROR
+                identitySession != null -> RitavStatusTone.PROTECTED
+                else -> RitavStatusTone.WARNING
+            },
+            accessibleDescription = when {
+                stopped -> "Emergency Stop is active; protected approvals are blocked."
+                identitySession != null -> "A trusted identity session is active for protected approvals."
+                else -> "Authentication is required before protected approvals."
+            }
+        )
         Text(
             if (stopped) {
                 "Emergency Stop is active. Protected actions are blocked."
@@ -68,9 +87,12 @@ internal fun PermissionCenter(
         )
 
         if (identitySession == null && !stopped) {
-            Button(onClick = onAuthenticate) {
-                Text("Authenticate protected actions")
-            }
+            RitavButton(
+                style = buttonStyle,
+                label = "Authenticate protected actions",
+                onClick = onAuthenticate,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         if (identitySession != null && !stopped) {
@@ -89,13 +111,13 @@ internal fun PermissionCenter(
                 label = { Text("Android package name") },
                 supportingText = { Text("Certificate details are verified internally and are not shown here.") }
             )
-            Button(
+            RitavButton(
+                style = buttonStyle,
+                label = "Review trusted-app approval",
                 onClick = onPrepareTrustedApp,
                 enabled = trustedPackageInput.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Review trusted-app approval")
-            }
+            )
         }
 
         if (identitySession != null && trustedPackages.isNotEmpty() && !stopped) {
@@ -112,19 +134,28 @@ internal fun PermissionCenter(
                         packageName,
                         modifier = Modifier.weight(1f).padding(end = 8.dp)
                     )
-                    TextButton(onClick = { onTrustedPackageSelectedForRemoval(packageName) }) {
-                        Text("Remove trust")
-                    }
+                    RitavButton(
+                        style = UiButtonStyle.MINIMAL,
+                        label = "Remove trust",
+                        onClick = { onTrustedPackageSelectedForRemoval(packageName) }
+                    )
                 }
                 HorizontalDivider()
             }
         }
 
         if (candidates.isEmpty() && trustedPackages.isEmpty()) {
-            Text("No trusted external applications are currently configured.")
-            Text("External actions remain blocked.")
+            RitavFeedbackCard(
+                title = "No trusted external applications",
+                message = "No external application trust entries are configured. External actions remain blocked until a trusted application and separate capability grant are approved.",
+                tone = RitavFeedbackTone.WARNING
+            )
         } else if (candidates.isEmpty()) {
-            Text("Capability actions for trusted applications remain separately permission-controlled.")
+            RitavFeedbackCard(
+                title = "No capability approvals available",
+                message = "Trusted applications may exist, but there is no currently reviewable capability grant option.",
+                tone = RitavFeedbackTone.INFO
+            )
         } else if (identitySession == null && !stopped) {
             Text("A trusted identity session is required before capability approval.")
         } else if (stopped) {
@@ -148,27 +179,31 @@ internal fun PermissionCenter(
                         )
                         Text("Risk: " + candidate.riskTier.name)
                     }
-                    Button(onClick = { onCandidateSelected(candidate) }) {
-                        Text("Review")
-                    }
+                    RitavButton(
+                        style = buttonStyle,
+                        label = "Review",
+                        onClick = { onCandidateSelected(candidate) }
+                    )
                 }
                 HorizontalDivider()
             }
         }
 
         if (!statusMessage.isNullOrBlank()) {
-            Text(
-                text = statusMessage,
-                style = MaterialTheme.typography.bodyMedium
+            RitavFeedbackCard(
+                title = "Security status",
+                message = statusMessage,
+                tone = statusTone
             )
         }
 
-        Button(
+        RitavButton(
+            style = buttonStyle,
+            label = if (stopped) "Resume Ritav" else "Emergency Stop",
             onClick = if (stopped) onResume else onEmergencyStop,
+            destructive = !stopped,
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (stopped) "Resume Ritav" else "Emergency Stop")
-        }
+        )
     }
 
     val candidate = pendingCandidate
@@ -177,6 +212,7 @@ internal fun PermissionCenter(
         CapabilityGrantConfirmationDialog(
             candidate = candidate,
             plan = plan,
+            buttonStyle = buttonStyle,
             onDismiss = onDismissApproval,
             onConfirm = onApprove
         )
@@ -188,8 +224,21 @@ internal fun PermissionCenter(
         TrustedAppConfirmationDialog(
             packageName = trustedPackage,
             plan = trustedPlan,
+            buttonStyle = buttonStyle,
             onDismiss = onDismissTrustedApproval,
             onConfirm = onApproveTrustedApp
+        )
+    }
+
+    val trustedRemovalPackage = pendingTrustedRemovalPackage
+    val trustedRemovalPlan = pendingTrustedRemovalPlan
+    if (trustedRemovalPackage != null && trustedRemovalPlan != null) {
+        TrustedAppRemovalConfirmationDialog(
+            packageName = trustedRemovalPackage,
+            plan = trustedRemovalPlan,
+            buttonStyle = buttonStyle,
+            onDismiss = onDismissTrustedRemoval,
+            onConfirm = onApproveTrustedRemoval
         )
     }
 }
@@ -202,6 +251,7 @@ internal fun PermissionCenter(
 private fun CapabilityGrantConfirmationDialog(
     candidate: CapabilityGrantCandidate,
     plan: ActionPlan,
+    buttonStyle: UiButtonStyle,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -223,14 +273,18 @@ private fun CapabilityGrantConfirmationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Approve")
-            }
+            RitavButton(
+                style = buttonStyle,
+                label = "Approve",
+                onClick = onConfirm
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            RitavButton(
+                style = UiButtonStyle.MINIMAL,
+                label = "Cancel",
+                onClick = onDismiss
+            )
         }
     )
 }
@@ -240,6 +294,7 @@ private fun CapabilityGrantConfirmationDialog(
 private fun TrustedAppConfirmationDialog(
     packageName: String,
     plan: ActionPlan,
+    buttonStyle: UiButtonStyle,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -258,14 +313,18 @@ private fun TrustedAppConfirmationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Trust application")
-            }
+            RitavButton(
+                style = buttonStyle,
+                label = "Trust application",
+                onClick = onConfirm
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            RitavButton(
+                style = UiButtonStyle.MINIMAL,
+                label = "Cancel",
+                onClick = onDismiss
+            )
         }
     )
 }
@@ -275,6 +334,7 @@ private fun TrustedAppConfirmationDialog(
 private fun TrustedAppRemovalConfirmationDialog(
     packageName: String,
     plan: ActionPlan,
+    buttonStyle: UiButtonStyle,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -291,14 +351,18 @@ private fun TrustedAppRemovalConfirmationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Remove trust")
-            }
+            RitavButton(
+                style = buttonStyle,
+                label = "Remove trust",
+                onClick = onConfirm
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            RitavButton(
+                style = UiButtonStyle.MINIMAL,
+                label = "Cancel",
+                onClick = onDismiss
+            )
         }
     )
 }

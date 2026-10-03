@@ -18,13 +18,15 @@ The cross-platform scope is defined by `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.m
 Before changing code:
 1. Read `docs/RITAV_COMMON_AI_WORKFLOW.md`.
 2. Read `docs/RITAV_ELITE_SECURITY_ADDENDUM.md`.
-3. Read `README.md`.
-4. Read `RITAV_PROJECT_STATE.md`.
-5. Read `RITAV_BLUEPRINT.md`.
-6. Read `docs/MASTER_REQUIREMENTS_MATRIX.md`.
-7. Read `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` when doing cross-platform work.
-8. Inspect current `main`, latest commits, relevant source, tests and CI.
-9. Search the repository for existing responsibility-equivalent code before creating a new component.
+3. Read `skills/ultra-secure-app-builder/SKILL.md`.
+4. Read `docs/RITAV_ULTRA_SECURE_APP_BUILDER.md`.
+5. Read `README.md`.
+6. Read `RITAV_PROJECT_STATE.md`.
+7. Read `RITAV_BLUEPRINT.md`.
+8. Read `docs/MASTER_REQUIREMENTS_MATRIX.md`.
+9. Read `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` when doing cross-platform work.
+10. Inspect current `main`, latest commits, relevant source, tests and CI.
+11. Search the repository for existing responsibility-equivalent code before creating a new component.
 
 Workflow: inspect → map call paths/data flow → search/reuse → design → implement → integrate → continuously verify → test → adversarial security review → verify → document/state update → CI verification.
 
@@ -1351,3 +1353,45 @@ These are validation/integration gates rather than a demonstrated bypass in the 
 
 ### UI GATE RULE
 Do not begin product/conversational UI implementation until the remaining launch-closure evidence and final consolidated system-level security review are complete. The safe security-control facade may be reused by future UI; raw authorization, permission-store, audit/storage, execution-adapter and model-provider authorities remain behind internal boundaries.
+
+
+## Current UI Development Status (2026-09-27)
+The active product UI work is being developed on the separate `ui/conversational-shell` branch and is not yet merged into `main`. The branch includes the Global Adaptive Floating Navigation, shared button system, responsive/IME-safe app shell, accessible conversation presentation, security/runtime status chips, structured feedback states, and a read-only runtime-backed live-task surface. The production model/provider runtime remains unavailable, so the UI does not fabricate model inference or execution progress.
+
+Latest UI implementation checkpoint SHA (before documentation-only commits): `2c2eea45bdd6ddbfc3b28fea238674deb4343c47`.
+
+## UI Feedback Hardening — 2026-09-27
+The active UI branch now includes structured empty/error feedback cards and tone-aware security feedback. These are presentation-only and continue to reflect verified runtime/security state rather than inventing execution or model results.
+
+Latest UI implementation checkpoint SHA: `64a24671954065f66d471037696d509f9cd267af`.
+## Runtime-backed Task State UI — 2026-09-27
+The UI shell now consumes a read-only task runtime status facade connected to the authoritative execution path. The UI can display verified blocked/executing/verifying/completed/failed/stopped states without gaining execution authority or fabricating progress.
+
+Implementation checkpoint SHA before documentation-only commits: `e9194dac86184302d22bb87529834c3e1dd24cad`.
+CI/real-device verification remains explicitly separate and is not claimed until evidence is available.
+
+## Live Task Stop Control — 2026-09-27
+The live-task panel now exposes Emergency Stop while an authoritative task is executing or being verified. The control routes through the existing deterministic security authority rather than introducing UI-side execution control.
+
+Latest implementation checkpoint: `d14ac700272594019946b3dcf08d7b6e665fa6f5`.
+
+
+## UI Build Fix — 2026-09-27
+A PR-triggered Android workflow exposed a compile failure in the UI shell at Run #658 (36299564746). The failure was traced to Compose API/import compatibility in GlobalAdaptiveFloatingNavigation.kt (focusable, role, and onPointerEvent) plus a missing Row import in MainActivity.kt.
+
+The fix:
+- uses androidx.compose.foundation.focusable;
+- imports the semantics role extension;
+- replaces the unavailable onPointerEvent modifier with the supported pointerInput/awaitPointerEvent scroll path for the pinned Compose BOM;
+- adds the missing Row import.
+
+A new PR verification Run #660 (36299746203) is queued for commit 599bbac8db0f3514d044ecb6f0770b46f168d93d. No green CI claim is made until that run completes.
+
+
+## Product UI checkpoint — 2026-10-03
+
+The active UI branch now includes a first-run onboarding surface that clearly communicates Ritav's user-control, deterministic-security and model-runtime limitations before entering the main shell. Onboarding completion is stored locally and does not grant permissions or execution authority.
+
+The conversational shell also bounds stored conversation history to 100 messages and caps each stored message at 8,192 characters. New messages automatically bring the conversation viewport to the latest entry without introducing model or execution authority.
+
+The current UI implementation head is tracked separately from CI evidence. Android Actions Run #690 is still in progress for the latest UI hardening commit; physical-device visual/touch/keyboard/accessibility QA remains unverified.
