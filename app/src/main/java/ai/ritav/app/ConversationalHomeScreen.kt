@@ -80,12 +80,11 @@ internal fun ConversationalHomeScreen(
         if (text.isEmpty()) return
         input = ""
         val assistantText = if (stopped || securityControl.isEmergencyStopActive()) {
-                "Emergency Stop is active. The request was not sent to any execution path."
-            } else {
-                "The conversational UI received your message, but the production model runtime is currently unavailable. No model/provider bypass was attempted."
-            },
-            false
-        )
+            "Emergency Stop is active. The request was not sent to any execution path."
+        } else {
+            "The conversational UI received your message, but the production model runtime is currently unavailable. No model/provider bypass was attempted."
+        }
+        appendConversationMessages(messages, text, assistantText)
     }
 
     Column(
