@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,14 +44,18 @@ internal data class ConversationMessage(
 
 internal const val MAX_CONVERSATION_MESSAGES = 100
 internal const val MAX_CONVERSATION_INPUT_LENGTH = 4096
+internal const val MAX_CONVERSATION_MESSAGE_LENGTH = 8192
+
+private fun boundConversationMessage(text: String): String =
+    text.take(MAX_CONVERSATION_MESSAGE_LENGTH)
 
 internal fun appendConversationMessages(
     messages: MutableList<ConversationMessage>,
     userText: String,
     assistantText: String
 ) {
-    messages += ConversationMessage(userText, fromUser = true)
-    messages += ConversationMessage(assistantText, fromUser = false)
+    messages += ConversationMessage(boundConversationMessage(userText), fromUser = true)
+    messages += ConversationMessage(boundConversationMessage(assistantText), fromUser = false)
     val overflow = messages.size - MAX_CONVERSATION_MESSAGES
     if (overflow > 0) {
         repeat(overflow) { messages.removeAt(0) }
@@ -73,6 +79,13 @@ internal fun ConversationalHomeScreen(
                 false
             )
         )
+    }
+
+    val conversationListState = rememberLazyListState()
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            conversationListState.scrollToItem(messages.lastIndex)
+        }
     }
 
     fun send() {
@@ -185,6 +198,7 @@ internal fun ConversationalHomeScreen(
         )
 
         LazyColumn(
+            state = conversationListState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),

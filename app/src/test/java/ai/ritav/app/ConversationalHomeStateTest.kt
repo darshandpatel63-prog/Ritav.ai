@@ -37,3 +37,14 @@ class ConversationalHomeStateTest {
         )
     }
 }
+
+    @Test
+    fun appendConversationMessages_bounds_each_message() {
+        val messages = mutableListOf<ConversationMessage>()
+        val oversized = "x".repeat(MAX_CONVERSATION_MESSAGE_LENGTH + 100)
+
+        appendConversationMessages(messages, oversized, oversized)
+
+        assertEquals(MAX_CONVERSATION_MESSAGE_LENGTH, messages[0].text.length)
+        assertEquals(MAX_CONVERSATION_MESSAGE_LENGTH, messages[1].text.length)
+    }
