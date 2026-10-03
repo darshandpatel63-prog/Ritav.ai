@@ -2047,3 +2047,36 @@ Complete CI verification when exposed. If green, perform the consolidated UI + s
 
 ### EXACT COMMIT SHA
 - 326665ba726fe60bda2701a528f4a797c4d1c80b
+
+
+## 2026-10-03 — Product UI onboarding + conversation resource/viewport hardening
+
+### IMPLEMENTED
+- Added a first-run RitavOnboardingScreen with a persisted local completion flag in OnboardingStore.
+- Onboarding is presentation-only: it does not request permissions, authorize actions, call model/provider runtime, or execute anything.
+- Global floating navigation remains hidden until onboarding is completed.
+- Conversation history remains bounded to 100 messages, and each stored user/assistant message is additionally capped at 8192 characters.
+- Conversation viewport now deterministically scrolls to the latest message after a new message is appended.
+
+### TEST COVERAGE
+- Added Android Compose UI coverage proving the onboarding surface exposes its control-first/security messaging and Continue action.
+- Added JVM regression coverage proving each stored conversation message is bounded to the configured 8192-character limit.
+- Existing bounded-history and user/assistant ordering coverage remains active.
+
+### CONTINUOUS REVIEW
+- UI -> onboarding/store path remains outside the authorization and execution boundaries.
+- Conversation input still caps at 4096 characters before append; the additional 8192 stored-message cap protects future assistant/output growth as well.
+- Emergency Stop, SecurityControlPort, task runtime read-only state, and production model/provider fail-closed behavior were not weakened or bypassed.
+- No new Android permission, network/egress path, privileged capability, or dependency was introduced.
+
+### VERIFICATION STATUS
+- Prior UI-fix head fca22a6f3a3f1e29b809f7b745b3e5801d8ed41c has completed Android Actions Run #684 — SUCCESS.
+- Current UI hardening head abf50432479d5bed2c9877d782678193f9bebfd8 is covered by Android Actions Run #690, currently in progress; final CI result is not yet verified.
+- Physical-device visual, touch, keyboard and accessibility QA remains unverified.
+
+### CURRENT UI STOP POINT
+Wait for Run #690 to complete; then perform the consolidated onboarding + conversation + security-boundary + resource + accessibility review against the completed run evidence before marking this UI work package verified. Continue next with the remaining UI shell refinement/responsive-accessibility work.
+
+### EXACT IMPLEMENTATION HEAD
+- 718cd66f948229f00d331fc73986b88b14b23239 — conversation bounds + latest-message viewport behavior
+- a7bfc1516f0e01220c5cde89a0ea13ae08765a64 — first-run onboarding
