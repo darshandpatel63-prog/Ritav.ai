@@ -42,6 +42,8 @@ class MainActivity : FragmentActivity() {
             var navigationPosition by remember { mutableStateOf(navigationPositionStore.load()) }
             val uiPreferencesStore = remember { UiPreferencesStore(this@MainActivity) }
             var uiPreferences by remember { mutableStateOf(uiPreferencesStore.load()) }
+            val onboardingStore = remember { OnboardingStore(this@MainActivity) }
+            var onboardingComplete by remember { mutableStateOf(onboardingStore.isCompleted()) }
             var destination by remember { mutableStateOf(AppDestination.HOME) }
             BackHandler(enabled = destination != AppDestination.HOME) {
                 destination = AppDestination.HOME
@@ -330,6 +332,14 @@ class MainActivity : FragmentActivity() {
             }
 
             RitavTheme(preferences = uiPreferences) {
+                if (!onboardingComplete) {
+                    RitavOnboardingScreen(
+                        onContinue = {
+                            onboardingStore.markCompleted()
+                            onboardingComplete = true
+                        }
+                    )
+                } else {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -474,6 +484,7 @@ class MainActivity : FragmentActivity() {
                             modifier = Modifier.fillMaxSize()
                         )
                     }
+                }
                 }
             }
         }
