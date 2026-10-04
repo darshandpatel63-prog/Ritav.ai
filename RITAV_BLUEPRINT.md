@@ -1388,3 +1388,243 @@ Before production online login or payment is enabled, the work package must incl
 
 No payment SDK, OAuth SDK, backend credentials, or online account requirement should be added to the current offline runtime merely to reserve the idea. The architecture is recorded now; executable integration should begin only when the product reaches the online identity/premium phase.
 
+## 42. Ritav Package Distribution + Ritav.Agi-agent.ai Package System
+
+Ritav.ai must support a first-class package-based distribution architecture so users can download/install the complete Ritav application or, where technically and platform-policy feasible, install a smaller feature/package instead of downloading the entire application again.
+
+### 42.1 Complete Ritav application packages
+
+Ritav must be able to produce official, versioned packages for each supported platform/runtime.
+
+Examples:
+
+- Android: official installable/release package as permitted by the distribution channel.
+- Windows: signed installer/package.
+- macOS: signed/notarized package where required.
+- Linux: supported package/bundle format selected by the implementation.
+- iOS/iPadOS/ChromeOS: only the packaging/distribution mechanisms actually permitted by the platform and selected store/distribution channel.
+
+A package is an official build artifact, not an arbitrary archive assembled by a client.
+
+Each release package must have:
+
+- product ID
+- package ID
+- version
+- build number
+- release channel
+- target platform
+- CPU architecture
+- minimum supported OS/runtime
+- package size
+- dependency requirements
+- cryptographic digest
+- authenticity/signature metadata
+- source/build provenance
+- release notes
+- rollback-compatible version information
+
+### 42.2 Modular package system
+
+Where the platform and application architecture support it, Ritav may expose separately installable packages/modules for major capabilities.
+
+A module/package must have:
+
+- unique package ID
+- explicit capability scope
+- version compatibility range
+- dependency declaration
+- permission requirements
+- integrity/authenticity metadata
+- install/update/uninstall lifecycle
+- rollback support
+- clear ownership of persistent data
+
+Examples may include:
+
+- Core Ritav runtime package.
+- Voice package.
+- Vision package.
+- Local AI/model-runtime package.
+- Automation/integration package.
+- Ritav.Agi-agent.ai complete Agent environment package.
+
+The package system must never create an artificial or crippled demo of a capability merely to avoid the full package. If the complete Agent environment is installed as a package inside Ritav.ai, it must expose the same applicable Agent capabilities defined by the Agent blueprint, subject to the host device, OS, connector and permission boundaries.
+
+### 42.3 Ritav.Agi-agent.ai download/install path from Ritav.ai
+
+Ritav.ai must provide a controlled path for the user to discover and install the separate Ritav.Agi-agent.ai product/environment when the user chooses it.
+
+Conceptually:
+
+Ritav.ai
+ -> Discover compatible Agent package
+ -> Show version / size / platform / permissions / source
+ -> Verify authenticity + integrity
+ -> Ask user authorization
+ -> Download official package
+ -> Install or enable package where supported
+ -> Verify installation
+ -> Establish local integration when requested/authorized
+
+Two supported forms must remain distinct:
+
+1. Standalone Agent installation — install Ritav.Agi-agent.ai as its own application where the platform allows it.
+2. Ritav-hosted Agent package — install the complete applicable Agent environment as a package/module inside Ritav.ai when supported by the product architecture.
+
+The hosted package must not be presented as a fake lite Agent. It is the complete applicable Agent environment running inside the Ritav host boundary.
+
+The standalone Agent remains independently usable and must not require Ritav.ai to function.
+
+### 42.4 Two-way ecosystem discovery
+
+The package relationship is intentionally two-way:
+
+Ritav.ai
+ -> can discover/install Ritav.Agi-agent.ai
+
+Ritav.Agi-agent.ai
+ -> can discover/install Ritav.ai
+
+Installation must always be user-authorized and must respect the target platform's application/package installation rules.
+
+When both products are present, they may automatically detect a compatible local Ritav ecosystem/runtime and offer or establish the authorized integration contract.
+
+This integration must use:
+
+- versioned compatibility contracts
+- authenticated local IPC/deep-link/service mechanisms where available
+- explicit authorization
+- schema/version migration
+- conflict-safe synchronization
+- clear durable-state ownership
+- recovery and rollback procedures
+
+It must never silently expose secrets, credentials, private files or protected data across the application boundary.
+
+### 42.5 Package discovery and trust
+
+Ritav must prefer official, authenticated package sources.
+
+Before installation:
+
+1. Resolve the intended product/package.
+2. Confirm platform and CPU architecture compatibility.
+3. Confirm minimum OS/runtime compatibility.
+4. Show the package source, version and size.
+5. Verify cryptographic integrity.
+6. Verify authenticity/signature when the platform/package format supports it.
+7. Check dependency and permission requirements.
+8. Apply security/policy checks.
+9. Ask for installation authorization when required.
+10. Install.
+11. Re-verify the installed package and reported version.
+12. Record a local provenance/audit event.
+
+A package must never be installed merely because an external website, document, application UI or AI-generated instruction says to install it.
+
+### 42.6 Package updates, rollback and offline packages
+
+The package manager must support:
+
+- stable/test channels
+- update availability checks
+- full-package and, where safe, delta updates
+- dependency resolution
+- rollback to a known-good compatible version
+- failed-update recovery
+- interrupted-download recovery
+- offline package installation when the user explicitly provides/authorizes a trusted package
+- prevention of downgrade attacks where security policy requires it
+
+Offline package installation must still perform compatibility, integrity and policy verification. Offline does not mean unverified.
+
+### 42.7 Package permissions and data isolation
+
+Installing a package does not automatically grant it every Ritav capability.
+
+Each package receives only the capabilities required by its declared scope.
+
+The package system must preserve:
+
+- project isolation
+- agent isolation
+- capability-based permissions
+- secret protection
+- network/egress policy
+- financial hard-deny rules
+- audit/provenance
+- user emergency-stop authority
+
+Uninstalling a package must not silently delete unrelated Ritav data. The user must be able to understand what package-owned data will be removed, retained or migrated.
+
+### 42.8 Build and release pipeline
+
+Official application and module packages must be produced through the controlled CI/CD pipeline defined by Ritav.
+
+Required release flow:
+
+Source revision
+ -> automated tests/security gates
+ -> platform build
+ -> package generation
+ -> signing
+ -> digest generation
+ -> provenance/metadata generation
+ -> release publication
+ -> package registry/index update
+
+Signing keys and release secrets remain outside the repository in protected CI secrets/secure infrastructure.
+
+Random manually assembled packages are not official Ritav releases.
+
+### 42.9 Package registry
+
+Ritav should maintain a machine-readable package registry/index containing at minimum:
+
+- package ID
+- product
+- version
+- release channel
+- platform
+- architecture
+- minimum OS/runtime
+- download location
+- size
+- digest
+- signature/authenticity metadata
+- release date
+- compatibility requirements
+- deprecation/withdrawal state
+- rollback target where applicable
+
+The client must use this metadata only as an input to deterministic verification and policy checks. Registry data itself is not authority to bypass security.
+
+### 42.10 User experience
+
+The user should be able to see, before downloading/installing:
+
+- What is being installed.
+- Why it is needed.
+- Which version.
+- Approximate size.
+- Which permissions/capabilities it requests.
+- Where it comes from.
+- Whether integrity/authenticity verification passed.
+- What will be shared/integrated, if anything.
+- How to uninstall/rollback.
+
+For large packages, the UI should show download progress and allow safe pause/resume where the platform permits it.
+
+### 42.11 Core architectural rule
+
+Ritav.ai is the primary user-facing ecosystem, while Ritav.Agi-agent.ai remains a separate product/runtime that may also be hosted through an official package/module.
+
+The package system must support both:
+
+- downloading the whole Ritav application, and
+- downloading/installing specific complete feature environments or packages, including the Agent environment,
+
+without weakening the local-first, privacy-first, permission, security or product-isolation rules.
+
+The final implementation must treat package installation as a controlled supply-chain operation, not merely as a file download.
