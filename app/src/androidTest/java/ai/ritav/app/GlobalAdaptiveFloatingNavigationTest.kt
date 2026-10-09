@@ -1,6 +1,7 @@
 package ai.ritav.app
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,9 +19,12 @@ internal class GlobalAdaptiveFloatingNavigationTest {
 
     @Test
     fun navigation_opens_and_selection_tracks_current_destination() {
-        // A fresh install starts on onboarding; complete it before exercising the main shell.
-        composeRule.onNodeWithText("Continue to Ritav").assertIsDisplayed()
-        composeRule.onNodeWithText("Continue to Ritav").performClick()
+        // Complete onboarding only when this test environment has not completed it already.
+        // Onboarding completion is intentionally persisted across launches.
+        val continueNode = composeRule.onAllNodesWithText("Continue to Ritav").fetchSemanticsNodes()
+        if (continueNode.isNotEmpty()) {
+            composeRule.onNodeWithText("Continue to Ritav").performClick()
+        }
 
         val toggle = composeRule.onNodeWithContentDescription("Ritav global navigation, movable")
 
