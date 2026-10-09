@@ -2080,3 +2080,41 @@ Wait for Run #690 to complete; then perform the consolidated onboarding + conver
 ### EXACT IMPLEMENTATION HEAD
 - 718cd66f948229f00d331fc73986b88b14b23239 — conversation bounds + latest-message viewport behavior
 - a7bfc1516f0e01220c5cde89a0ea13ae08765a64 — first-run onboarding
+
+
+## 2026-10-09 — Authoritative UI test hardening checkpoint
+
+### CURRENT BRANCH / PR
+- Active branch: `ui/conversational-shell`.
+- PR #31 remains open, draft, and unmerged into `main`.
+- Exact implementation/test head: `e1998dc40596cf71bff8f330b6f015fa1995dbcb`.
+- The earlier 2026-10-03 Run #690 checkpoint above is historical and superseded by the exact-head evidence below.
+
+### COMPLETED IN THIS SLICE
+- First-run onboarding persists completion locally and remains presentation-only; it does not request permissions, authorize or execute actions, or invoke the model runtime.
+- Main navigation instrumentation now handles persisted onboarding state and scrolls the onboarding Continue action into view before proceeding when onboarding is still present.
+- Onboarding Compose UI assertions use the available `assertIsDisplayed` API; a debug-only `ui-test-manifest` dependency supplies the test host activity.
+- Added callback coverage for onboarding Continue and live-task panel coverage for idle/no-fabricated-progress, Emergency Stop callback delegation, and failed-safely state presentation.
+- Onboarding credential copy was qualified to describe the intended security policy rather than promise an absolute guarantee.
+
+### CONSOLIDATED SYSTEM REVIEW
+- UI task state remains read-only through `TaskRuntimeStatePort`; UI components do not gain adapter or authorization authority.
+- `ExecutionBridge` still validates plans, evaluates capability/security gates, audits decisions, and rechecks Emergency Stop at the final adapter-dispatch boundary. A failed or unverified action is not reported as successful.
+- Conversation input remains capped at 4096 characters, history at 100 messages, and each stored message at 8192 characters; latest-message viewport behavior is retained.
+- No Android permission, egress/network path, production dependency, or privileged capability was introduced by this slice. The only dependency addition is debug-only Compose test-manifest support.
+- Production model/provider runtime remains intentionally unavailable/fail-closed, and the external trusted-app registry remains empty/deny-by-default.
+
+### EXACT-HEAD VERIFICATION
+- Android unit/instrumentation Run #699 — SUCCESS on `e1998dc40596cf71bff8f330b6f015fa1995dbcb`; JVM/build and instrumentation compilation passed, then all 15 managed-device tests completed successfully on `pixel2api30`.
+- Android release validation Run #31 — SUCCESS on the same exact head; release security configuration checks, secret scan, release tests/lint, signed CI APK/AAB verification, R8 mapping and artifact upload all completed successfully.
+- CI signing used an ephemeral validation key. This is not production-key evidence.
+
+### NOT VERIFIED / REMAINING LIMITATIONS
+- Physical-device visual, touch, keyboard and accessibility QA has not been performed.
+- Production signing identity, store/distribution readiness and whole-product release readiness are not established by CI validation.
+- Real model/provider runtime and several later Blueprint phases remain incomplete.
+- PR #31 is not merged. UI Phase 1 is still an informal planning estimate of roughly 85–88%, not 100%; responsive/edge-case integration and the later user-requested icon wiring remain outside this slice.
+
+### CURRENT STOP POINT / NEXT ACTION
+- Continue Phase 1 responsive, keyboard and accessibility edge-state coverage without restarting completed security layers or changing the icon in this slice.
+- After that UI package is complete, continue the remaining release-critical product phases in Blueprint order; keep unsupported voice/model/automation capabilities unavailable rather than simulating success.

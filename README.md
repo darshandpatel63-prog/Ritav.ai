@@ -1395,3 +1395,15 @@ The active UI branch now includes a first-run onboarding surface that clearly co
 The conversational shell also bounds stored conversation history to 100 messages and caps each stored message at 8,192 characters. New messages automatically bring the conversation viewport to the latest entry without introducing model or execution authority.
 
 The current UI implementation head is tracked separately from CI evidence. Android Actions Run #690 is still in progress for the latest UI hardening commit; physical-device visual/touch/keyboard/accessibility QA remains unverified.
+
+
+## Authoritative UI verification checkpoint — 2026-10-09
+
+- Current implementation/test head on `ui/conversational-shell`: `e1998dc40596cf71bff8f330b6f015fa1995dbcb`. PR #31 remains open/draft and is not merged.
+- Fixed Compose instrumentation test host setup with debug-only `androidx.compose.ui:ui-test-manifest`.
+- Onboarding and navigation tests now account for persisted completion state and scroll the Continue action into view where needed. Added UI tests for Continue callback behavior and Live Task idle, Emergency Stop callback and failed-safely presentation.
+- Consolidated source review confirms the UI only observes read-only task runtime state; deterministic security authorization and the final Emergency Stop guard remain in `ExecutionBridge`. Conversation/resource limits are unchanged.
+- Android unit/instrumentation Run #699 — **SUCCESS** on exact head `e1998dc40596cf71bff8f330b6f015fa1995dbcb`; all 15 managed-device tests passed.
+- Android release validation Run #31 — **SUCCESS** on exact head `e1998dc40596cf71bff8f330b6f015fa1995dbcb`, including release security checks, secret scan, release tests/lint, signed CI APK/AAB validation, R8 mapping and artifact upload. Signing was ephemeral CI validation, not production signing.
+- No new Android permissions, production dependencies, network/e-g­ress paths or privileged capabilities were added. The new test-manifest dependency is debug-only.
+- Physical-device QA, production signing/distribution, the actual model/provider runtime and whole-app release readiness remain unverified/incomplete. UI Phase 1 remains an informal 85–88% estimate; PR #31 is unmerged. Continue responsive/keyboard/accessibility edge states next, leaving icon wiring for its later planned slice.
