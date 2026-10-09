@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -19,11 +20,11 @@ internal class GlobalAdaptiveFloatingNavigationTest {
 
     @Test
     fun navigation_opens_and_selection_tracks_current_destination() {
-        // Complete onboarding only when this test environment has not completed it already.
-        // Onboarding completion is intentionally persisted across launches.
-        val continueNode = composeRule.onAllNodesWithText("Continue to Ritav").fetchSemanticsNodes()
-        if (continueNode.isNotEmpty()) {
-            composeRule.onNodeWithText("Continue to Ritav").performClick()
+        // Onboarding completion is persisted; if onboarding is present, scroll its CTA into view.
+        if (composeRule.onAllNodesWithText("Continue to Ritav").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText("Continue to Ritav")
+                .performScrollTo()
+                .performClick()
         }
 
         val toggle = composeRule.onNodeWithContentDescription("Ritav global navigation, movable")
