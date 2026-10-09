@@ -18,6 +18,10 @@ internal class GlobalAdaptiveFloatingNavigationTest {
 
     @Test
     fun navigation_opens_and_selection_tracks_current_destination() {
+        // A fresh install starts on onboarding; complete it before exercising the main shell.
+        composeRule.onNodeWithText("Continue to Ritav").assertIsDisplayed()
+        composeRule.onNodeWithText("Continue to Ritav").performClick()
+
         val toggle = composeRule.onNodeWithContentDescription("Ritav global navigation, movable")
 
         toggle.assertIsDisplayed()
