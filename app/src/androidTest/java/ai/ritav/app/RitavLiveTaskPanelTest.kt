@@ -1,0 +1,70 @@
+package ai.ritav.app
+
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+
+class RitavLiveTaskPanelTest {
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun idle_state_reports_that_no_authoritative_task_is_active() {
+        composeRule.setContent {
+            RitavTheme(preferences = UiPreferences()) {
+                RitavLiveTaskPanel(state = RitavTaskUiState.IDLE)
+            }
+        }
+
+        composeRule.onNodeWithText("No active task").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "No task is currently being executed. Ritav will only show live progress when an authoritative runtime state exists."
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun executing_state_routes_emergency_stop_to_existing_callback() {
+        var stopRequested = false
+        composeRule.setContent {
+            RitavTheme(preferences = UiPreferences()) {
+                RitavLiveTaskPanel(
+                    state = RitavTaskUiState.EXECUTING,
+                    taskName = "Open approved app",
+                    currentStep = "Dispatching approved action",
+                    summary = "Approved action is being dispatched through the security-owned adapter.",
+                    onEmergencyStop = { stopRequested = true }
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Task executing").assertIsDisplayed()
+        val stopButton = composeRule.onNodeWithText("Emergency Stop")
+        stopButton.assertIsDisplayed()
+        stopButton.performClick()
+
+        assertTrue(stopRequested)
+    }
+
+    @Test
+    fun failed_safely_state_displays_failure_without_success_claim() {
+        val failureSummary =
+            "The action did not complete successfully; verification was not reported as successful."
+        composeRule.setContent {
+            RitavTheme(preferences = UiPreferences()) {
+                RitavLiveTaskPanel(
+                    state = RitavTaskUiState.FAILED_SAFELY,
+                    taskName = "Open approved app",
+                    currentStep = "Verification",
+                    summary = failureSummary
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Task failed safely").assertIsDisplayed()
+        composeRule.onNodeWithText(failureSummary).assertIsDisplayed()
+    }
+}

@@ -87,7 +87,7 @@ internal fun RitavOnboardingScreen(
                 Text("Your control comes first.", style = MaterialTheme.typography.titleMedium)
                 Text("You decide what Ritav may access. Security policy and authorization decide what protected actions may proceed.")
                 Text("AI cannot authorize itself, bypass security, or silently execute an action.")
-                Text("Sensitive credentials such as OTPs, UPI PINs, passwords, and private keys are protected from AI automation.")
+                Text("Ritav's security policy is designed to block AI automation from accessing sensitive credentials such as OTPs, UPI PINs, passwords, and private keys.")
                 Text("Emergency Stop can block protected activity immediately.")
                 Text("The production model/provider runtime is not connected yet, so Ritav will not pretend to generate a model answer.")
             }
