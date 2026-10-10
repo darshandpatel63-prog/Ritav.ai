@@ -59,4 +59,7 @@ Keep the conversation context and bounded message history in one scrollable view
 No model/provider, action execution, permission, capability, network/egress path or new runtime dependency is added. Conversation output remains honest that the production model/provider is unavailable. These changes do not give the UI authorization or adapter authority.
 
 ### Verification
-Source-level integration checks are part of this development pass. Gradle and Android managed-device tests must be confirmed by exact-head GitHub Actions before this package is marked verified.
+- The first implementation iteration at `dd49935ca8759746dc3ed175a8e9788edc552f93` failed Android instrumentation compilation because the test used the unavailable `assertExists()` API. The test was corrected to the supported `assertIsDisplayed()` API in `d709aaa153e7aaae6a87a778407f8669ffa5272e`.
+- Exact implementation/test HEAD `d709aaa153e7aaae6a87a778407f8669ffa5272e`: Android unit/instrumentation Run #702 — SUCCESS; all 21 managed-device tests completed. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832147
+- Exact implementation/test HEAD `d709aaa153e7aaae6a87a778407f8669ffa5272e`: Android release validation Run #34 — SUCCESS, including security configuration, source secret scan, release tests/lint, signed CI APK/AAB verification, non-debug APK check, R8 mapping and artifact upload. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832163
+- CI uses an ephemeral validation signing key. Physical-device visual/touch/keyboard/accessibility QA and production signing/distribution remain unverified.

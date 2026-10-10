@@ -1407,3 +1407,35 @@ The current UI implementation head is tracked separately from CI evidence. Andro
 - Android release validation Run #31 — **SUCCESS** on exact head `e1998dc40596cf71bff8f330b6f015fa1995dbcb`, including release security checks, secret scan, release tests/lint, signed CI APK/AAB validation, R8 mapping and artifact upload. Signing was ephemeral CI validation, not production signing.
 - No new Android permissions, production dependencies, network/e-g­ress paths or privileged capabilities were added. The new test-manifest dependency is debug-only.
 - Physical-device QA, production signing/distribution, the actual model/provider runtime and whole-app release readiness remain unverified/incomplete. UI Phase 1 remains an informal 85–88% estimate; PR #31 is unmerged. Continue responsive/keyboard/accessibility edge states next, leaving icon wiring for its later planned slice.
+
+## 2026-10-10 — Responsive conversation, IME and recovery checkpoint
+
+### Authoritative branch state
+- Implementation/test HEAD: `d709aaa153e7aaae6a87a778407f8669ffa5272e` on `ui/conversational-shell`.
+- Responsive shell implementation commit: `dd49935ca8759746dc3ed175a8e9788edc552f93`; the following test-hardening commit fixed a Compose assertion API mismatch and added the Emergency Stop recovery integration test.
+- PR #31 remains **OPEN · DRAFT · NOT MERGED**: https://github.com/darshandpatel63-prog/Ritav.ai/pull/31.
+- At this implementation/test checkpoint, `main` was `81396a4fe7fdd21b20a19b69774d407b2a302508`, with the branch 151 commits ahead and 4 behind; merge base `27942d726f3e1b491454c1f511d17334a393ef49`. No merge or rebase was performed.
+
+### Implemented
+- Home context (security/model status and live task panel) and bounded conversation messages share a vertically scrollable viewport; the composer and Emergency Stop controls remain outside that viewport so they remain available above the IME.
+- Latest-message auto-scroll follows a separate send revision, so later messages still scroll to the newest item after history reaches its 100-message cap.
+- Android IME/viewport integration uses `adjustResize` and inset-aware layout; Permission Center uses a weighted scroll viewport with its navigation actions kept visible on short or keyboard-reduced screens.
+- Existing safeguards remain: 4096-character input cap, 8192-character stored-message cap, 100-message history, local UI-only send behavior while the production model runtime is unavailable.
+- Added managed-device coverage for IME Send, input-length/accessibility text, appearance preference store recreation and invalid-value fallback, blocked/stopped task presentation, and the Home → Emergency Stop → Security Center → Resume → fresh-authentication recovery path.
+
+### Exact-head CI evidence
+- Android unit/instrumentation Run #702 — **SUCCESS** on `d709aaa153e7aaae6a87a778407f8669ffa5272e`: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832147. JVM/unit tests and instrumentation compilation passed; all 21 managed-device tests completed successfully on `pixel2api30`.
+- Android release validation Run #34 — **SUCCESS** on the same HEAD: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832163. Release-security configuration checks, embedded-secret scan, release tests/lint, APK/AAB build/signature checks, non-debug APK check, R8 mapping validation and artifact upload completed successfully.
+- CI release signing used an ephemeral validation key. This is not evidence of a production signing identity, store/distribution readiness or whole-product release readiness.
+- Earlier Run #701 failed while compiling instrumentation tests because `assertExists()` was unavailable in this repository's Compose test API. That test-only issue was fixed by using the supported `assertIsDisplayed()` API at `d709aaa…`; the exact-head Run #702 is green.
+
+### Consolidated UI/security review
+- The UI continues to consume task status as a read-only projection and routes security controls through the existing security-owned facade. No direct adapter call, model/provider execution route or AI-granted authorization was added.
+- Emergency Stop remains a security-owned action; the recovery test confirms the UI returns to an explicit fresh-authentication requirement after user-requested resume.
+- No Android permission, production dependency, network/egress path or privileged capability was added. Preference-store injection is only a test seam; the production preference file name remains unchanged.
+- Physical-device visual/touch/keyboard/TalkBack QA has deliberately **not** been performed; managed-device CI is not physical-device QA.
+
+### Remaining work and estimate
+- Launcher icon wiring remains a separate future task and was not changed in this slice. Do not infer that the icon asset introduced on `main` is integrated into this UI branch.
+- Continue Phase 1 small-screen/accessibility edge review and revisit the main-side-only commits before any future integration. Follow the canonical `RITAV_BLUEPRINT.md` in phase order; Phase 2 is the Policy Engine after Phase 1 closure.
+- Informal planning estimates only: Phase 1 UI approximately **89–90%** (previously ~85–88%); overall project approximately **58%** (previously ~57%); security foundation remains around **99%**. These are not measured quality or security metrics.

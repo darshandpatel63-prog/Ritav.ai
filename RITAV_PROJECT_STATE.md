@@ -2118,3 +2118,35 @@ Wait for Run #690 to complete; then perform the consolidated onboarding + conver
 ### CURRENT STOP POINT / NEXT ACTION
 - Continue Phase 1 responsive, keyboard and accessibility edge-state coverage without restarting completed security layers or changing the icon in this slice.
 - After that UI package is complete, continue the remaining release-critical product phases in Blueprint order; keep unsupported voice/model/automation capabilities unavailable rather than simulating success.
+
+## 2026-10-10 — Authoritative responsive/IME UI checkpoint
+
+### Branch and exact heads
+- Active branch: `ui/conversational-shell`.
+- Exact implementation/test HEAD: `d709aaa153e7aaae6a87a778407f8669ffa5272e`.
+- Main UI implementation commit: `dd49935ca8759746dc3ed175a8e9788edc552f93`; follow-up test correction/recovery regression commit: `d709aaa153e7aaae6a87a778407f8669ffa5272e`.
+- PR #31 is open, draft and unmerged. `main` was `81396a4fe7fdd21b20a19b69774d407b2a302508`; at code/test HEAD the branch was 151 ahead / 4 behind with merge base `27942d726f3e1b491454c1f511d17334a393ef49`. No branch merge/rebase or direct-main push occurred.
+
+### Implemented and reviewed
+- Moved Home context, security/model status, live-task panel and bounded messages into one scrollable list; fixed the pinned composer above the IME.
+- Replaced list-size-triggered scroll with a send revision so the newest item remains the target when the 100-message list is full.
+- Applied `adjustResize` and IME-aware layout; gave Permission Center a weighted, bounded scroller and kept its two navigation actions in a responsive footer.
+- Added exact-path regression coverage for IME Send/fail-closed output, the 4096-character input limit/supporting description, appearance preference persistence/default fallback, blocked/stopped states and Emergency Stop recovery requiring fresh authentication.
+- No change to `ExecutionBridge`, authorization/capability policy, final Emergency Stop dispatch guard, task-state ownership, provider fail-closed behavior or trusted-app deny-by-default state.
+
+### Exact-head verification
+- Android unit/instrumentation Run #702 — **SUCCESS** for `d709aaa153e7aaae6a87a778407f8669ffa5272e`; instrumented build completed and all 21 `pixel2api30` managed-device tests passed. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832147
+- Android release validation Run #34 — **SUCCESS** for the same HEAD. Security configuration/secret scan, Gradle release tests and lint, APK/AAB build and signature verification, non-debug release APK, R8 mapping and artifact upload all passed. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832163
+- Run #701 on the prior implementation/test head `dd49935…` failed at instrumentation compilation solely due to an unsupported `assertExists()` assertion API. The test was corrected to use `assertIsDisplayed()`; Run #702 provides successful exact-head evidence.
+- CI used ephemeral validation signing; this does not establish production signing/distribution readiness.
+
+### Consolidated review and limitations
+- UI task status remains read-only; send remains local and explicitly states that production model inference is unavailable. No AI/model output receives authorization or execution authority.
+- Input remains limited to 4096 characters, stored messages to 8192 characters, and history to 100 messages.
+- No new Android permission, runtime dependency, egress path or privileged capability was added. The new preferences-name parameter is used for test isolation; the production SharedPreferences name is unchanged.
+- Physical-device visual, touch, keyboard and TalkBack QA remains deferred until the whole application is complete. CI managed-device evidence must not be described as physical-device QA.
+- Launcher icon integration remains deferred and was not touched. Revisit the four main-side commits (including the icon asset and Blueprint package-distribution update) before any integration strategy; do not merge/rebase blindly.
+
+### Current stop point and next task
+- Continue Phase 1 responsive/small-screen/accessibility review on `ui/conversational-shell`, then revisit icon wiring at its planned later integration point. Follow `RITAV_BLUEPRINT.md`; Phase 2 is Policy Engine after Phase 1 closure.
+- Informal estimates: Phase 1 UI ~89–90% (previously ~85–88%); overall project ~58% (previously ~57%); security foundation ~99% planning completion. These are informal and are not formal assurance metrics.
