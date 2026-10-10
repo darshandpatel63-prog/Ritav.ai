@@ -92,29 +92,27 @@ No model/provider, action execution, permission, capability, network/egress path
 - Physical-device visual/touch/keyboard/TalkBack QA remains deferred until whole-product completion.
 
 
-## 2026-10-10 — Adaptive navigation capacity and Back-priority hardening
+## 2026-10-10 — Compact Home composer and responsive navigation
 
 ### Decision and behavior
-- Calculate menu item capacity on the actual stack/row axis and count only required inter-item gaps; no trailing gap is reserved after the final menu item.
-- Expose the global-navigation toggle state with Compose semantics (`Expanded` / `Collapsed`).
-- When the menu is expanded, Android Back closes it first rather than executing the destination/screen-level Back behavior.
+- Use `BoxWithConstraints` after IME insets so Home adapts to the currently available height, not the full device height.
+- Below 520dp available height, reduce outer padding/vertical spacing, cap visible composer lines at two, and place Send / Emergency Stop in a shared row.
+- Preserve the shared button's 48dp minimum height. Standard-height layouts retain the five-line composer and separate full-width actions.
+- Keep adaptive-navigation capacity (only required inter-item gaps), Expanded/Collapsed accessibility state, and Back-to-collapse-before-destination behavior.
 
-### Regression coverage and correction history
-- JVM geometry coverage verifies correct axis selection, minimum viable slot, bounded/non-overlapping layout at constrained widths/heights, and four-item stack fit at the exact margin/spacing boundary.
-- The initial accessibility test head `84f6b763d90abd5cf5cbc8cd420447f67abce014` failed instrumentation-test compilation because a Compose `assert` extension import was missing.
-- Commit `3d1baa3a422a21f1efa6c5326e54864d3d70ab59` added the import; Run #711 passed on that intermediate source/test head.
-- The final regression then navigated to Security / Permission Center, opened global navigation, dispatched Android Back, and asserted that the menu collapsed while Permission Center remained displayed.
-- Exact-head Android unit/instrumentation Run #713 passed: 22 tests on `pixel2api30`, 0 failed / 0 skipped. Exact-head Android release Run #45 passed. Links: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38046331913 and https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38046331909.
+### Regression coverage and evidence
+- JVM tests cover the compact-layout breakpoint immediately below/at/above 520dp.
+- Android instrumentation rotates the managed device to landscape, enters multiline input, and asserts composer / Send / Emergency Stop remain displayed.
+- Exact-head Run #715 passed 23 managed-device tests on `pixel2api30`, 0 failed / 0 skipped. Exact-head release Run #47 passed all release-validation steps. Links: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073494 and https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073510.
 
 ### Security/system boundary
-- Geometry, semantics and menu Back handling are presentation-only; they cannot resume/stop tasks or grant protected-action authority.
-- No execution, authorization, permission, identity, trusted-app, provider, egress, audit or result-verification authority changed.
-- No new permission, production dependency, or privileged capability.
-- Emergency Stop remains controlled by the security facade and its final dispatch guard is independent of menu Back handling.
+- Only Home presentation and a pure viewport breakpoint helper were added/changed. No task execution, authorization, permissions, identity, trusted-app, provider, egress, audit, Emergency Stop security facade, or result-verification behavior changed.
+- No new permission, production dependency, privileged capability, or sensitive data flow.
+- Existing conversation history/input/message caps remain intact.
+- Managed emulator orientation tests are not physical-device IME, font scaling, touch or TalkBack QA.
 
 ### Open limits / next step
-- Physical-device visual/touch/keyboard/TalkBack QA remains deferred until whole-product completion.
-- Launcher icon wiring remains untouched.
-- Continue Phase 1 responsive/accessibility review; Phase 2 Policy Engine only after Phase 1 closure.
-- Exact source/test HEAD: `703a6892deabdc11731d36ca1dc955f10a7b6743`; `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; PR #31 open/draft/unmerged, 162 ahead / 4 behind.
-- Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%. These are not formal metrics.
+- Continue Phase 1 small-screen / IME-inset / font-scale / accessibility review; Phase 1 is not closed.
+- Leave launcher icon wiring untouched and defer Phase 2 — Policy Engine until Phase 1 closes.
+- Exact source/test HEAD: `b989e235eaa6dcff9f88436262a608d696053029`; `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; PR #31 open/draft/unmerged, 164 ahead / 4 behind.
+- Informal planning estimates: Phase 1 UI ~90–91%, overall ~58%, security foundation ~99%; not formal quality metrics.

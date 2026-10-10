@@ -10,7 +10,7 @@ This README is the hand-off guide for future AI/development chats. Continue the 
 - Android application ID: `ai.ritav.app`
 - Integration baseline (`main`): `81396a4fe7fdd21b20a19b69774d407b2a302508`.
 - Active UI development branch: `ui/conversational-shell`; PR #31 is open/draft/unmerged.
-- Current source/test HEAD: `703a6892deabdc11731d36ca1dc955f10a7b6743` — Android unit/instrumentation Run #713 and Android release validation Run #45 both SUCCESS.
+- Current source/test HEAD: `b989e235eaa6dcff9f88436262a608d696053029` — Android unit/instrumentation Run #715 and Android release validation Run #47 both SUCCESS.
 - Stage: Phase 1 Android shell/UI — responsive adaptive navigation and accessibility hardening; Phase 1 is not yet declared closed.
 - Hardware floor: 4 GB RAM / 32 GB storage is a compatibility floor, not a universal performance guarantee.
 
@@ -161,15 +161,15 @@ No speculative screen/OCR/accessibility ingestion or resource guard is added wit
 
 ## 13. Current verification checkpoint — 2026-10-10
 
-The authoritative active development checkpoint is branch `ui/conversational-shell`, PR #31, exact source/test HEAD `703a6892deabdc11731d36ca1dc955f10a7b6743`. It is separate from `main` (`81396a4fe7fdd21b20a19b69774d407b2a302508`); PR #31 is open/draft/unmerged, 162 commits ahead / 4 behind, with merge base `27942d726f3e1b491454c1f511d17334a393ef49`.
+Active development is branch `ui/conversational-shell`, PR #31, exact source/test HEAD `b989e235eaa6dcff9f88436262a608d696053029`. This is separate from `main` (`81396a4fe7fdd21b20a19b69774d407b2a302508`); PR #31 is open/draft/unmerged, 164 commits ahead / 4 behind, with merge base `27942d726f3e1b491454c1f511d17334a393ef49`.
 
-- Android unit/instrumentation Run #713 — **SUCCESS**; JVM tests, instrumentation-test compilation, and **22/22 managed-device tests** completed, 0 failed / 0 skipped: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38046331913
-- Android release validation Run #45 — **SUCCESS** on the same exact head: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38046331909
-- The latest test verifies that Android Back collapses the expanded global-navigation menu on Security / Permission Center without triggering the destination-level BackHandler; the screen remains on Permission Center.
-- The earlier instrumentation compilation issue at `84f6b763d90abd5cf5cbc8cd420447f67abce014` was a missing Compose `assert` import. It was fixed at `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`; the expanded Back-priority test subsequently passed at `703a6892deabdc11731d36ca1dc955f10a7b6743`.
-- CI signing is ephemeral validation signing, not production signing/distribution evidence.
+- Android unit/instrumentation Run #715 — **SUCCESS**, including 23/23 managed-device tests, 0 failed / 0 skipped: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073494
+- Android release validation Run #47 — **SUCCESS** on the same exact head: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073510
+- Home switches to compact controls below 520dp of available height after IME inset handling: two-line composer maximum and side-by-side Send / Emergency Stop actions. Standard viewport layout is preserved.
+- The managed-device landscape test confirms the compact layout keeps the composer and both critical actions displayed.
+- CI signing uses an ephemeral validation key and is not production signing/distribution evidence.
 
-No merge, rebase, or main push occurred. Launcher icon wiring remains untouched. See the latest dated checkpoint at the end of this README for the consolidated review and next stop point.
+No merge, rebase or main push occurred. Launcher icon wiring remains untouched. See the latest dated checkpoint at the end of this README for consolidated review and the next stop point.
 
 ## 14. Known limitations
 - Cross-platform contracts are implemented; native platform implementations are not yet complete.
@@ -182,9 +182,9 @@ No merge, rebase, or main push occurred. Launcher icon wiring remains untouched.
 
 ## 15. Exact next stop point
 
-Continue Phase 1 responsive/small-screen/accessibility review on `ui/conversational-shell`. Exact source/test HEAD `703a6892deabdc11731d36ca1dc955f10a7b6743` is green: Android unit/instrumentation Run #713 (22/22 managed-device tests) and release validation Run #45.
+Continue Phase 1 small-screen, IME-inset, font-scaling and accessibility review on `ui/conversational-shell`. Exact source/test HEAD `b989e235eaa6dcff9f88436262a608d696053029` is green: Android unit/instrumentation Run #715 (23/23 managed-device tests) and Android release validation Run #47.
 
-Do not merge or rebase PR #31 without deliberate integration planning. Keep launcher icon wiring untouched until its planned later task. After Phase 1 UI is explicitly closed, follow `RITAV_BLUEPRINT.md` into Phase 2 — Policy Engine. Physical-device and TalkBack QA remains deferred until whole-product completion.
+Do not merge/rebase PR #31 without a deliberate integration plan. Keep launcher icon wiring untouched until the planned later task. Proceed to Phase 2 — Policy Engine only after Phase 1 UI is explicitly closed. Physical-device and TalkBack QA remains deferred until whole-product completion.
 
 ## 16. Continuation rule
 Future chats must treat `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` as the active scope decision. Existing Android-only wording in older documents is superseded for product scope, but Android security controls remain active for Android. Never weaken or duplicate the security architecture while adding platform support.
@@ -1469,38 +1469,37 @@ The current UI implementation head is tracked separately from CI evidence. Andro
 - Informal estimates: Phase 1 UI ~90–91%; overall project ~58%; security foundation ~99%. These are planning estimates, not formal metrics.
 
 
-## 2026-10-10 — Adaptive navigation capacity and Back-priority checkpoint
+## 2026-10-10 — Compact Home composer and navigation accessibility checkpoint
 
 ### Authoritative repository state
-- Active development branch: `ui/conversational-shell`.
-- Exact current source/test HEAD: `703a6892deabdc11731d36ca1dc955f10a7b6743`.
-- `main` remains `81396a4fe7fdd21b20a19b69774d407b2a302508`; merge base: `27942d726f3e1b491454c1f511d17334a393ef49`; comparison at the source/test checkpoint: 162 ahead / 4 behind.
+- Active branch: `ui/conversational-shell`.
+- Exact source/test HEAD: `b989e235eaa6dcff9f88436262a608d696053029`.
+- `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; merge base: `27942d726f3e1b491454c1f511d17334a393ef49`; branch comparison at source/test checkpoint: 164 ahead / 4 behind.
 - PR #31 remains **OPEN · DRAFT · NOT MERGED**: https://github.com/darshandpatel63-prog/Ritav.ai/pull/31.
-- No merge, rebase, or direct-main push occurred. Four main-only commits remain outside this branch; icon wiring is deliberately untouched.
+- No merge, rebase or direct-main push occurred. The four main-only commits remain outside this branch; launcher icon wiring is deliberately untouched.
 
 ### Implemented and tested
-- Adaptive linear-menu capacity counts only required inter-item gaps, not a nonexistent trailing gap after the final item.
-- JVM geometry coverage checks correct capacity axis for the vertical stack and horizontal row, minimum one-item fallback, bounded non-overlapping placement at narrow/short limits, and a four-item stack at the exact 12px-margin/56px-step boundary.
-- The movable global-navigation toggle exposes `Expanded` / `Collapsed` as accessibility state descriptions.
-- Android Back collapses an expanded menu before a destination-level BackHandler can navigate away.
-- The final regression navigates to Security / Permission Center, opens the menu, dispatches Android Back, then asserts the menu is collapsed **and Permission Center remains displayed**.
+- Home uses a constraint-aware viewport after applying IME insets. Below 520dp available height it switches to 8dp outer padding/spacing, limits the composer to two visible lines and places Send / Emergency Stop in one row.
+- Standard-height layout retains a five-line composer and separate full-width Send / Emergency Stop buttons.
+- Shared `RitavButton` still enforces a minimum 48dp control height in compact and normal layouts.
+- JVM regression tests cover compact breakpoint below/at/above 520dp.
+- Android instrumentation rotates to landscape, enters multiline text and verifies the composer, Send and Emergency Stop remain visible on the compact layout.
+- Adaptive-navigation geometry regression remains green; state semantics announce Expanded/Collapsed; Back collapses the menu before destination Back behavior, preserving Security / Permission Center.
 
 ### Exact-head CI evidence
-- Android unit/instrumentation Run #713 — **SUCCESS** on `703a6892deabdc11731d36ca1dc955f10a7b6743`: JVM tests and instrumentation-test compilation passed; the managed-device suite completed **22 tests on `pixel2api30` with 0 failed and 0 skipped**. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38046331913
-- Android release validation Run #45 — **SUCCESS** on the same HEAD: security configuration, tracked-source secret scan, release tests/build, signed validation APK/AAB checks, non-debug APK state, R8 mapping validation, and artifact upload succeeded. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38046331909
-- Earlier accessibility-head `84f6b763d90abd5cf5cbc8cd420447f67abce014` failed test compilation due to a missing Compose `assert` extension import. That was corrected at `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`; Run #711 passed on that intervening head. The Back-priority regression was then strengthened and passed on this current head.
-- CI artifacts use an ephemeral validation signing key; this is not production-keystore or distribution sign-off.
+- Android unit/instrumentation Run #715 — **SUCCESS** on `b989e235eaa6dcff9f88436262a608d696053029`: JVM unit tests and instrumentation compilation passed; **23/23 managed-device tests on `pixel2api30`, 0 failed / 0 skipped**. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073494
+- Android release validation Run #47 — **SUCCESS** on the same HEAD: release security configuration, tracked-source secret scan, release tests/build, signed validation APK/AAB checks, APK debug-state checks, R8 mapping validation, and artifact upload succeeded. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073510
+- CI uses an ephemeral validation signing key. This is not production-keystore or distribution sign-off.
 
 ### Consolidated system/security review
-- Geometry, semantics, and menu Back handling are presentation-only; the menu does not resume or stop tasks and does not grant protected-action authority.
-- `ExecutionBridge`, the final Emergency Stop dispatch guard, policy/capability authorization, trusted-app deny-by-default state, task-state ownership, model/provider fail-closed behavior, audit authority, and result verification were not changed.
-- No Android permission, production dependency, network/egress path, privileged capability, or new secret/data flow was added.
-- Existing message bounds remain: 100 stored messages, 4096-character input cap, and 8192-character stored-message text cap.
-- Managed-device CI is not physical-device visual/touch/keyboard/TalkBack QA; that QA remains deferred until whole-product completion.
+- This slice changes only Home presentation and a pure layout breakpoint helper/tests. It adds no model/provider invocation and no new authorization, permission, task-execution, identity, trusted-app, audit, Emergency Stop or result-verification authority.
+- Existing 100-message history cap, 4096-character composer input limit, and 8192-character stored-message limit remain unchanged.
+- No Android permission, production dependency, network/egress route, privileged capability, or new sensitive data flow was added.
+- Managed-device orientation coverage is not physical-device keyboard/IME, touch, font-scaling or TalkBack QA. Those manual checks remain deferred until whole-product completion.
 
 ### Exact next stop point
-- Continue Phase 1 responsive/small-screen/accessibility edge-case review; this verified slice does not close all of Phase 1.
-- Keep launcher icon wiring untouched until its planned later task.
-- Do not merge/rebase blindly; the four main-only commits require deliberate integration planning.
+- Continue Phase 1 small-screen, IME-inset, font-scaling and accessibility edge-case review; this slice does not close Phase 1.
+- Keep launcher icon wiring untouched until the planned later task.
+- Do not merge/rebase blindly; integrate the four main-only commits only under a deliberate plan.
 - Start Phase 2 — Policy Engine only after Phase 1 UI closure per `RITAV_BLUEPRINT.md`.
-- Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%; these are planning estimates, not formal metrics.
+- Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%. These are planning estimates, not formal metrics.
