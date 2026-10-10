@@ -92,27 +92,29 @@ No model/provider, action execution, permission, capability, network/egress path
 - Physical-device visual/touch/keyboard/TalkBack QA remains deferred until whole-product completion.
 
 
-## 2026-10-10 — Adaptive navigation capacity and accessibility hardening
+## 2026-10-10 — Adaptive navigation capacity and Back-priority hardening
 
 ### Decision and behavior
-- Calculate menu item capacity using the selected stack/row axis and required inter-item gaps only; do not allocate an unnecessary trailing gap after the last item.
-- Expose the floating navigation toggle's open state with a Compose semantic state description (`Expanded` / `Collapsed`).
-- Consume Android Back while the menu is expanded to collapse the menu first, without changing destination or protected-action state.
+- Calculate menu item capacity on the actual stack/row axis and count only required inter-item gaps; no trailing gap is reserved after the final menu item.
+- Expose the global-navigation toggle state with Compose semantics (`Expanded` / `Collapsed`).
+- When the menu is expanded, Android Back closes it first rather than executing the destination/screen-level Back behavior.
 
-### Tests and correction history
-- Geometry JVM coverage verifies correct axis selection, minimum viable slot, bounded non-overlapping placement for short/wide and tall/narrow viewports, and a four-item vertical stack at its exact margin/spacing boundary.
-- The first accessibility test head `84f6b763d90abd5cf5cbc8cd420447f67abce014` failed instrumentation-test compilation because the Compose `assert` extension import was missing.
-- The missing import was added in `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`; exact-head Android unit/instrumentation Run #711 then passed, including managed-device instrumentation.
-- Exact-head Android release Run #43 also passed. Links: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866629 and https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866619.
+### Regression coverage and correction history
+- JVM geometry coverage verifies correct axis selection, minimum viable slot, bounded/non-overlapping layout at constrained widths/heights, and four-item stack fit at the exact margin/spacing boundary.
+- The initial accessibility test head `84f6b763d90abd5cf5cbc8cd420447f67abce014` failed instrumentation-test compilation because a Compose `assert` extension import was missing.
+- Commit `3d1baa3a422a21f1efa6c5326e54864d3d70ab59` added the import; Run #711 passed on that intermediate source/test head.
+- The final regression then navigated to Security / Permission Center, opened global navigation, dispatched Android Back, and asserted that the menu collapsed while Permission Center remained displayed.
+- Exact-head Android unit/instrumentation Run #713 passed: 22 tests on `pixel2api30`, 0 failed / 0 skipped. Exact-head Android release Run #45 passed. Links: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38046331913 and https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38046331909.
 
 ### Security/system boundary
-- UI geometry and navigation-state announcements only; no execution, authorization, permission, identity, trusted-app, provider, egress, audit or result-verification authority changed.
+- Geometry, semantics and menu Back handling are presentation-only; they cannot resume/stop tasks or grant protected-action authority.
+- No execution, authorization, permission, identity, trusted-app, provider, egress, audit or result-verification authority changed.
 - No new permission, production dependency, or privileged capability.
-- Emergency Stop continues to be controlled by the security facade and remains independent of menu Back handling.
+- Emergency Stop remains controlled by the security facade and its final dispatch guard is independent of menu Back handling.
 
 ### Open limits / next step
 - Physical-device visual/touch/keyboard/TalkBack QA remains deferred until whole-product completion.
 - Launcher icon wiring remains untouched.
 - Continue Phase 1 responsive/accessibility review; Phase 2 Policy Engine only after Phase 1 closure.
-- Active source/test HEAD: `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`; `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; PR #31 remains open/draft/unmerged, 160 ahead / 4 behind.
+- Exact source/test HEAD: `703a6892deabdc11731d36ca1dc955f10a7b6743`; `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; PR #31 open/draft/unmerged, 162 ahead / 4 behind.
 - Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%. These are not formal metrics.
