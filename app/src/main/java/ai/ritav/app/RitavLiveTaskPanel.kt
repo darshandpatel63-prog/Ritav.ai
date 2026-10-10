@@ -106,7 +106,8 @@ internal fun RitavLiveTaskPanel(
                 RitavStatusChip(
                     label = title,
                     tone = tone,
-                    accessibleDescription = accessibleState
+                    // Keep the child chip concise; the parent card announces full context.
+                    accessibleDescription = title
                 )
             }
 
