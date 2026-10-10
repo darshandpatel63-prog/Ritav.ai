@@ -68,7 +68,7 @@ No model/provider, action execution, permission, capability, network/egress path
 
 ### Finding and correction
 - Source review found that the linear navigation menu counted capacity on the viewport width when the menu actually stacked items vertically, and on height when items formed a horizontal row.
-- Capacity calculation now uses the same axis as the selected placement strategy and is covered by pure JVM regression tests for vertical stack, horizontal row and very-small-axis fallback.
+- Capacity calculation now uses the same axis as the selected placement strategy and is covered by pure JVM regression tests for vertical stack, horizontal row and minimum-viable-axis fallback.
 
 ### Boundary
 - The correction changes presentation geometry only. Navigation destinations, user-controlled positioning, security state, authorization and task execution paths remain unchanged.

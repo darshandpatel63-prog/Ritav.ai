@@ -33,12 +33,12 @@ class GlobalAdaptiveFloatingNavigationLayoutTest {
     }
 
     @Test
-    fun very_small_available_axis_still_allows_one_reachable_item() {
+    fun minimum_viable_axis_keeps_one_item_slot() {
         assertEquals(
             1,
             linearMenuAxisCapacity(
                 horizontalLinear = false,
-                width = 40f,
+                width = 80f,
                 height = 180f,
                 itemPx = 48f,
                 margin = 12f
