@@ -463,7 +463,10 @@ internal fun linearMenuAxisCapacity(
     // When the menu sits to the left/right of the toggle, items stack vertically.
     // When it sits above/below the toggle, items form a horizontal row.
     val availableAxis = if (horizontalLinear) height else width
-    return ((availableAxis - (margin * 2f)) / (itemPx + 8f))
+    val availableItemAxis = availableAxis - (margin * 2f)
+    val itemStep = itemPx + 8f
+    // The gap separates adjacent items only; there is no trailing gap after the last item.
+    return ((availableItemAxis + 8f) / itemStep)
         .toInt()
         .coerceAtLeast(1)
 }

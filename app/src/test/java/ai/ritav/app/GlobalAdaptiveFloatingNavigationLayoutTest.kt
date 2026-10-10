@@ -6,9 +6,9 @@ import org.junit.Test
 
 class GlobalAdaptiveFloatingNavigationLayoutTest {
     @Test
-    fun vertical_stack_capacity_uses_height_not_width() {
+    fun vertical_stack_capacity_uses_height_and_does_not_count_a_trailing_gap() {
         assertEquals(
-            3,
+            4,
             linearMenuAxisCapacity(
                 horizontalLinear = true,
                 width = 360f,
@@ -20,9 +20,9 @@ class GlobalAdaptiveFloatingNavigationLayoutTest {
     }
 
     @Test
-    fun horizontal_row_capacity_uses_width_not_height() {
+    fun horizontal_row_capacity_uses_width_and_does_not_count_a_trailing_gap() {
         assertEquals(
-            3,
+            4,
             linearMenuAxisCapacity(
                 horizontalLinear = false,
                 width = 240f,
@@ -66,6 +66,28 @@ class GlobalAdaptiveFloatingNavigationLayoutTest {
 
         assertTrue(items.all { it.x >= 12f && it.x <= 440f })
         assertTrue(items.all { it.y >= 12f && it.y <= 140f })
+        assertTrue(items.zipWithNext().all { (first, second) -> second.y - first.y >= 56f })
+    }
+
+    @Test
+    fun four_item_vertical_stack_fits_exactly_without_a_trailing_gap() {
+        val items = (0..3).map { index ->
+            linearPlacement(
+                index = index.toFloat(),
+                count = 4,
+                centerX = 29f,
+                centerY = 29f,
+                width = 500f,
+                height = 240f,
+                itemPx = 48f,
+                buttonX = 221f,
+                buttonY = 91f,
+                margin = 12f
+            )
+        }
+
+        assertTrue(items.all { it.x >= 12f && it.x <= 440f })
+        assertTrue(items.all { it.y >= 12f && it.y <= 180f })
         assertTrue(items.zipWithNext().all { (first, second) -> second.y - first.y >= 56f })
     }
 
