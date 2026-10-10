@@ -1,6 +1,7 @@
 package ai.ritav.app
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -45,6 +47,10 @@ internal data class ConversationMessage(
 internal const val MAX_CONVERSATION_MESSAGES = 100
 internal const val MAX_CONVERSATION_INPUT_LENGTH = 4096
 internal const val MAX_CONVERSATION_MESSAGE_LENGTH = 8192
+internal const val COMPACT_HOME_VIEWPORT_HEIGHT_DP = 520
+
+internal fun isCompactHomeViewport(maxHeight: Dp): Boolean =
+    maxHeight < COMPACT_HOME_VIEWPORT_HEIGHT_DP.dp
 
 private fun boundConversationMessage(text: String): String =
     text.take(MAX_CONVERSATION_MESSAGE_LENGTH)
@@ -104,13 +110,20 @@ internal fun ConversationalHomeScreen(
         messageRevision++
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .imePadding()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // The resized viewport accounts for IME insets: keep critical actions
+        // visible beside each other when vertical room is constrained.
+        val compactViewport = isCompactHomeViewport(maxHeight)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(if (compactViewport) 8.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compactViewport) 4.dp else 12.dp)
+        ) {
         LazyColumn(
             state = conversationListState,
             modifier = Modifier
@@ -258,7 +271,7 @@ internal fun ConversationalHomeScreen(
                 },
             enabled = !stopped,
             minLines = 1,
-            maxLines = 5,
+            maxLines = if (compactViewport) 2 else 5,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { send() }),
             label = { Text("Message Ritav") },
@@ -272,24 +285,51 @@ internal fun ConversationalHomeScreen(
             }
         )
 
-        RitavButton(
-            style = buttonStyle,
-            label = "Send",
-            onClick = ::send,
-            enabled = input.isNotBlank() && !stopped,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (compactViewport) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                RitavButton(
+                    style = buttonStyle,
+                    label = "Send",
+                    onClick = ::send,
+                    enabled = input.isNotBlank() && !stopped,
+                    modifier = Modifier.weight(1f)
+                )
+                RitavButton(
+                    style = buttonStyle,
+                    label = "Emergency Stop",
+                    onClick = {
+                        onEmergencyStop()
+                        stopped = true
+                    },
+                    enabled = !stopped,
+                    destructive = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        } else {
+            RitavButton(
+                style = buttonStyle,
+                label = "Send",
+                onClick = ::send,
+                enabled = input.isNotBlank() && !stopped,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        RitavButton(
-            style = buttonStyle,
-            label = "Emergency Stop",
-            onClick = {
-                onEmergencyStop()
-                stopped = true
-            },
-            enabled = !stopped,
-            destructive = true,
-            modifier = Modifier.fillMaxWidth()
-        )
+            RitavButton(
+                style = buttonStyle,
+                label = "Emergency Stop",
+                onClick = {
+                    onEmergencyStop()
+                    stopped = true
+                },
+                enabled = !stopped,
+                destructive = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        }
     }
 }

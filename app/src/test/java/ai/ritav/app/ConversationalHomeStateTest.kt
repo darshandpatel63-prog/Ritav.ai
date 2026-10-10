@@ -1,9 +1,20 @@
 package ai.ritav.app
 
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ConversationalHomeStateTest {
+
+    @Test
+    fun compact_home_layout_activates_only_below_the_height_threshold() {
+        assertTrue(isCompactHomeViewport(300.dp))
+        assertTrue(isCompactHomeViewport((COMPACT_HOME_VIEWPORT_HEIGHT_DP - 1).dp))
+        assertFalse(isCompactHomeViewport(COMPACT_HOME_VIEWPORT_HEIGHT_DP.dp))
+        assertFalse(isCompactHomeViewport(800.dp))
+    }
 
     @Test
     fun appendConversationMessages_keeps_history_bounded() {

@@ -1,5 +1,6 @@
 package ai.ritav.app
 
+import android.content.pm.ActivityInfo
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
@@ -47,6 +48,26 @@ internal class ConversationalHomeInputTest {
             "Message length 4096 of 4096 characters"
         ).assertIsDisplayed()
         input.assertIsFocused()
+    }
+
+    @Test
+    fun compact_landscape_keeps_composer_send_and_emergency_stop_visible() {
+        enterHomeIfOnboardingIsPresent()
+
+        try {
+            composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            composeRule.waitForIdle()
+
+            val input = composeRule.onNodeWithContentDescription("Message Ritav input")
+            input.performClick()
+            input.performTextInput("first\nsecond\nthird\nfourth\nfifth")
+            input.assertIsDisplayed()
+
+            composeRule.onNodeWithText("Send").assertIsDisplayed()
+            composeRule.onNodeWithText("Emergency Stop").assertIsDisplayed()
+        } finally {
+            composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
     }
 
     private fun enterHomeIfOnboardingIsPresent() {
