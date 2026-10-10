@@ -8,8 +8,10 @@ This README is the hand-off guide for future AI/development chats. Continue the 
 - **Product target: cross-platform** — Android, iOS/iPadOS, Windows, macOS, Linux and supported ChromeOS/device form factors.
 - **Current executable implementation: Android + JVM-targeted shared contracts/security, plus a Windows DPAPI secure-storage runtime slice.** Native iOS/iPadOS, Windows full product runtime, macOS, Linux and ChromeOS product runtimes are not complete.
 - Android application ID: `ai.ritav.app`
-- Branch: `main`
-- Stage: Security completion — semantic verification merged; real AI/model/context ingestion is the next security layer
+- Integration baseline (`main`): `81396a4fe7fdd21b20a19b69774d407b2a302508`.
+- Active UI development branch: `ui/conversational-shell`; PR #31 is open/draft/unmerged.
+- Current source/test HEAD: `3d1baa3a422a21f1efa6c5326e54864d3d70ab59` — Android unit/instrumentation Run #711 and Android release validation Run #43 both SUCCESS.
+- Stage: Phase 1 Android shell/UI — responsive adaptive navigation and accessibility hardening; Phase 1 is not yet declared closed.
 - Hardware floor: 4 GB RAM / 32 GB storage is a compatibility floor, not a universal performance guarantee.
 
 The cross-platform scope is defined by `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md`. It supersedes the earlier Android-only product-scope statement while preserving all existing Android security controls and platform restrictions.
@@ -157,16 +159,17 @@ A platform is not considered supported merely because its enum or contract exist
 ## 12. Resource / privacy boundaries
 No speculative screen/OCR/accessibility ingestion or resource guard is added without a real producer/consumer path. Heavy AI/vision/speech/media workloads must use bounded resources and safe cancellation/degradation once concrete runtimes are introduced.
 
-## 13. Current verification checkpoint
-Latest repository commits relevant to the cross-platform expansion:
-- `57b7bb0a2b729114224899d123be157bcc5c61c6` — platform-neutral core module bootstrap.
-- `02521a3847504fe5455717c8a798e9a295069d0a` — Kotlin Multiplatform plugin enabled.
-- `e99d60658c623bdae196ad660c2ff5deda84911b` — platform-neutral device capability contracts.
-- `e7b49aef57f37b1355d193a5d2cb4de3f3c5c43a` — cross-platform capability contract tests.
-- `2f99367a0d09309ee15de290ccabfac2f75aca62` — `RitavPlatformAdapter` runtime contract.
-- `7a5c80ef01a1180cd4d29b17cd2c957a9cec7149` — adapter contract regression test.
+## 13. Current verification checkpoint — 2026-10-10
 
-The Android adapter test compilation fix is committed in `7d7c4a2df8495ab6c83e1702ee421e704a093174`. Subsequent documentation commits and the Android network-capability correction are on `main`; the connected commit-workflow query only exposes pull-request-triggered runs, so it cannot establish the status of these push-triggered workflow runs; CI is therefore not claimed green.
+The authoritative active development checkpoint is the UI branch `ui/conversational-shell`, PR #31, with source/test HEAD `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`. It is not the same as `main`, which remains `81396a4fe7fdd21b20a19b69774d407b2a302508`; PR #31 is open/draft/unmerged and the branch is 160 commits ahead / 4 behind with merge base `27942d726f3e1b491454c1f511d17334a393ef49`.
+
+- Android unit/instrumentation Run #711 — **SUCCESS**, including managed-device instrumentation: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866629
+- Android release validation Run #43 — **SUCCESS** on the same exact head: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866619
+- Latest work corrects adaptive-navigation axis capacity/trailing-gap calculation and adds accessible expanded/collapsed state plus Android Back-to-collapse behavior.
+- A failed instrumentation compilation at prior head `84f6b763d90abd5cf5cbc8cd420447f67abce014` was caused by a missing Compose `assert` extension import. The import was added at `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`; exact-head Run #711 then passed.
+- CI signing uses an ephemeral validation key and is not production signing/distribution evidence.
+
+No merge, rebase, or main push was performed. Launcher icon wiring is untouched. See the latest dated checkpoint at the end of this README for scope, security review, limits, and the next stop point.
 
 ## 14. Known limitations
 - Cross-platform contracts are implemented; native platform implementations are not yet complete.
@@ -178,14 +181,10 @@ The Android adapter test compilation fix is committed in `7d7c4a2df8495ab6c83e17
 - Release APK and non-Android packages are not yet production artifacts.
 
 ## 15. Exact next stop point
-**Obtain post-fix CI/device evidence, then continue the Android adapter integration work without bypassing the common security boundary.**
 
-Next action:
-1. Confirm a post-fix GitHub Actions run for the current `main` head; the connected workflow-run API currently returns no runs for push commits.
-2. Verify JVM tests, Android instrumentation-test compilation and managed-device instrumentation when CI evidence is available.
-3. Continue with the concrete Android adapter/runtime path only after that verification checkpoint.
-4. Preserve the common deterministic security boundary and keep unsupported capabilities unavailable.
-5. Keep unsupported capabilities unavailable rather than emulating or bypassing platform restrictions.
+Continue Phase 1 responsive/small-screen/accessibility review on `ui/conversational-shell`. The exact current source/test head `3d1baa3a422a21f1efa6c5326e54864d3d70ab59` has successful Android unit/instrumentation Run #711 and release Run #43.
+
+Do not merge or rebase PR #31 without deliberate integration planning. Keep launcher icon wiring untouched until its planned later task. After Phase 1 UI is explicitly closed, follow `RITAV_BLUEPRINT.md` into Phase 2 — Policy Engine. Physical-device and TalkBack QA remains deferred until whole-product completion.
 
 ## 16. Continuation rule
 Future chats must treat `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` as the active scope decision. Existing Android-only wording in older documents is superseded for product scope, but Android security controls remain active for Android. Never weaken or duplicate the security architecture while adding platform support.
@@ -1468,3 +1467,40 @@ The current UI implementation head is tracked separately from CI evidence. Andro
 - Confirm Run #707's managed-device instrumentation conclusion, then finish the consolidated Phase 1 responsive/accessibility review.
 - Launcher icon wiring was not touched; revisit it at the planned later integration point. Follow `RITAV_BLUEPRINT.md`; next major phase after Phase 1 closure is Phase 2 — Policy Engine.
 - Informal estimates: Phase 1 UI ~90–91%; overall project ~58%; security foundation ~99%. These are planning estimates, not formal metrics.
+
+
+## 2026-10-10 — Adaptive navigation capacity and accessibility checkpoint
+
+### Authoritative repository state
+- Active development branch: `ui/conversational-shell`.
+- Exact source/test HEAD: `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`.
+- `main` remains `81396a4fe7fdd21b20a19b69774d407b2a302508`; merge base: `27942d726f3e1b491454c1f511d17334a393ef49`; branch comparison at this checkpoint: 160 ahead / 4 behind.
+- PR #31 remains **OPEN · DRAFT · NOT MERGED**: https://github.com/darshandpatel63-prog/Ritav.ai/pull/31.
+- No merge, rebase, or direct-main push occurred. The four main-only commits are the launcher icon asset plus the Blueprint package-distribution/AGI-agent documentation; icon wiring remains deliberately untouched.
+
+### Implemented and tested
+- Adaptive linear-menu capacity now counts only required inter-item gaps; it no longer reserves an unnecessary trailing gap after the final item.
+- Regression coverage checks vertical-stack and horizontal-row capacity on their actual layout axes, the minimum one-item fallback, constrained stack/row bounds and spacing, plus a four-item vertical stack that fits exactly with 12px margins.
+- Floating-navigation toggle semantics now expose the menu state as `Expanded` / `Collapsed`.
+- Android system Back collapses an expanded navigation menu before it can bubble to the screen/destination-level Back behavior.
+- The accessibility instrumentation test asserts both announced states and dispatches Back through the Android `OnBackPressedDispatcher`.
+
+### Exact-head CI evidence
+- Android unit/instrumentation Run #711 — **SUCCESS** on `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`: JVM unit tests, instrumentation-test compilation, and managed-device instrumentation completed successfully. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866629
+- Android release validation Run #43 — **SUCCESS** on the same HEAD: release security configuration, tracked-source secret scan, release tests/build, signed validation APK/AAB verification, APK debug-state checks, R8 mapping validation, and artifact upload succeeded. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866619
+- A prior run on `84f6b763d90abd5cf5cbc8cd420447f67abce014` failed only at Android-test compilation because `androidx.compose.ui.test.assert` was not imported. Commit `3d1baa3a422a21f1efa6c5326e54864d3d70ab59` adds that import; exact-head Run #711 then passed. The prior-head release Run #42 also succeeded, but Run #43 is the release proof for the current exact source/test head.
+- CI release artifacts use an ephemeral validation signing key; this is not production-keystore or distribution sign-off.
+
+### Consolidated system and security review
+- Navigation layout, expanded/collapsed announcement, and Back handling are presentation-only.
+- No change was made to `ExecutionBridge`, the final Emergency Stop dispatch guard, policy/capability authorization, trusted-app deny-by-default state, task-state ownership, model/provider fail-closed behavior, result verification, or audit authority.
+- No Android permission, production dependency, network/egress path, privileged capability, or new secret/data flow was introduced.
+- Existing 100-message history, 4096-character input cap, and 8192-character stored-message cap remain unchanged.
+- Managed-device CI is not physical-device visual/touch/keyboard/TalkBack QA; physical-device QA remains deferred until whole-product completion.
+
+### Exact next stop point
+- Continue the final Phase 1 responsive/accessibility edge-case review.
+- Keep launcher icon wiring untouched until its planned later task.
+- Revisit integration of the four main-only commits only under a deliberate integration plan; do not merge/rebase blindly.
+- Start Phase 2 — Policy Engine only after Phase 1 UI closure per `RITAV_BLUEPRINT.md`.
+- Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%; these are not formal quality/security metrics.

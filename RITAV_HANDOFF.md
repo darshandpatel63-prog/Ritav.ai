@@ -1,30 +1,39 @@
 # Ritav.ai — New Chat Handoff (Authoritative)
 
-Handoff date: 2026-09-22
-Repository: darshandpatel63-prog/Ritav.ai
-Branch: main
-Implementation/test head at this continuation start: 9318f89e8fa62bb6b021b6938d771e6d92e144a2
-Latest implementation/test checkpoint: 9318f89e8fa62bb6b021b6938d771e6d92e144a2
-Latest Android CI verification: Run #314 (35694971910) on 9318f89e8fa62bb6b021b6938d771e6d92e144a2 — SUCCESS
-Project phase: Phase 0 — secure foundation + cross-platform architecture expansion; runtime integration in progress.
+Handoff date: 2026-10-10
+Repository: `darshandpatel63-prog/Ritav.ai`
+Active development branch: `ui/conversational-shell`
+Current source/test HEAD: `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`
+Integration baseline `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`
+Merge base: `27942d726f3e1b491454c1f511d17334a393ef49`
+PR #31: **OPEN · DRAFT · NOT MERGED** — https://github.com/darshandpatel63-prog/Ritav.ai/pull/31
+Branch comparison: 160 ahead / 4 behind; do not merge/rebase blindly.
 
-> This file is the primary new-chat handoff. Older historical sections in README/state remain useful for chronology, but the current status below is authoritative.
+## Current verified checkpoint
 
-## 1. First rule for the next chat
+- Android unit/instrumentation Run #711 — **SUCCESS** on `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`, including managed-device instrumentation: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866629
+- Android release validation Run #43 — **SUCCESS** on the same HEAD: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866619
+- The just-completed slice corrected adaptive-navigation linear capacity so it does not count a trailing gap, and exposed Expanded/Collapsed state to accessibility services. Android Back collapses the open navigation menu.
+- The prior head's instrumentation compile error was a missing Compose `assert` import; fixed in `3d1baa3a422a21f1efa6c5326e54864d3d70ab59` and verified by Run #711.
+- This is a presentation-only UI slice. Existing deterministic authorization, ExecutionBridge, Emergency Stop final-dispatch guard, deny-by-default trusted-app state, model/provider fail-closed behavior, audit and result-verification boundaries are unchanged.
+- No new permission, production dependency, network/egress route, privileged capability, or model/provider path was introduced.
+- Physical-device visual/touch/keyboard/TalkBack QA remains deferred until whole-product completion; release validation uses an ephemeral CI validation key, not production signing/distribution evidence.
 
-Do not assume anything from an older conversation. Start from the actual current main state.
+## Exact next stop point
 
-Required startup order:
-1. Read docs/RITAV_COMMON_AI_WORKFLOW.md.
-2. Read docs/RITAV_ELITE_SECURITY_ADDENDUM.md.
-3. Read README.md.
-4. Read RITAV_PROJECT_STATE.md.
-5. Read RITAV_HANDOFF.md.
-6. Inspect current main, latest commit(s), relevant source, tests and workflow files.
-7. Search for responsibility-equivalent existing code before creating new components.
+Continue Phase 1 responsive/small-screen/accessibility review on this branch. Keep icon wiring untouched until its planned task. Do not merge/rebase or push main without explicit integration planning. Phase 2 — Policy Engine begins only after Phase 1 UI closure per `RITAV_BLUEPRINT.md`.
 
-Implementation loop:
-inspect → map call paths/data flow → reuse/search → design → implement → integrate → continuously verify → test → adversarial/security review → consolidated review → document exact state → CI verification.
+## Required startup / execution rules
+
+1. Read `docs/RITAV_COMMON_AI_WORKFLOW.md` and `docs/RITAV_ELITE_SECURITY_ADDENDUM.md`.
+2. Read `skills/ultra-secure-app-builder/SKILL.md`, `docs/RITAV_ULTRA_SECURE_APP_BUILDER.md`, `README.md`, `RITAV_PROJECT_STATE.md`, `RITAV_BLUEPRINT.md`, and `docs/MASTER_REQUIREMENTS_MATRIX.md`.
+3. Inspect live branch/main/PR heads and latest CI; don't assume an older handoff matches GitHub.
+4. Map call paths/data flow and reuse existing security authorities.
+5. Implement → continuously verify → test → adversarial/security review → consolidated system review → update state/handoff → verify exact-head CI.
+6. Never grant model/agent execution authority; fail closed when provider or platform capability is unavailable.
+7. Do not perform physical-device testing until the user-directed whole-product completion checkpoint.
+
+> The historical sections below are retained for chronology. Where older checkpoints conflict with this live header, follow this authoritative state plus current GitHub/CI evidence.
 
 ## 2. Product scope
 
@@ -1454,3 +1463,40 @@ These are validation/integration gates rather than a demonstrated bypass in the 
 
 ### UI GATE RULE
 Do not begin product/conversational UI implementation until the remaining launch-closure evidence and final consolidated system-level security review are complete. The safe security-control facade may be reused by future UI; raw authorization, permission-store, audit/storage, execution-adapter and model-provider authorities remain behind internal boundaries.
+
+
+## 2026-10-10 — Adaptive navigation capacity and accessibility checkpoint
+
+### Authoritative repository state
+- Active development branch: `ui/conversational-shell`.
+- Exact source/test HEAD: `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`.
+- `main` remains `81396a4fe7fdd21b20a19b69774d407b2a302508`; merge base: `27942d726f3e1b491454c1f511d17334a393ef49`; branch comparison at this checkpoint: 160 ahead / 4 behind.
+- PR #31 remains **OPEN · DRAFT · NOT MERGED**: https://github.com/darshandpatel63-prog/Ritav.ai/pull/31.
+- No merge, rebase, or direct-main push occurred. The four main-only commits are the launcher icon asset plus the Blueprint package-distribution/AGI-agent documentation; icon wiring remains deliberately untouched.
+
+### Implemented and tested
+- Adaptive linear-menu capacity now counts only required inter-item gaps; it no longer reserves an unnecessary trailing gap after the final item.
+- Regression coverage checks vertical-stack and horizontal-row capacity on their actual layout axes, the minimum one-item fallback, constrained stack/row bounds and spacing, plus a four-item vertical stack that fits exactly with 12px margins.
+- Floating-navigation toggle semantics now expose the menu state as `Expanded` / `Collapsed`.
+- Android system Back collapses an expanded navigation menu before it can bubble to the screen/destination-level Back behavior.
+- The accessibility instrumentation test asserts both announced states and dispatches Back through the Android `OnBackPressedDispatcher`.
+
+### Exact-head CI evidence
+- Android unit/instrumentation Run #711 — **SUCCESS** on `3d1baa3a422a21f1efa6c5326e54864d3d70ab59`: JVM unit tests, instrumentation-test compilation, and managed-device instrumentation completed successfully. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866629
+- Android release validation Run #43 — **SUCCESS** on the same HEAD: release security configuration, tracked-source secret scan, release tests/build, signed validation APK/AAB verification, APK debug-state checks, R8 mapping validation, and artifact upload succeeded. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38045866619
+- A prior run on `84f6b763d90abd5cf5cbc8cd420447f67abce014` failed only at Android-test compilation because `androidx.compose.ui.test.assert` was not imported. Commit `3d1baa3a422a21f1efa6c5326e54864d3d70ab59` adds that import; exact-head Run #711 then passed. The prior-head release Run #42 also succeeded, but Run #43 is the release proof for the current exact source/test head.
+- CI release artifacts use an ephemeral validation signing key; this is not production-keystore or distribution sign-off.
+
+### Consolidated system and security review
+- Navigation layout, expanded/collapsed announcement, and Back handling are presentation-only.
+- No change was made to `ExecutionBridge`, the final Emergency Stop dispatch guard, policy/capability authorization, trusted-app deny-by-default state, task-state ownership, model/provider fail-closed behavior, result verification, or audit authority.
+- No Android permission, production dependency, network/egress path, privileged capability, or new secret/data flow was introduced.
+- Existing 100-message history, 4096-character input cap, and 8192-character stored-message cap remain unchanged.
+- Managed-device CI is not physical-device visual/touch/keyboard/TalkBack QA; physical-device QA remains deferred until whole-product completion.
+
+### Exact next stop point
+- Continue the final Phase 1 responsive/accessibility edge-case review.
+- Keep launcher icon wiring untouched until its planned later task.
+- Revisit integration of the four main-only commits only under a deliberate integration plan; do not merge/rebase blindly.
+- Start Phase 2 — Policy Engine only after Phase 1 UI closure per `RITAV_BLUEPRINT.md`.
+- Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%; these are not formal quality/security metrics.
