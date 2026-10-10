@@ -127,11 +127,13 @@ internal fun GlobalAdaptiveFloatingNavigation(
         val horizontalLinear =
             maxOf(positionX + buttonPx / 2f, widthPx - (positionX + buttonPx / 2f)) >=
                 maxOf(positionY + buttonPx / 2f, heightPx - (positionY + buttonPx / 2f))
-        val linearAxisCapacity = if (horizontalLinear) {
-            ((widthPx - (marginPx * 2f)) / (itemPx + 8f)).toInt()
-        } else {
-            ((heightPx - (marginPx * 2f)) / (itemPx + 8f)).toInt()
-        }.coerceAtLeast(1)
+        val linearAxisCapacity = linearMenuAxisCapacity(
+            horizontalLinear = horizontalLinear,
+            width = widthPx,
+            height = heightPx,
+            itemPx = itemPx,
+            margin = marginPx
+        )
         val visibleCount = minOf(
             items.size,
             8,
@@ -445,4 +447,18 @@ private fun linearPlacement(
             .coerceIn(margin, width - margin - itemPx),
         y = itemY.coerceIn(margin, height - margin - itemPx)
     )
+}
+internal fun linearMenuAxisCapacity(
+    horizontalLinear: Boolean,
+    width: Float,
+    height: Float,
+    itemPx: Float,
+    margin: Float
+): Int {
+    // When the menu sits to the left/right of the toggle, items stack vertically.
+    // When it sits above/below the toggle, items form a horizontal row.
+    val availableAxis = if (horizontalLinear) height else width
+    return ((availableAxis - (margin * 2f)) / (itemPx + 8f))
+        .toInt()
+        .coerceAtLeast(1)
 }

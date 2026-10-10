@@ -63,3 +63,13 @@ No model/provider, action execution, permission, capability, network/egress path
 - Exact implementation/test HEAD `d709aaa153e7aaae6a87a778407f8669ffa5272e`: Android unit/instrumentation Run #702 — SUCCESS; all 21 managed-device tests completed. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832147
 - Exact implementation/test HEAD `d709aaa153e7aaae6a87a778407f8669ffa5272e`: Android release validation Run #34 — SUCCESS, including security configuration, source secret scan, release tests/lint, signed CI APK/AAB verification, non-debug APK check, R8 mapping and artifact upload. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832163
 - CI uses an ephemeral validation signing key. Physical-device visual/touch/keyboard/accessibility QA and production signing/distribution remain unverified.
+
+## 2026-10-10 — Adaptive navigation linear-capacity correction
+
+### Finding and correction
+- Source review found that the linear navigation menu counted capacity on the viewport width when the menu actually stacked items vertically, and on height when items formed a horizontal row.
+- Capacity calculation now uses the same axis as the selected placement strategy and is covered by pure JVM regression tests for vertical stack, horizontal row and very-small-axis fallback.
+
+### Boundary
+- The correction changes presentation geometry only. Navigation destinations, user-controlled positioning, security state, authorization and task execution paths remain unchanged.
+- Exact-head Android CI must pass before this work package is marked verified.
