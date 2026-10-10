@@ -48,46 +48,46 @@ class GlobalAdaptiveFloatingNavigationLayoutTest {
     }
 
     @Test
-    fun vertical_stack_positions_stay_in_bounds_and_do_not_overlap_near_center() {
+    fun vertical_stack_positions_fit_when_height_is_the_limiting_axis() {
         val items = (0..2).map { index ->
             linearPlacement(
                 index = index.toFloat(),
                 count = 3,
                 centerX = 29f,
                 centerY = 29f,
-                width = 360f,
-                height = 360f,
+                width = 500f,
+                height = 200f,
                 itemPx = 48f,
-                buttonX = 150f,
-                buttonY = 150f,
+                buttonX = 221f,
+                buttonY = 71f,
                 margin = 12f
             )
         }
 
-        assertTrue(items.all { it.x >= 12f && it.x <= 300f })
-        assertTrue(items.all { it.y >= 12f && it.y <= 300f })
+        assertTrue(items.all { it.x >= 12f && it.x <= 440f })
+        assertTrue(items.all { it.y >= 12f && it.y <= 140f })
         assertTrue(items.zipWithNext().all { (first, second) -> second.y - first.y >= 56f })
     }
 
     @Test
-    fun horizontal_row_positions_stay_in_bounds_and_do_not_overlap_on_short_viewport() {
+    fun horizontal_row_positions_fit_when_width_is_the_limiting_axis() {
         val items = (0..2).map { index ->
             linearPlacement(
                 index = index.toFloat(),
                 count = 3,
                 centerX = 29f,
                 centerY = 29f,
-                width = 360f,
-                height = 360f,
+                width = 200f,
+                height = 500f,
                 itemPx = 48f,
-                buttonX = 150f,
-                buttonY = 5f,
+                buttonX = 71f,
+                buttonY = 221f,
                 margin = 12f
             )
         }
 
-        assertTrue(items.all { it.x >= 12f && it.x <= 300f })
-        assertTrue(items.all { it.y >= 12f && it.y <= 300f })
+        assertTrue(items.all { it.x >= 12f && it.x <= 140f })
+        assertTrue(items.all { it.y >= 12f && it.y <= 440f })
         assertTrue(items.zipWithNext().all { (first, second) -> second.x - first.x >= 56f })
     }
 }

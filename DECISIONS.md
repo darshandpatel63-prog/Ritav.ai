@@ -77,3 +77,4 @@ No model/provider, action execution, permission, capability, network/egress path
 ### Placement-boundary follow-up
 - Review of the placement formulas also found the first item's top-left coordinate was calculated from an item-center coordinate and clamped per item. Near a viewport boundary, that could compress multiple items into the same clamp value.
 - Linear placement now constrains the complete item group before laying out positions, and JVM tests assert items remain within margins and separated along their active axis.
+- Geometry regressions use narrow/tall and wide/short viewports so per-item clamping that compresses the final spacing cannot pass only because the menu is centered on a square screen.
