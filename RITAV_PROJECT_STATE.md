@@ -1,7 +1,15 @@
 # Ritav.ai — Persistent Project State
 
 ## Current phase
-Phase 0 — secure foundation and cross-platform architecture expansion; runtime integration in progress.
+
+**Phase 1 — Android shell/UI, small-screen and accessibility review (in progress; not closed).** The broader cross-platform contract/security foundation remains in the main baseline; this is a separate UI development PR.
+
+- Active branch: `ui/conversational-shell`.
+- Exact current source/test HEAD: `b989e235eaa6dcff9f88436262a608d696053029`.
+- `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; merge base: `27942d726f3e1b491454c1f511d17334a393ef49`.
+- PR #31: open, draft, unmerged; 164 ahead / 4 behind at this source/test checkpoint.
+- Exact-head Android unit/instrumentation Run #715: SUCCESS (23 managed-device tests, 0 failed / 0 skipped); Android release validation Run #47: SUCCESS.
+- No merge/rebase/main push occurred; launcher icon wiring remains untouched.
 
 ## Source of truth
 - `RITAV_BLUEPRINT.md` — engineering implementation contract.
@@ -81,12 +89,17 @@ No speculative screen/OCR/accessibility ingestion or standalone resource guard h
 - Regression coverage was added for missing, mismatched and oversized result evidence.
 - This change has not been executed through Gradle/CI in the available environment.
 
-## Current verification
-The Android instrumentation-test compilation failure from `b5a502346c41321f58f1859bd09ebfd3d58b103b` was fixed by replacing unavailable `kotlin.test` assertion imports with the existing JUnit assertion API in commit `7d7c4a2df8495ab6c83e1702ee421e704a093174`. A post-fix successful workflow/device run has not yet been observed through the connected GitHub workflow-run API; the connected commit-workflow query is limited to pull-request-triggered runs and therefore cannot establish push-run status; CI green and real-device execution remain unverified.
+## Current verification — active UI branch
+
+Exact source/test HEAD `b989e235eaa6dcff9f88436262a608d696053029` on `ui/conversational-shell` is green:
+- Android unit/instrumentation Run #715 — **SUCCESS**: JVM tests, instrumentation compilation, and 23 managed-device tests on `pixel2api30`, 0 failed / 0 skipped: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073494
+- Android release validation Run #47 — **SUCCESS**: release security config, source secret scan, release tests/build, signed validation APK/AAB checks, non-debug APK state, R8 mapping, and artifact upload: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073510
+
+The compact Home composer uses available viewport height after IME insets and keeps Send / Emergency Stop side-by-side below the 520dp breakpoint while preserving the shared 48dp minimum button height. Its exact-head orientation instrumentation test passed. Ephemeral CI signing is not production distribution evidence.
 
 ## Known limitations
 - Native iOS/iPadOS/Windows/macOS/Linux/ChromeOS adapters are not yet complete.
-- Android `RitavPlatformAdapter` is implemented; its instrumentation test source compiles against the existing JUnit Android-test API, but post-fix CI/device execution remains unverified.
+- The latest PR-head managed-device instrumentation workflow executed 23 app tests on `pixel2api30` with 0 failures / 0 skips (Run #715). This does not replace physical-device, real IME/keyboard, font-scaling, or TalkBack QA.
 - Native UI and packaging for non-Android platforms are not yet complete.
 - Platform-specific CI and real-device/real-host verification are not yet complete.
 - Real model/context ingestion boundary remains future work.
@@ -96,14 +109,8 @@ The Android instrumentation-test compilation failure from `b5a502346c41321f58f18
 - No release APK or non-Android production package sign-off is claimed.
 
 ## Exact next stop point
-**Verify the deterministic result-state verification change before starting another runtime/security layer.**
 
-Next:
-1. Verify the current GitHub Actions result for the latest result-verification changes when exposed by the available integration.
-2. Verify JVM tests, Android instrumentation-test compilation and managed-device instrumentation.
-3. Perform the consolidated system-level review of ActionPlan hashing, authorization, execution, observed-state verification, audit and failure paths.
-4. If that checkpoint is clean, continue with production Android execution composition and adapter integration incrementally.
-5. Keep unsupported capabilities unavailable rather than emulating or bypassing OS restrictions.
+Continue Phase 1 small-screen, IME-inset, font-scaling and accessibility edge-case review; do not mark Phase 1 closed solely because this slice is green. Preserve the security architecture, keep launcher icon wiring untouched, and do not merge/rebase PR #31 blindly. After Phase 1 closure, proceed to Phase 2 — Policy Engine per `RITAV_BLUEPRINT.md`.
 
 ## Continuation rule
 Read the required workflow/security documents and this state before development. Treat `docs/RITAV_CROSS_PLATFORM_ARCHITECTURE.md` as the active product-scope decision. Do not redesign or duplicate existing security controls.
@@ -1866,3 +1873,352 @@ These are validation/integration gates rather than a demonstrated bypass in the 
 
 ### UI GATE RULE
 Do not begin product/conversational UI implementation until the remaining launch-closure evidence and final consolidated system-level security review are complete. The safe security-control facade may be reused by future UI; raw authorization, permission-store, audit/storage, execution-adapter and model-provider authorities remain behind internal boundaries.
+
+## 2026-09-27 UI DEVELOPMENT CHECKPOINT — Adaptive shell, shared components, and honest task surface
+
+### BRANCH SCOPE
+- Active implementation branch: `ui/conversational-shell`.
+- This checkpoint is branch-scoped and is **not merged into `main`**.
+- Current UI PR: #31, still open/draft.
+
+### COMPLETED UI WORK IN THIS STREAM
+- Global Adaptive Floating Navigation now uses continuous fractional rotation for radial/linear overflow, actual available viewport space, keyboard/mouse/touch interaction, accessibility semantics, reduced-motion handling, and persisted Free/Fixed positioning.
+- Shared `RitavButton` presentation styles are centralized with consistent 48dp minimum touch targets and destructive-state semantics.
+- Security/admin UI remains behind `SecurityControlPort`; no UI path was added around authorization, Emergency Stop, permission storage, audit storage, execution adapters, or model-provider authorities.
+- App shell now supports system Back from Security/Settings to Home and IME-safe layouts for Home and Permission Center.
+- Conversation Home now visually separates user/assistant messages, exposes accessible sender/message descriptions, and explicitly presents the verified model-unavailable state without fabricating inference.
+- Reusable `RitavStatusChip` and `RitavLiveTaskPanel` components were added for consistent security/runtime state presentation.
+- The live-task surface consumes the read-only `TaskRuntimeStatePort` and can now render authoritative BLOCKED/EXECUTING/VERIFYING/COMPLETED/FAILED_SAFELY/STOPPED states from the execution boundary; it still never fabricates progress.
+- Appearance settings are vertically scrollable, IME-safe, and wrapped for narrow windows.
+
+### VERIFICATION STATUS
+- Static source/call-path verification completed after the latest UI changes.
+- Latest UI implementation checkpoint SHA (before documentation-only commits): `2c2eea45bdd6ddbfc3b28fea238674deb4343c47`.
+- Latest connected GitHub Actions status must be treated as runtime/CI evidence only when the workflow exposes a completed result; local real-device visual verification remains unclaimed.
+- The connected environment has not provided a completed successful workflow result for the latest UI head yet.
+
+### KNOWN UI LIMITATIONS
+- No production model/provider runtime is connected; Home remains fail-closed and must not imply real inference.
+- The authoritative task runtime state facade is now exposed read-only to the UI; execution-triggering APIs remain outside the UI boundary.
+- Physical-device visual QA and real keyboard/touch/accessibility behavior remain unverified in this environment.
+- PR #31 has not been merged into `main`.
+
+### NEXT UI WORK
+- Continue live-task UI refinement only from the read-only runtime state facade; do not add UI-side execution authority.
+- Expand accessible/failure/empty-state components and responsive behavior.
+- After the UI shell is logically complete, perform a consolidated UI + security boundary + failure-path + accessibility + performance review before marking the shell complete.
+
+## 2026-09-27 UI FOLLOW-UP — Empty/error feedback hardening
+- Added shared `RitavFeedbackCard` for INFO/WARNING/ERROR/empty-state presentation with accessible live-region semantics.
+- Home now explicitly communicates the verified model-unavailable state without implying inference or execution.
+- Permission Center now has structured empty states for no trusted applications and no reviewable capability options.
+- Security operation feedback is now tone-aware (success/info, warning, or error) through centralized UI state plumbing; security authority remains `SecurityControlPort`.
+- Latest UI implementation checkpoint SHA: `64a24671954065f66d471037696d509f9cd267af`.
+- CI Run #636 for this PR-triggered head is pending at the time of this checkpoint; no green CI claim is made.
+## 2026-09-27 UI CHECKPOINT — Runtime-backed task state facade integrated
+- Added a read-only `TaskRuntimeStatePort` / `TaskRuntimeSnapshot` surface from `AndroidExecutionRuntime`; it exposes observation/state only and cannot authorize or execute actions.
+- `ExecutionBridge` now publishes bounded lifecycle state for the authoritative execution path: BLOCKED, EXECUTING, VERIFYING, COMPLETED, FAILED_SAFELY, or STOPPED.
+- Malformed/invalid plans and security-clock failures do not compute a task hash before deterministic validation, keeping rejection paths resource-bounded.
+- Home subscribes to the runtime state through `DisposableEffect` and renders the verified state through `RitavLiveTaskPanel`.
+- Home Emergency Stop now delegates to the MainActivity shell callback so security stop state is synchronized across destinations.
+- Added JVM regression coverage for successful task lifecycle, blocked execution, Emergency Stop state, listener lifecycle, and bounded task-state strings.
+- Static integration review completed for the affected UI/security/execution path. Real build/CI completion and physical-device visual testing remain unverified at this checkpoint.
+- Implementation checkpoint SHA before documentation-only commits: `e9194dac86184302d22bb87529834c3e1dd24cad`.
+- Latest PR-triggered Android unit-test run observed at checkpoint: Run #648, **in progress**. No green CI claim is made.
+
+## 2026-09-27 CURRENT STOP POINT — Runtime-backed task UI integration
+### CURRENT BRANCH / PR
+- Branch: `ui/conversational-shell`
+- PR #31: open, draft, not merged into `main`
+- Branch remains 0 commits behind `main`.
+
+### COMPLETED
+- Read-only `TaskRuntimeStatePort` integrated from `AndroidExecutionRuntime` into Compose through lifecycle-aware observation.
+- `ExecutionBridge` publishes bounded deterministic task states without granting the UI any execution or authorization authority.
+- Home maps runtime states to the reusable Live Task panel and centralizes Emergency Stop state through the shell callback.
+- JVM regression tests added for task lifecycle, blocked execution, Emergency Stop state, observer lifecycle, and bounded state text.
+- Feedback/empty-state components, shared buttons, status chips, responsive settings, GAFN, and accessibility semantics remain integrated.
+
+### VERIFIED / SOURCE-LEVEL
+- Static call-path/source review completed for UI → runtime status facade → execution boundary.
+- Security authority remains behind `SecurityControlPort` / internal execution composition; the new task facade is read-only.
+- Malformed plans are validated before task-state hashing in the execution path.
+
+### NOT VERIFIED
+- GitHub Android Run #648 was **cancelled** before JVM tests/instrumentation execution; no completed green CI evidence is available for this checkpoint.
+- Physical-device visual/accessibility/touch QA remains unverified.
+- Production model/provider runtime remains intentionally unavailable/fail-closed.
+
+### NEXT ACTION
+- Re-check the latest branch with completed CI evidence before considering this UI/runtime integration verified; then continue broader UI shell refinement and consolidated UI/security/accessibility/performance review.
+
+### EXACT CURRENT HEAD
+- Documentation checkpoint commit: `1887d6fcb3a92cea9c6aae7f4ce39994b638c21d`
+- Implementation checkpoint before documentation-only follow-up: `e9194dac86184302d22bb87529834c3e1dd24cad`
+
+
+## 2026-09-27 UI FOLLOW-UP — Live Task Stop control
+- Live Task panel now exposes an Emergency Stop control while the authoritative runtime state is EXECUTING or VERIFYING.
+- The control delegates to the existing MainActivity shell callback and therefore the deterministic `SecurityControlPort` Emergency Stop authority; the panel gains no execution authority.
+- Latest implementation checkpoint for this UI addition: `d14ac700272594019946b3dcf08d7b6e665fa6f5`.
+- PR-triggered Android unit-test workflow Run #655 was cancelled before JVM/instrumentation test execution; no completed CI/test claim is made.
+
+
+## 2026-09-27 CURRENT UI VERIFICATION CHECKPOINT — Compose compile failure fixed
+### CURRENT BRANCH / PR
+- Branch: ui/conversational-shell
+- PR #31: open, draft, not merged into main
+- Current branch is still 0 commits behind main.
+
+### DIAGNOSIS
+- PR-triggered Android Run #658 (36299564746) reached the Gradle compile step and failed in the UI shell.
+- The failure was concrete compile incompatibility, not a runtime/security bypass:
+  - GlobalAdaptiveFloatingNavigation.kt used focusable from the wrong package.
+  - The semantics role extension property was not imported.
+  - onPointerEvent is not available in the pinned Compose dependency set, so its lambda also produced cascading unresolved symbols.
+  - MainActivity.kt was missing the Row layout import.
+
+### FIX IMPLEMENTED
+- GlobalAdaptiveFloatingNavigation.kt now uses androidx.compose.foundation.focusable.
+- The semantics role extension is imported explicitly.
+- Scroll rotation uses the compatible pointerInput/awaitPointerEvent path while preserving PointerEventType.Scroll and scrollDelta behavior.
+- MainActivity.kt imports Row.
+- Security authority, execution boundaries, task runtime read-only facade, and Emergency Stop path were not expanded or bypassed by this fix.
+
+### VERIFICATION STATUS
+- Source-level call-path review completed after the fix.
+- Run #660 (36299746203) for head commit 599bbac8db0f3514d044ecb6f0770b46f168d93d was observed as queued.
+- Run #660 is the required next executable verification; no green CI claim is made yet.
+- Physical-device visual/accessibility/touch testing remains unverified.
+
+### NEXT ACTION
+- Verify Run #660 through JVM tests, Android instrumentation-test compilation, and managed-device instrumentation.
+- If it passes, perform the consolidated UI + security-boundary + accessibility + failure-path + performance review for this logically complete shell slice.
+- If it fails, diagnose the concrete failure before adding unrelated UI functionality.
+
+### EXACT CURRENT CODE HEAD BEFORE THIS DOCUMENTATION CHECKPOINT
+- 599bbac8db0f3514d044ecb6f0770b46f168d93d
+
+## 2026-10-03 — Ultra Secure App Builder adoption + current UI branch verification
+
+### CURRENT DEVELOPMENT STATE
+- Current development branch: `ui/conversational-shell`.
+- PR #31 (`UI shell`) is open, draft and unmerged.
+- Exact PR head: `f92e84d6e9898a9d93a632b9e09b288cad7b5831`.
+- Branch comparison against current `main` base: **132 commits ahead, 0 behind** at this checkpoint.
+- Exact PR-head Android Actions Run #680 — **SUCCESS**.
+
+### SKILL ADOPTION
+- The user-provided `ultra-secure-app-builder.skill` is now adopted as a repository-local additive development contract.
+- Durable bindings are stored in `skills/ultra-secure-app-builder/SKILL.md` and `docs/RITAV_ULTRA_SECURE_APP_BUILDER.md`.
+- Important decisions are recorded in `DECISIONS.md`.
+- Adoption does not change the existing deterministic security boundary and does not reopen completed security layers.
+- Ritav is handled as Tier 3 for process depth.
+- Because Ritav is an existing project, future changes use the skill's existing-app workflow rather than restarting the whole process.
+
+### CURRENT PRODUCT PROGRESS
+- The first product/conversational UI shell slice is implemented on PR #31 but remains unmerged.
+- Existing security/admin UI remains behind safe security-control facades.
+- The actual model/provider runtime remains intentionally fail-closed/unavailable until a concrete provider path is separately reviewed.
+- Cross-platform target scope remains unchanged; full native product support and physical-device/real-host validation are not claimed.
+- Overall project progress remains an **informal planning estimate of ~57%**, not a formal metric; security foundation remains tracked at roughly **99%** planning completion.
+
+### CURRENT STOP POINT
+Skill adoption is complete as a documentation/process work package. Before the next product slice, apply the repository-local skill to the feature-specific workflow and continue from the live PR/branch state.
+
+
+## 2026-10-03 — Conversational shell bounded-history + IME checkpoint
+
+### IMPLEMENTED
+- Conversation message history is now bounded to 100 messages, preventing unbounded in-memory growth during a long session.
+- The existing 4096-character input limit is centralized as MAX_CONVERSATION_INPUT_LENGTH.
+- Android IME action is explicitly Send and reuses the existing send() path; no model/provider or execution authority was added.
+- Input length is exposed through an accessible supporting-text description.
+
+### TEST COVERAGE
+- Added JVM regression coverage for bounded conversation history and user/assistant message ordering.
+- Static call-path review confirms UI input remains local UI state and still does not authorize, execute, or bypass the deterministic security boundary.
+
+### VERIFICATION STATUS
+- Source/diff verification: completed.
+- GitHub Actions verification for commit 326665ba726fe60bda2701a528f4a797c4d1c80b: not yet exposed by the connected workflow-run API at checkpoint time.
+- Physical-device visual/IME/accessibility verification: not performed.
+
+### KNOWN LIMITATIONS
+- Production model/provider runtime remains intentionally unavailable/fail-closed.
+- Conversation persistence is not implemented; the bounded history is in-memory UI state only.
+- PR #31 remains open/draft and unmerged.
+
+### CURRENT STOP POINT
+Complete CI verification when exposed. If green, perform the consolidated UI + security-boundary + resource + accessibility review for this work package, then continue the next UI slice.
+
+### EXACT COMMIT SHA
+- 326665ba726fe60bda2701a528f4a797c4d1c80b
+
+
+## 2026-10-03 — Product UI onboarding + conversation resource/viewport hardening
+
+### IMPLEMENTED
+- Added a first-run RitavOnboardingScreen with a persisted local completion flag in OnboardingStore.
+- Onboarding is presentation-only: it does not request permissions, authorize actions, call model/provider runtime, or execute anything.
+- Global floating navigation remains hidden until onboarding is completed.
+- Conversation history remains bounded to 100 messages, and each stored user/assistant message is additionally capped at 8192 characters.
+- Conversation viewport now deterministically scrolls to the latest message after a new message is appended.
+
+### TEST COVERAGE
+- Added Android Compose UI coverage proving the onboarding surface exposes its control-first/security messaging and Continue action.
+- Added JVM regression coverage proving each stored conversation message is bounded to the configured 8192-character limit.
+- Existing bounded-history and user/assistant ordering coverage remains active.
+
+### CONTINUOUS REVIEW
+- UI -> onboarding/store path remains outside the authorization and execution boundaries.
+- Conversation input still caps at 4096 characters before append; the additional 8192 stored-message cap protects future assistant/output growth as well.
+- Emergency Stop, SecurityControlPort, task runtime read-only state, and production model/provider fail-closed behavior were not weakened or bypassed.
+- No new Android permission, network/egress path, privileged capability, or dependency was introduced.
+
+### VERIFICATION STATUS
+- Prior UI-fix head fca22a6f3a3f1e29b809f7b745b3e5801d8ed41c has completed Android Actions Run #684 — SUCCESS.
+- Current UI hardening head abf50432479d5bed2c9877d782678193f9bebfd8 is covered by Android Actions Run #690, currently in progress; final CI result is not yet verified.
+- Physical-device visual, touch, keyboard and accessibility QA remains unverified.
+
+### CURRENT UI STOP POINT
+Wait for Run #690 to complete; then perform the consolidated onboarding + conversation + security-boundary + resource + accessibility review against the completed run evidence before marking this UI work package verified. Continue next with the remaining UI shell refinement/responsive-accessibility work.
+
+### EXACT IMPLEMENTATION HEAD
+- 718cd66f948229f00d331fc73986b88b14b23239 — conversation bounds + latest-message viewport behavior
+- a7bfc1516f0e01220c5cde89a0ea13ae08765a64 — first-run onboarding
+
+
+## 2026-10-09 — Authoritative UI test hardening checkpoint
+
+### CURRENT BRANCH / PR
+- Active branch: `ui/conversational-shell`.
+- PR #31 remains open, draft, and unmerged into `main`.
+- Exact implementation/test head: `e1998dc40596cf71bff8f330b6f015fa1995dbcb`.
+- The earlier 2026-10-03 Run #690 checkpoint above is historical and superseded by the exact-head evidence below.
+
+### COMPLETED IN THIS SLICE
+- First-run onboarding persists completion locally and remains presentation-only; it does not request permissions, authorize or execute actions, or invoke the model runtime.
+- Main navigation instrumentation now handles persisted onboarding state and scrolls the onboarding Continue action into view before proceeding when onboarding is still present.
+- Onboarding Compose UI assertions use the available `assertIsDisplayed` API; a debug-only `ui-test-manifest` dependency supplies the test host activity.
+- Added callback coverage for onboarding Continue and live-task panel coverage for idle/no-fabricated-progress, Emergency Stop callback delegation, and failed-safely state presentation.
+- Onboarding credential copy was qualified to describe the intended security policy rather than promise an absolute guarantee.
+
+### CONSOLIDATED SYSTEM REVIEW
+- UI task state remains read-only through `TaskRuntimeStatePort`; UI components do not gain adapter or authorization authority.
+- `ExecutionBridge` still validates plans, evaluates capability/security gates, audits decisions, and rechecks Emergency Stop at the final adapter-dispatch boundary. A failed or unverified action is not reported as successful.
+- Conversation input remains capped at 4096 characters, history at 100 messages, and each stored message at 8192 characters; latest-message viewport behavior is retained.
+- No Android permission, egress/network path, production dependency, or privileged capability was introduced by this slice. The only dependency addition is debug-only Compose test-manifest support.
+- Production model/provider runtime remains intentionally unavailable/fail-closed, and the external trusted-app registry remains empty/deny-by-default.
+
+### EXACT-HEAD VERIFICATION
+- Android unit/instrumentation Run #699 — SUCCESS on `e1998dc40596cf71bff8f330b6f015fa1995dbcb`; JVM/build and instrumentation compilation passed, then all 15 managed-device tests completed successfully on `pixel2api30`.
+- Android release validation Run #31 — SUCCESS on the same exact head; release security configuration checks, secret scan, release tests/lint, signed CI APK/AAB verification, R8 mapping and artifact upload all completed successfully.
+- CI signing used an ephemeral validation key. This is not production-key evidence.
+
+### NOT VERIFIED / REMAINING LIMITATIONS
+- Physical-device visual, touch, keyboard and accessibility QA has not been performed.
+- Production signing identity, store/distribution readiness and whole-product release readiness are not established by CI validation.
+- Real model/provider runtime and several later Blueprint phases remain incomplete.
+- PR #31 is not merged. UI Phase 1 is still an informal planning estimate of roughly 85–88%, not 100%; responsive/edge-case integration and the later user-requested icon wiring remain outside this slice.
+
+### CURRENT STOP POINT / NEXT ACTION
+- Continue Phase 1 responsive, keyboard and accessibility edge-state coverage without restarting completed security layers or changing the icon in this slice.
+- After that UI package is complete, continue the remaining release-critical product phases in Blueprint order; keep unsupported voice/model/automation capabilities unavailable rather than simulating success.
+
+## 2026-10-10 — Authoritative responsive/IME UI checkpoint
+
+### Branch and exact heads
+- Active branch: `ui/conversational-shell`.
+- Exact implementation/test HEAD: `d709aaa153e7aaae6a87a778407f8669ffa5272e`.
+- Main UI implementation commit: `dd49935ca8759746dc3ed175a8e9788edc552f93`; follow-up test correction/recovery regression commit: `d709aaa153e7aaae6a87a778407f8669ffa5272e`.
+- PR #31 is open, draft and unmerged. `main` was `81396a4fe7fdd21b20a19b69774d407b2a302508`; at code/test HEAD the branch was 151 ahead / 4 behind with merge base `27942d726f3e1b491454c1f511d17334a393ef49`. No branch merge/rebase or direct-main push occurred.
+
+### Implemented and reviewed
+- Moved Home context, security/model status, live-task panel and bounded messages into one scrollable list; fixed the pinned composer above the IME.
+- Replaced list-size-triggered scroll with a send revision so the newest item remains the target when the 100-message list is full.
+- Applied `adjustResize` and IME-aware layout; gave Permission Center a weighted, bounded scroller and kept its two navigation actions in a responsive footer.
+- Added exact-path regression coverage for IME Send/fail-closed output, the 4096-character input limit/supporting description, appearance preference persistence/default fallback, blocked/stopped states and Emergency Stop recovery requiring fresh authentication.
+- No change to `ExecutionBridge`, authorization/capability policy, final Emergency Stop dispatch guard, task-state ownership, provider fail-closed behavior or trusted-app deny-by-default state.
+
+### Exact-head verification
+- Android unit/instrumentation Run #702 — **SUCCESS** for `d709aaa153e7aaae6a87a778407f8669ffa5272e`; instrumented build completed and all 21 `pixel2api30` managed-device tests passed. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832147
+- Android release validation Run #34 — **SUCCESS** for the same HEAD. Security configuration/secret scan, Gradle release tests and lint, APK/AAB build and signature verification, non-debug release APK, R8 mapping and artifact upload all passed. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38043832163
+- Run #701 on the prior implementation/test head `dd49935…` failed at instrumentation compilation solely due to an unsupported `assertExists()` assertion API. The test was corrected to use `assertIsDisplayed()`; Run #702 provides successful exact-head evidence.
+- CI used ephemeral validation signing; this does not establish production signing/distribution readiness.
+
+### Consolidated review and limitations
+- UI task status remains read-only; send remains local and explicitly states that production model inference is unavailable. No AI/model output receives authorization or execution authority.
+- Input remains limited to 4096 characters, stored messages to 8192 characters, and history to 100 messages.
+- No new Android permission, runtime dependency, egress path or privileged capability was added. The new preferences-name parameter is used for test isolation; the production SharedPreferences name is unchanged.
+- Physical-device visual, touch, keyboard and TalkBack QA remains deferred until the whole application is complete. CI managed-device evidence must not be described as physical-device QA.
+- Launcher icon integration remains deferred and was not touched. Revisit the four main-side commits (including the icon asset and Blueprint package-distribution update) before any integration strategy; do not merge/rebase blindly.
+
+### Current stop point and next task
+- Continue Phase 1 responsive/small-screen/accessibility review on `ui/conversational-shell`, then revisit icon wiring at its planned later integration point. Follow `RITAV_BLUEPRINT.md`; Phase 2 is Policy Engine after Phase 1 closure.
+- Informal estimates: Phase 1 UI ~89–90% (previously ~85–88%); overall project ~58% (previously ~57%); security foundation ~99% planning completion. These are informal and are not formal assurance metrics.
+
+## 2026-10-10 — Authoritative adaptive-navigation geometry checkpoint
+
+### Exact branch heads
+- Exact implementation/test HEAD: `4cf90e240b507ff83297652812a0aa3acfbdc9ff` (`ui/conversational-shell`).
+- Navigation geometry source correction: `994ef4849fd202930f1a6861483af9e5d51024cd`.
+- Current `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; comparison at this checkpoint: 156 ahead / 4 behind; merge base `27942d726f3e1b491454c1f511d17334a393ef49`.
+- PR #31 remains open, draft and unmerged; no merge/rebase/main push was performed.
+
+### Change and regression coverage
+- Corrected adaptive menu axis-capacity selection so capacity matches vertical-stack vs horizontal-row placement.
+- Corrected group positioning to account for item centers, whole-group extent and viewport margins before laying out positions; edge placement no longer compresses gaps through independent clamps.
+- Added five JVM tests for axis capacity, minimum viable axis, vertical-stack placement on a wide/short viewport, and horizontal-row placement on a narrow/tall viewport. The placement cases assert margin bounds and minimum 56px spacing for 48px items plus 8px spacing.
+- Production UI/security boundaries are unchanged; this is a layout-only change.
+
+### CI evidence at this checkpoint
+- Android release validation #39 — **SUCCESS** on exact implementation/test HEAD `4cf90e240b507ff83297652812a0aa3acfbdc9ff`: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38044841684.
+- Android unit/instrumentation #707 — JVM/unit tests and instrumentation compilation — **SUCCESS**; managed-device instrumentation was **IN PROGRESS** when this checkpoint was recorded. Do not claim the entire workflow green until its final conclusion: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38044841687.
+- Run #38 release validation — **SUCCESS** on source-correction commit `994ef4849fd202930f1a6861483af9e5d51024cd`; the later `4cf90e…` commit strengthened tests and updated the decision record.
+
+### Security/system review
+- No authorization, capability, ExecutionBridge, Emergency Stop dispatch, task-runtime state ownership, or model-provider boundary changed.
+- No permission, runtime dependency, egress/network path, or privileged capability was added.
+- Existing 100-message history, 4096-character input cap and 8192-character stored-message cap remain unchanged.
+- Physical-device QA remains deferred; emulator results are not physical-device/TalkBack proof. Launcher icon integration remains untouched.
+
+### Next stop point
+- Confirm Run #707 managed-device instrumentation, then continue any remaining Phase 1 responsive/accessibility review; follow Blueprint order to Phase 2 — Policy Engine after Phase 1 closure.
+- Informal estimates: Phase 1 ~90–91%, overall project ~58%, security foundation ~99%; not formal metrics.
+
+
+## 2026-10-10 — Compact Home composer and navigation accessibility checkpoint
+
+### Authoritative repository state
+- Active branch: `ui/conversational-shell`.
+- Exact source/test HEAD: `b989e235eaa6dcff9f88436262a608d696053029`.
+- `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; merge base: `27942d726f3e1b491454c1f511d17334a393ef49`; branch comparison at source/test checkpoint: 164 ahead / 4 behind.
+- PR #31 remains **OPEN · DRAFT · NOT MERGED**: https://github.com/darshandpatel63-prog/Ritav.ai/pull/31.
+- No merge, rebase or direct-main push occurred. The four main-only commits remain outside this branch; launcher icon wiring is deliberately untouched.
+
+### Implemented and tested
+- Home uses a constraint-aware viewport after applying IME insets. Below 520dp available height it switches to 8dp outer padding/spacing, limits the composer to two visible lines and places Send / Emergency Stop in one row.
+- Standard-height layout retains a five-line composer and separate full-width Send / Emergency Stop buttons.
+- Shared `RitavButton` still enforces a minimum 48dp control height in compact and normal layouts.
+- JVM regression tests cover compact breakpoint below/at/above 520dp.
+- Android instrumentation rotates to landscape, enters multiline text and verifies the composer, Send and Emergency Stop remain visible on the compact layout.
+- Adaptive-navigation geometry regression remains green; state semantics announce Expanded/Collapsed; Back collapses the menu before destination Back behavior, preserving Security / Permission Center.
+
+### Exact-head CI evidence
+- Android unit/instrumentation Run #715 — **SUCCESS** on `b989e235eaa6dcff9f88436262a608d696053029`: JVM unit tests and instrumentation compilation passed; **23/23 managed-device tests on `pixel2api30`, 0 failed / 0 skipped**. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073494
+- Android release validation Run #47 — **SUCCESS** on the same HEAD: release security configuration, tracked-source secret scan, release tests/build, signed validation APK/AAB checks, APK debug-state checks, R8 mapping validation, and artifact upload succeeded. https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38047073510
+- CI uses an ephemeral validation signing key. This is not production-keystore or distribution sign-off.
+
+### Consolidated system/security review
+- This slice changes only Home presentation and a pure layout breakpoint helper/tests. It adds no model/provider invocation and no new authorization, permission, task-execution, identity, trusted-app, audit, Emergency Stop or result-verification authority.
+- Existing 100-message history cap, 4096-character composer input limit, and 8192-character stored-message limit remain unchanged.
+- No Android permission, production dependency, network/egress route, privileged capability, or new sensitive data flow was added.
+- Managed-device orientation coverage is not physical-device keyboard/IME, touch, font-scaling or TalkBack QA. Those manual checks remain deferred until whole-product completion.
+
+### Exact next stop point
+- Continue Phase 1 small-screen, IME-inset, font-scaling and accessibility edge-case review; this slice does not close Phase 1.
+- Keep launcher icon wiring untouched until the planned later task.
+- Do not merge/rebase blindly; integrate the four main-only commits only under a deliberate plan.
+- Start Phase 2 — Policy Engine only after Phase 1 UI closure per `RITAV_BLUEPRINT.md`.
+- Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%. These are planning estimates, not formal metrics.

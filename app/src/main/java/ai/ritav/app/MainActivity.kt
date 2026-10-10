@@ -1,13 +1,19 @@
 package ai.ritav.app
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,7 +40,29 @@ class MainActivity : FragmentActivity() {
         securityControl = executionRuntime.securityControl
 
         setContent {
+            val navigationPositionStore = remember { NavigationPositionStore(this@MainActivity) }
+            var navigationPosition by remember { mutableStateOf(navigationPositionStore.load()) }
+            val uiPreferencesStore = remember { UiPreferencesStore(this@MainActivity) }
+            var uiPreferences by remember { mutableStateOf(uiPreferencesStore.load()) }
+            val onboardingStore = remember { OnboardingStore(this@MainActivity) }
+            var onboardingComplete by remember { mutableStateOf(onboardingStore.isCompleted()) }
+            var destination by remember { mutableStateOf(AppDestination.HOME) }
+            BackHandler(enabled = destination != AppDestination.HOME) {
+                destination = AppDestination.HOME
+            }
             var stopped by remember { mutableStateOf(securityControl.isEmergencyStopActive()) }
+            var taskRuntimeSnapshot by remember {
+                mutableStateOf(executionRuntime.taskRuntimeState.snapshot())
+            }
+            DisposableEffect(executionRuntime.taskRuntimeState) {
+                val subscription = executionRuntime.taskRuntimeState.observe { snapshot ->
+                    runOnUiThread {
+                        taskRuntimeSnapshot = snapshot
+                    }
+                }
+                onDispose { subscription.close() }
+            }
+
             var pendingCandidate by remember { mutableStateOf<CapabilityGrantCandidate?>(null) }
             var pendingGrantPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var trustedPackageInput by remember { mutableStateOf("") }
@@ -46,6 +74,15 @@ class MainActivity : FragmentActivity() {
             var pendingTrustedRemovalPackage by remember { mutableStateOf<String?>(null) }
             var pendingTrustedRemovalPlan by remember { mutableStateOf<ActionPlan?>(null) }
             var statusMessage by remember { mutableStateOf<String?>(null) }
+            var statusTone by remember { mutableStateOf(RitavFeedbackTone.INFO) }
+
+            fun setStatus(
+                message: String?,
+                tone: RitavFeedbackTone = RitavFeedbackTone.INFO
+            ) {
+                statusMessage = message
+                statusTone = if (message == null) RitavFeedbackTone.INFO else tone
+            }
 
             val identitySession = activeIdentitySession?.takeIf {
                 it.isActive(System.currentTimeMillis())
@@ -66,8 +103,21 @@ class MainActivity : FragmentActivity() {
                 pendingTrustedRemovalPlan = null
             }
 
+            fun activateEmergencyStopFromShell() {
+                securityControl.activateEmergencyStop()
+                stopped = true
+                activeIdentitySession = null
+                dismissPendingApproval()
+                dismissPendingTrustedApproval()
+                dismissPendingTrustedRemoval()
+                setStatus(
+                    "Emergency Stop activated. Protected actions are blocked.",
+                    RitavFeedbackTone.ERROR
+                )
+            }
+
             fun authenticateProtectedActions() {
-                statusMessage = null
+                setStatus(null)
                 securityControl.authenticateProtectedActions(
                     reason = "Authorize protected Ritav actions"
                 ) { session ->
@@ -75,29 +125,42 @@ class MainActivity : FragmentActivity() {
                         activeIdentitySession = session?.takeIf {
                             it.isActive(System.currentTimeMillis())
                         }
-                        statusMessage =
-                            if (activeIdentitySession != null) {
+                        val authenticated = activeIdentitySession != null
+                        setStatus(
+                            if (authenticated) {
                                 "Protected identity session established."
                             } else {
                                 "Device authentication did not establish a trusted session."
+                            },
+                            if (authenticated) {
+                                RitavFeedbackTone.INFO
+                            } else {
+                                RitavFeedbackTone.ERROR
                             }
+                        )
                     }
                 }
             }
 
             fun reviewCandidate(candidate: CapabilityGrantCandidate) {
-                statusMessage = null
+                setStatus(null)
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
                 if (session == null || securityControl.isEmergencyStopActive()) {
-                    statusMessage = "Authenticate a protected identity session before approval."
+                    setStatus(
+                        "Authenticate a protected identity session before approval.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 val plan = securityControl.prepareCapabilityGrant(candidate, session)
                 if (plan == null) {
-                    statusMessage = "Capability approval could not be prepared."
+                    setStatus(
+                        "Capability approval could not be prepared.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
@@ -106,18 +169,24 @@ class MainActivity : FragmentActivity() {
             }
 
             fun reviewTrustedApp() {
-                statusMessage = null
+                setStatus(null)
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
                 if (session == null || securityControl.isEmergencyStopActive()) {
-                    statusMessage = "Authenticate a protected identity session before trusting an application."
+                    setStatus(
+                        "Authenticate a protected identity session before trusting an application.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 val packageName = trustedPackageInput.trim()
                 if (packageName.isEmpty()) {
-                    statusMessage = "Enter an installed Android package name."
+                    setStatus(
+                        "Enter an installed Android package name.",
+                        RitavFeedbackTone.WARNING
+                    )
                     return
                 }
 
@@ -126,7 +195,10 @@ class MainActivity : FragmentActivity() {
                     identitySession = session
                 )
                 if (plan == null) {
-                    statusMessage = "The installed package identity could not be verified or is not eligible for trust."
+                    setStatus(
+                        "The installed package identity could not be verified or is not eligible for trust.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
@@ -138,12 +210,15 @@ class MainActivity : FragmentActivity() {
                 val plan = pendingTrustedPlan ?: return
                 val session = activeIdentitySession ?: run {
                     dismissPendingTrustedApproval()
-                    statusMessage = "Trusted identity session is unavailable."
+                    setStatus(
+                        "Trusted identity session is unavailable.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 dismissPendingTrustedApproval()
-                statusMessage = "Authorizing trusted-application approval..."
+                setStatus("Authorizing trusted-application approval...")
 
                 securityControl.approveTrustedApp(
                     plan = plan,
@@ -151,25 +226,30 @@ class MainActivity : FragmentActivity() {
                     userConfirmed = true
                 ) { success ->
                     runOnUiThread {
-                        statusMessage =
+                        setStatus(
                             if (success) {
                                 trustedPackageInput = ""
                                 trustedPackages = (trustedPackages + plan.appId).distinct().sorted()
                                 "Trusted application added. Capability access still requires its separate grant flow."
                             } else {
                                 "Trusted-application approval was denied or became invalid."
-                            }
+                            },
+                            if (success) RitavFeedbackTone.INFO else RitavFeedbackTone.ERROR
+                        )
                     }
                 }
             }
 
             fun reviewTrustedRemoval(packageName: String) {
-                statusMessage = null
+                setStatus(null)
                 val session = activeIdentitySession?.takeIf {
                     it.isActive(System.currentTimeMillis())
                 }
                 if (session == null || securityControl.isEmergencyStopActive()) {
-                    statusMessage = "Authenticate a protected identity session before removing trusted access."
+                    setStatus(
+                        "Authenticate a protected identity session before removing trusted access.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
@@ -178,7 +258,10 @@ class MainActivity : FragmentActivity() {
                     identitySession = session
                 )
                 if (plan == null) {
-                    statusMessage = "Trusted-app removal could not be prepared; installed identity or stored trust state changed."
+                    setStatus(
+                        "Trusted-app removal could not be prepared; installed identity or stored trust state changed.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
@@ -190,12 +273,15 @@ class MainActivity : FragmentActivity() {
                 val plan = pendingTrustedRemovalPlan ?: return
                 val session = activeIdentitySession ?: run {
                     dismissPendingTrustedRemoval()
-                    statusMessage = "Trusted identity session is unavailable."
+                    setStatus(
+                        "Trusted identity session is unavailable.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 dismissPendingTrustedRemoval()
-                statusMessage = "Authorizing trusted-application removal..."
+                setStatus("Authorizing trusted-application removal...")
 
                 securityControl.approveTrustedRemoval(
                     plan = plan,
@@ -203,13 +289,15 @@ class MainActivity : FragmentActivity() {
                     userConfirmed = true
                 ) { success ->
                     runOnUiThread {
-                        statusMessage =
+                        setStatus(
                             if (success) {
                                 trustedPackages = trustedPackages.filterNot { it == plan.appId }
                                 "Trusted application removed."
                             } else {
                                 "Trusted-application removal was denied or became invalid."
-                            }
+                            },
+                            if (success) RitavFeedbackTone.INFO else RitavFeedbackTone.ERROR
+                        )
                     }
                 }
             }
@@ -217,12 +305,15 @@ class MainActivity : FragmentActivity() {
                 val plan = pendingGrantPlan ?: return
                 val session = activeIdentitySession ?: run {
                     dismissPendingApproval()
-                    statusMessage = "Trusted identity session is unavailable."
+                    setStatus(
+                        "Trusted identity session is unavailable.",
+                        RitavFeedbackTone.ERROR
+                    )
                     return
                 }
 
                 dismissPendingApproval()
-                statusMessage = "Authorizing capability approval..."
+                setStatus("Authorizing capability approval...")
 
                 securityControl.approveCapabilityGrant(
                     plan = plan,
@@ -230,86 +321,177 @@ class MainActivity : FragmentActivity() {
                     userConfirmed = true
                 ) { success ->
                     runOnUiThread {
-                        statusMessage =
+                        setStatus(
                             if (success) {
                                 "Capability approved for the current trusted identity session."
                             } else {
                                 "Capability approval was denied or became invalid."
-                            }
+                            },
+                            if (success) RitavFeedbackTone.INFO else RitavFeedbackTone.ERROR
+                        )
                     }
                 }
             }
 
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    PermissionCenter(
-                        stopped = stopped,
-                        identitySession = identitySession,
-                        candidates = securityControl.capabilityGrantOptions(),
-                        pendingCandidate = pendingCandidate,
-                        pendingPlan = pendingGrantPlan,
-                        statusMessage = statusMessage,
-                        trustedPackageInput = trustedPackageInput,
-                        onTrustedPackageInputChanged = { value ->
-                            trustedPackageInput = value.take(256)
-                        },
-                        onPrepareTrustedApp = ::reviewTrustedApp,
-                        pendingTrustedPackage = pendingTrustedPackage,
-                        pendingTrustedPlan = pendingTrustedPlan,
-                        onDismissTrustedApproval = {
-                            dismissPendingTrustedApproval()
-                            statusMessage = null
-                        },
-                        onApproveTrustedApp = ::approvePendingTrustedApp,
-                        trustedPackages = trustedPackages,
-                        onTrustedPackageSelectedForRemoval = ::reviewTrustedRemoval,
-                        pendingTrustedRemovalPackage = pendingTrustedRemovalPackage,
-                        pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
-                        onDismissTrustedRemoval = {
-                            dismissPendingTrustedRemoval()
-                            statusMessage = null
-                        },
-                        onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
-                        onAuthenticate = ::authenticateProtectedActions,
-                        onEmergencyStop = {
-                            securityControl.activateEmergencyStop()
-                            stopped = true
-                            activeIdentitySession = null
-                            dismissPendingApproval()
-                            dismissPendingTrustedApproval()
-                            dismissPendingTrustedRemoval()
-                            statusMessage = "Emergency Stop activated. Protected actions are blocked."
-                        },
-                        onResume = {
-                            securityControl.resumeAfterUserConfirmation()
-                            stopped = securityControl.isEmergencyStopActive()
-                            activeIdentitySession = null
-                            dismissPendingApproval()
-                            dismissPendingTrustedApproval()
-                            dismissPendingTrustedRemoval()
-                            statusMessage =
-                                if (stopped) {
-                                    "Emergency Stop remains active."
-                                } else {
-                                    "Ritav resumed. Protected actions require fresh authentication."
-                                }
-                        },
-                        onCandidateSelected = ::reviewCandidate,
-                        onDismissApproval = {
-                            dismissPendingApproval()
-                            statusMessage = null
-                        },
-                        onApprove = ::approvePendingGrant
+            RitavTheme(preferences = uiPreferences) {
+                if (!onboardingComplete) {
+                    RitavOnboardingScreen(
+                        onContinue = {
+                            onboardingStore.markCompleted()
+                            onboardingComplete = true
+                        }
                     )
+                } else {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when (destination) {
+                            AppDestination.HOME -> ConversationalHomeScreen(
+                                securityControl = securityControl,
+                                buttonStyle = uiPreferences.buttonStyle,
+                                taskSnapshot = taskRuntimeSnapshot,
+                                onOpenSecurityCenter = { destination = AppDestination.SECURITY },
+                                onEmergencyStop = ::activateEmergencyStopFromShell
+                            )
+                            AppDestination.SECURITY -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .imePadding()
+                                    .padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                PermissionCenter(
+                                    modifier = Modifier.weight(1f),
+                                    stopped = stopped,
+                                    buttonStyle = uiPreferences.buttonStyle,
+                                    identitySession = identitySession,
+                                    candidates = securityControl.capabilityGrantOptions(),
+                                    pendingCandidate = pendingCandidate,
+                                    pendingPlan = pendingGrantPlan,
+                                    statusMessage = statusMessage,
+                                    statusTone = statusTone,
+                                    trustedPackageInput = trustedPackageInput,
+                                    onTrustedPackageInputChanged = { value ->
+                                        trustedPackageInput = value.take(256)
+                                    },
+                                    onPrepareTrustedApp = ::reviewTrustedApp,
+                                    pendingTrustedPackage = pendingTrustedPackage,
+                                    pendingTrustedPlan = pendingTrustedPlan,
+                                    onDismissTrustedApproval = {
+                                        dismissPendingTrustedApproval()
+                                        setStatus(null)
+                                    },
+                                    onApproveTrustedApp = ::approvePendingTrustedApp,
+                                    trustedPackages = trustedPackages,
+                                    onTrustedPackageSelectedForRemoval = ::reviewTrustedRemoval,
+                                    pendingTrustedRemovalPackage = pendingTrustedRemovalPackage,
+                                    pendingTrustedRemovalPlan = pendingTrustedRemovalPlan,
+                                    onDismissTrustedRemoval = {
+                                        dismissPendingTrustedRemoval()
+                                        setStatus(null)
+                                    },
+                                    onApproveTrustedRemoval = ::approvePendingTrustedRemoval,
+                                    onAuthenticate = ::authenticateProtectedActions,
+                                    onEmergencyStop = ::activateEmergencyStopFromShell,
+                                    onResume = {
+                                        securityControl.resumeAfterUserConfirmation()
+                                        stopped = securityControl.isEmergencyStopActive()
+                                        activeIdentitySession = null
+                                        dismissPendingApproval()
+                                        dismissPendingTrustedApproval()
+                                        dismissPendingTrustedRemoval()
+                                        setStatus(
+                                            if (stopped) {
+                                                "Emergency Stop remains active."
+                                            } else {
+                                                "Ritav resumed. Protected actions require fresh authentication."
+                                            },
+                                            if (stopped) RitavFeedbackTone.ERROR else RitavFeedbackTone.INFO
+                                        )
+                                    },
+                                    onCandidateSelected = ::reviewCandidate,
+                                    onDismissApproval = {
+                                        dismissPendingApproval()
+                                        setStatus(null)
+                                    },
+                                    onApprove = ::approvePendingGrant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    RitavButton(
+                                        style = uiPreferences.buttonStyle,
+                                        label = "Back to Ritav",
+                                        onClick = { destination = AppDestination.HOME },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    RitavButton(
+                                        style = uiPreferences.buttonStyle,
+                                        label = "UI & Appearance",
+                                        onClick = { destination = AppDestination.SETTINGS },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                            AppDestination.SETTINGS -> UiAppearanceSettings(
+                                uiPreferences = uiPreferences,
+                                navigationFixed = navigationPosition.fixed,
+                                onThemeModeChanged = { mode ->
+                                    uiPreferences = uiPreferences.copy(themeMode = mode)
+                                    uiPreferencesStore.saveThemeMode(mode)
+                                },
+                                onThemeFamilyChanged = { family ->
+                                    uiPreferences = uiPreferences.copy(themeFamily = family)
+                                    uiPreferencesStore.saveThemeFamily(family)
+                                },
+                                motionPreference = uiPreferences.motionPreference,
+                                onMotionPreferenceChanged = { preference ->
+                                    uiPreferences = uiPreferences.copy(motionPreference = preference)
+                                    uiPreferencesStore.saveMotionPreference(preference)
+                                },
+                                onButtonStyleChanged = { style ->
+                                    uiPreferences = uiPreferences.copy(buttonStyle = style)
+                                    uiPreferencesStore.saveButtonStyle(style)
+                                },
+                                onNavigationFixedChanged = { fixed ->
+                                    navigationPosition = navigationPosition.copy(fixed = fixed)
+                                    navigationPositionStore.setFixed(fixed)
+                                },
+                                onResetNavigationPosition = {
+                                    navigationPosition = navigationPosition.copy(
+                                        xFraction = 0.5f,
+                                        yFraction = 0.5f
+                                    )
+                                    navigationPositionStore.resetPosition()
+                                }
+                            )
+                        }
+
+                        GlobalAdaptiveFloatingNavigation(
+                            items = listOf(
+                                GlobalNavItem("Home", "⌂", selected = destination == AppDestination.HOME) { destination = AppDestination.HOME },
+                                GlobalNavItem("Security", "◈", selected = destination == AppDestination.SECURITY) { destination = AppDestination.SECURITY },
+                                GlobalNavItem("Settings", "⚙", selected = destination == AppDestination.SETTINGS) { destination = AppDestination.SETTINGS }
+                            ),
+                            initialPosition = navigationPosition,
+                            motionPreference = uiPreferences.motionPreference,
+                            onPositionSettled = { xFraction, yFraction ->
+                                navigationPosition = navigationPosition.copy(
+                                    xFraction = xFraction,
+                                    yFraction = yFraction
+                                )
+                                navigationPositionStore.savePosition(xFraction, yFraction)
+                            },
+                            modifier = Modifier.fillMaxSize().imePadding()
+                        )
+                    }
+                }
                 }
             }
         }
