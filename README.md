@@ -1439,3 +1439,32 @@ The current UI implementation head is tracked separately from CI evidence. Andro
 - Launcher icon wiring remains a separate future task and was not changed in this slice. Do not infer that the icon asset introduced on `main` is integrated into this UI branch.
 - Continue Phase 1 small-screen/accessibility edge review and revisit the main-side-only commits before any future integration. Follow the canonical `RITAV_BLUEPRINT.md` in phase order; Phase 2 is the Policy Engine after Phase 1 closure.
 - Informal planning estimates only: Phase 1 UI approximately **89–90%** (previously ~85–88%); overall project approximately **58%** (previously ~57%); security foundation remains around **99%**. These are not measured quality or security metrics.
+
+## 2026-10-10 — Adaptive navigation viewport geometry checkpoint
+
+### Authoritative branch state
+- Implementation/test HEAD: `4cf90e240b507ff83297652812a0aa3acfbdc9ff` on `ui/conversational-shell`.
+- Adaptive navigation source correction: `994ef4849fd202930f1a6861483af9e5d51024cd`; edge-constrained geometry tests: `4cf90e240b507ff83297652812a0aa3acfbdc9ff`.
+- `main` at this checkpoint: `81396a4fe7fdd21b20a19b69774d407b2a302508`; branch comparison: 156 ahead / 4 behind; merge base `27942d726f3e1b491454c1f511d17334a393ef49`.
+- PR #31 remains **OPEN · DRAFT · NOT MERGED**: https://github.com/darshandpatel63-prog/Ritav.ai/pull/31. No merge, rebase, or direct-main push was performed.
+
+### Implemented
+- Linear floating-navigation menu capacity now uses the same axis as its placement direction: vertical-stack capacity comes from viewport height, horizontal-row capacity from viewport width.
+- Placement constrains the complete row/stack before laying out the first item instead of clamping items independently. The previous logic could compress spacing near viewport edges and overlap menu items.
+- Added five pure JVM regression tests for orientation/axis capacity, minimum viable one-item slot, vertical-stack bounds/separation on a wide-short viewport, and horizontal-row bounds/separation on a narrow-tall viewport.
+- Edge-constrained dimensions intentionally expose the old per-item clamp behavior rather than passing only on a centered square viewport.
+
+### Exact-head verification
+- Android release validation Run #39 — **SUCCESS** on `4cf90e240b507ff83297652812a0aa3acfbdc9ff`: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38044841684. Release security configuration, embedded-secret scan, release tests/lint/build, APK/AAB signature verification, non-debug APK validation, R8 mapping and artifact upload all passed.
+- Android unit/instrumentation Run #707 on the same HEAD: JVM/unit tests and instrumentation compilation — **SUCCESS**. Managed-device instrumentation was still **IN PROGRESS** at the checkpoint; no final instrumentation result is claimed: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38044841687.
+- Preceding release Run #38 was **SUCCESS** on production source correction `994ef4849fd202930f1a6861483af9e5d51024cd`; the later `4cf90e…` change further constrained test dimensions and updated the decision log.
+
+### Consolidated review
+- Presentation geometry only. Navigation callbacks/destinations are unchanged; no security, authorization, task execution, model/provider, permission, dependency, or network/egress path was added.
+- Source/math checks for the edge cases match the new regression expectations; exact-head instrumentation still needs its final CI conclusion.
+- PR #31 remains unmerged. Physical-device visual/touch/keyboard/TalkBack QA remains deferred until whole-product completion as requested.
+
+### Current stop point
+- Confirm Run #707's managed-device instrumentation conclusion, then finish the consolidated Phase 1 responsive/accessibility review.
+- Launcher icon wiring was not touched; revisit it at the planned later integration point. Follow `RITAV_BLUEPRINT.md`; next major phase after Phase 1 closure is Phase 2 — Policy Engine.
+- Informal estimates: Phase 1 UI ~90–91%; overall project ~58%; security foundation ~99%. These are planning estimates, not formal metrics.

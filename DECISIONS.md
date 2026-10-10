@@ -78,3 +78,15 @@ No model/provider, action execution, permission, capability, network/egress path
 - Review of the placement formulas also found the first item's top-left coordinate was calculated from an item-center coordinate and clamped per item. Near a viewport boundary, that could compress multiple items into the same clamp value.
 - Linear placement now constrains the complete item group before laying out positions, and JVM tests assert items remain within margins and separated along their active axis.
 - Geometry regressions use narrow/tall and wide/short viewports so per-item clamping that compresses the final spacing cannot pass only because the menu is centered on a square screen.
+
+## 2026-10-10 — Adaptive navigation viewport geometry checkpoint
+
+### Exact-head verification
+- Production layout correction at `994ef4849fd202930f1a6861483af9e5d51024cd`: Android release validation Run #38 — SUCCESS.
+- Full implementation/test HEAD `4cf90e240b507ff83297652812a0aa3acfbdc9ff`: Android release validation Run #39 — SUCCESS; Android unit/instrumentation Run #707's JVM tests and instrumentation compilation passed, while managed-device instrumentation was still in progress at checkpoint time.
+- Run #39: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38044841684
+- Run #707: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38044841687
+
+### Remaining verification
+- Do not mark the full current unit/instrumentation workflow verified until Run #707 reports its final managed-device result.
+- Physical-device visual/touch/keyboard/TalkBack QA remains deferred until whole-product completion.

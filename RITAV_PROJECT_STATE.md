@@ -2150,3 +2150,32 @@ Wait for Run #690 to complete; then perform the consolidated onboarding + conver
 ### Current stop point and next task
 - Continue Phase 1 responsive/small-screen/accessibility review on `ui/conversational-shell`, then revisit icon wiring at its planned later integration point. Follow `RITAV_BLUEPRINT.md`; Phase 2 is Policy Engine after Phase 1 closure.
 - Informal estimates: Phase 1 UI ~89–90% (previously ~85–88%); overall project ~58% (previously ~57%); security foundation ~99% planning completion. These are informal and are not formal assurance metrics.
+
+## 2026-10-10 — Authoritative adaptive-navigation geometry checkpoint
+
+### Exact branch heads
+- Exact implementation/test HEAD: `4cf90e240b507ff83297652812a0aa3acfbdc9ff` (`ui/conversational-shell`).
+- Navigation geometry source correction: `994ef4849fd202930f1a6861483af9e5d51024cd`.
+- Current `main`: `81396a4fe7fdd21b20a19b69774d407b2a302508`; comparison at this checkpoint: 156 ahead / 4 behind; merge base `27942d726f3e1b491454c1f511d17334a393ef49`.
+- PR #31 remains open, draft and unmerged; no merge/rebase/main push was performed.
+
+### Change and regression coverage
+- Corrected adaptive menu axis-capacity selection so capacity matches vertical-stack vs horizontal-row placement.
+- Corrected group positioning to account for item centers, whole-group extent and viewport margins before laying out positions; edge placement no longer compresses gaps through independent clamps.
+- Added five JVM tests for axis capacity, minimum viable axis, vertical-stack placement on a wide/short viewport, and horizontal-row placement on a narrow/tall viewport. The placement cases assert margin bounds and minimum 56px spacing for 48px items plus 8px spacing.
+- Production UI/security boundaries are unchanged; this is a layout-only change.
+
+### CI evidence at this checkpoint
+- Android release validation #39 — **SUCCESS** on exact implementation/test HEAD `4cf90e240b507ff83297652812a0aa3acfbdc9ff`: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38044841684.
+- Android unit/instrumentation #707 — JVM/unit tests and instrumentation compilation — **SUCCESS**; managed-device instrumentation was **IN PROGRESS** when this checkpoint was recorded. Do not claim the entire workflow green until its final conclusion: https://github.com/darshandpatel63-prog/Ritav.ai/actions/runs/38044841687.
+- Run #38 release validation — **SUCCESS** on source-correction commit `994ef4849fd202930f1a6861483af9e5d51024cd`; the later `4cf90e…` commit strengthened tests and updated the decision record.
+
+### Security/system review
+- No authorization, capability, ExecutionBridge, Emergency Stop dispatch, task-runtime state ownership, or model-provider boundary changed.
+- No permission, runtime dependency, egress/network path, or privileged capability was added.
+- Existing 100-message history, 4096-character input cap and 8192-character stored-message cap remain unchanged.
+- Physical-device QA remains deferred; emulator results are not physical-device/TalkBack proof. Launcher icon integration remains untouched.
+
+### Next stop point
+- Confirm Run #707 managed-device instrumentation, then continue any remaining Phase 1 responsive/accessibility review; follow Blueprint order to Phase 2 — Policy Engine after Phase 1 closure.
+- Informal estimates: Phase 1 ~90–91%, overall project ~58%, security foundation ~99%; not formal metrics.
