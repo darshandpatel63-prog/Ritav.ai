@@ -73,3 +73,7 @@ No model/provider, action execution, permission, capability, network/egress path
 ### Boundary
 - The correction changes presentation geometry only. Navigation destinations, user-controlled positioning, security state, authorization and task execution paths remain unchanged.
 - Exact-head Android CI must pass before this work package is marked verified.
+
+### Placement-boundary follow-up
+- Review of the placement formulas also found the first item's top-left coordinate was calculated from an item-center coordinate and clamped per item. Near a viewport boundary, that could compress multiple items into the same clamp value.
+- Linear placement now constrains the complete item group before laying out positions, and JVM tests assert items remain within margins and separated along their active axis.

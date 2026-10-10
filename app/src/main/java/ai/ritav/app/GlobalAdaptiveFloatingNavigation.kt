@@ -385,7 +385,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
     }
 }
 
-private data class MenuPlacement(val x: Float, val y: Float)
+internal data class MenuPlacement(val x: Float, val y: Float)
 
 private fun radialPlacement(
     index: Float,
@@ -404,7 +404,7 @@ private fun radialPlacement(
     )
 }
 
-private fun linearPlacement(
+internal fun linearPlacement(
     index: Float,
     count: Int,
     centerX: Float,
@@ -427,24 +427,29 @@ private fun linearPlacement(
     if (horizontal) {
         val direction = if (rightSpace >= leftSpace) 1f else -1f
         val itemX = buttonCenterX + direction * (itemPx * 0.7f + 10f) - itemPx / 2f
-        val total = (count - 1) * (itemPx + 8f)
-        val startY = (buttonCenterY - total / 2f)
-            .coerceIn(margin + itemPx / 2f, height - margin - itemPx / 2f)
+        val itemStep = itemPx + 8f
+        val total = (count - 1) * itemStep
+        val minStartCenterY = margin + itemPx / 2f
+        val maxStartCenterY = (height - margin - itemPx / 2f - total)
+            .coerceAtLeast(minStartCenterY)
+        val startCenterY = (buttonCenterY - total / 2f)
+            .coerceIn(minStartCenterY, maxStartCenterY)
         return MenuPlacement(
             x = itemX.coerceIn(margin, width - margin - itemPx),
-            y = (startY + index * (itemPx + 8f))
+            y = (startCenterY + index * itemStep - itemPx / 2f)
                 .coerceIn(margin, height - margin - itemPx)
         )
     }
 
     val direction = if (bottomSpace >= topSpace) 1f else -1f
     val itemY = buttonCenterY + direction * (itemPx * 0.7f + 10f) - itemPx / 2f
-    val total = (count - 1) * (itemPx + 8f)
-    val startX = (buttonCenterX - total / 2f)
-        .coerceIn(margin, width - margin - itemPx)
+    val itemStep = itemPx + 8f
+    val total = (count - 1) * itemStep
+    val maxStartX = (width - margin - itemPx - total).coerceAtLeast(margin)
+    val startX = (buttonCenterX - total / 2f - itemPx / 2f)
+        .coerceIn(margin, maxStartX)
     return MenuPlacement(
-        x = (startX + index * (itemPx + 8f))
-            .coerceIn(margin, width - margin - itemPx),
+        x = (startX + index * itemStep).coerceIn(margin, width - margin - itemPx),
         y = itemY.coerceIn(margin, height - margin - itemPx)
     )
 }
