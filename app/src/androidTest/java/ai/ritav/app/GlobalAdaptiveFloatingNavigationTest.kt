@@ -1,6 +1,7 @@
 package ai.ritav.app
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -11,6 +12,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.compose.ui.semantics.SemanticsProperties
 
 @RunWith(AndroidJUnit4::class)
 internal class GlobalAdaptiveFloatingNavigationTest {
@@ -42,6 +44,23 @@ internal class GlobalAdaptiveFloatingNavigationTest {
         toggle.performClick()
         composeRule.onNodeWithContentDescription("Settings, selected").assertIsDisplayed()
     }
+    @Test
+    fun navigation_exposes_expanded_state_and_android_back_collapses_the_menu() {
+        completeOnboardingIfRequired()
+
+        val toggle = composeRule.onNodeWithContentDescription("Ritav global navigation, movable")
+        toggle.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
+
+        toggle.performClick()
+        toggle.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
+
+        composeRule.runOnIdle {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
+        composeRule.waitForIdle()
+        toggle.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
+    }
+
     @Test
     fun emergency_stop_recovery_requires_explicit_resume_and_fresh_authentication() {
         completeOnboardingIfRequired()

@@ -1,6 +1,7 @@
 package ai.ritav.app
 
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -44,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -103,6 +105,10 @@ internal fun GlobalAdaptiveFloatingNavigation(
     var expanded by remember { mutableStateOf(false) }
     var menuRotation by remember { mutableFloatStateOf(0f) }
     val menuFocusRequester = remember { FocusRequester() }
+
+    BackHandler(enabled = expanded) {
+        expanded = false
+    }
 
     BoxWithConstraints(modifier = modifier) {
         val widthPx = with(density) { maxWidth.toPx() }
@@ -212,6 +218,7 @@ internal fun GlobalAdaptiveFloatingNavigation(
                             "Ritav global navigation, movable"
                         }
                     role = Role.Button
+                    stateDescription = if (expanded) "Expanded" else "Collapsed"
                 }
             ) {
                 Box(contentAlignment = Alignment.Center) {
