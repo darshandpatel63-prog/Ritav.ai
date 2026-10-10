@@ -53,7 +53,7 @@ Keep the conversation context and bounded message history in one scrollable view
 - Keep IME submission and the Send button on the same presentation-only path.
 - Give Permission Center a bounded scroll region above its navigation actions on short/IME-reduced screens.
 - Respect IME insets in the main shell and floating-navigation viewport; declare `adjustResize` for reliable viewport resizing.
-- Verify persisted appearance preferences and blocked/stopped task-state copy with regression tests.
+- Verify persisted appearance preferences, blocked/stopped task-state copy, and the Emergency Stop recovery-to-fresh-authentication path with regression tests.
 
 ### Security and privacy
 No model/provider, action execution, permission, capability, network/egress path or new runtime dependency is added. Conversation output remains honest that the production model/provider is unavailable. These changes do not give the UI authorization or adapter authority.

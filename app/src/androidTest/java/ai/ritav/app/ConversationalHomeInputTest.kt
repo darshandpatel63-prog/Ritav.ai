@@ -1,6 +1,5 @@
 package ai.ritav.app
 
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
@@ -33,8 +32,8 @@ internal class ConversationalHomeInputTest {
         composeRule.onNodeWithText("hello from the keyboard").assertIsDisplayed()
         composeRule.onNodeWithText(
             "The conversational UI received your message, but the production model runtime is currently unavailable. No model/provider bypass was attempted."
-        ).assertExists()
-        composeRule.onNodeWithContentDescription("Message length 0 of 4096 characters").assertExists()
+        ).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Message length 0 of 4096 characters").assertIsDisplayed()
     }
 
     @Test
@@ -46,7 +45,7 @@ internal class ConversationalHomeInputTest {
 
         composeRule.onNodeWithContentDescription(
             "Message length 4096 of 4096 characters"
-        ).assertExists()
+        ).assertIsDisplayed()
         input.assertIsFocused()
     }
 
