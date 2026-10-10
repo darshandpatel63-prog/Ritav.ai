@@ -42,3 +42,21 @@ Keep the current conversational shell intentionally local/fail-closed while addi
 
 ### Security / privacy impact
 No new permission, network path, provider, SDK, privileged capability, or persistent data surface was introduced.
+
+## 2026-10-10 — Responsive conversation, IME and settings regression coverage
+
+### Decision
+Keep the conversation context and bounded message history in one scrollable viewport while keeping the message composer available above the IME. Trigger latest-message scrolling from a separate send revision so it remains correct after the message-history bound is reached.
+
+### Implementation boundaries
+- Retain the 100-message history, 4096-character input cap and 8192-character stored-message cap.
+- Keep IME submission and the Send button on the same presentation-only path.
+- Give Permission Center a bounded scroll region above its navigation actions on short/IME-reduced screens.
+- Respect IME insets in the main shell and floating-navigation viewport; declare `adjustResize` for reliable viewport resizing.
+- Verify persisted appearance preferences and blocked/stopped task-state copy with regression tests.
+
+### Security and privacy
+No model/provider, action execution, permission, capability, network/egress path or new runtime dependency is added. Conversation output remains honest that the production model/provider is unavailable. These changes do not give the UI authorization or adapter authority.
+
+### Verification
+Source-level integration checks are part of this development pass. Gradle and Android managed-device tests must be confirmed by exact-head GitHub Actions before this package is marked verified.

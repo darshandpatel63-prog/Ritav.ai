@@ -81,10 +81,13 @@ internal fun ConversationalHomeScreen(
         )
     }
 
+    var messageRevision by remember { mutableStateOf(0) }
     val conversationListState = rememberLazyListState()
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            conversationListState.scrollToItem(messages.lastIndex)
+    LaunchedEffect(messageRevision) {
+        // The header is item 0; message rows follow it.
+        // A revision counter continues changing after bounded history reaches 100.
+        if (messageRevision > 0 && messages.isNotEmpty()) {
+            conversationListState.scrollToItem(messages.size)
         }
     }
 
@@ -98,6 +101,7 @@ internal fun ConversationalHomeScreen(
             "The conversational UI received your message, but the production model runtime is currently unavailable. No model/provider bypass was attempted."
         }
         appendConversationMessages(messages, text, assistantText)
+        messageRevision++
     }
 
     Column(
@@ -107,6 +111,15 @@ internal fun ConversationalHomeScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        LazyColumn(
+            state = conversationListState,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item(key = "home-context") {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Ritav.ai", style = MaterialTheme.typography.headlineSmall)
@@ -196,14 +209,8 @@ internal fun ConversationalHomeScreen(
             buttonStyle = buttonStyle,
             onEmergencyStop = onEmergencyStop
         )
-
-        LazyColumn(
-            state = conversationListState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+                }
+            }
             items(messages) { message ->
                 val label = if (message.fromUser) "You" else "Ritav"
                 Row(

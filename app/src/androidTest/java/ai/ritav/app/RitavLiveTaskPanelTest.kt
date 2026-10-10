@@ -67,4 +67,36 @@ class RitavLiveTaskPanelTest {
         composeRule.onNodeWithText("Task failed safely").assertIsDisplayed()
         composeRule.onNodeWithText(failureSummary).assertIsDisplayed()
     }
+    @Test
+    fun blocked_state_reports_denial_without_success_claim() {
+        val blockedSummary = "Security policy blocked the task before adapter dispatch."
+        composeRule.setContent {
+            RitavTheme(preferences = UiPreferences()) {
+                RitavLiveTaskPanel(
+                    state = RitavTaskUiState.BLOCKED,
+                    taskName = "Open unapproved app",
+                    summary = blockedSummary
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Task blocked").assertIsDisplayed()
+        composeRule.onNodeWithText(blockedSummary).assertIsDisplayed()
+    }
+
+    @Test
+    fun stopped_state_reports_that_protected_activity_remains_blocked() {
+        val stoppedSummary = "Emergency Stop is active. Protected task execution is unavailable."
+        composeRule.setContent {
+            RitavTheme(preferences = UiPreferences()) {
+                RitavLiveTaskPanel(
+                    state = RitavTaskUiState.STOPPED,
+                    summary = stoppedSummary
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Task stopped").assertIsDisplayed()
+        composeRule.onNodeWithText(stoppedSummary).assertIsDisplayed()
+    }
 }

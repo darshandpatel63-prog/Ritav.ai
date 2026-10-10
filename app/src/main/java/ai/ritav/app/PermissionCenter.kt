@@ -49,12 +49,12 @@ internal fun PermissionCenter(
     onResume: () -> Unit,
     onCandidateSelected: (CapabilityGrantCandidate) -> Unit,
     onDismissApproval: () -> Unit,
-    onApprove: () -> Unit
+    onApprove: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .imePadding()
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {

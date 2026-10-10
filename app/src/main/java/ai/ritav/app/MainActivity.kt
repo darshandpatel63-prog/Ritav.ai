@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -357,11 +359,13 @@ class MainActivity : FragmentActivity() {
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(24.dp),
+                                    .imePadding()
+                                    .padding(20.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 PermissionCenter(
+                                    modifier = Modifier.weight(1f),
                                     stopped = stopped,
                                     buttonStyle = uiPreferences.buttonStyle,
                                     identitySession = identitySession,
@@ -417,17 +421,20 @@ class MainActivity : FragmentActivity() {
                                     onApprove = ::approvePendingGrant
                                 )
                                 Row(
+                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     RitavButton(
                                         style = uiPreferences.buttonStyle,
                                         label = "Back to Ritav",
-                                        onClick = { destination = AppDestination.HOME }
+                                        onClick = { destination = AppDestination.HOME },
+                                        modifier = Modifier.weight(1f)
                                     )
                                     RitavButton(
                                         style = uiPreferences.buttonStyle,
                                         label = "UI & Appearance",
-                                        onClick = { destination = AppDestination.SETTINGS }
+                                        onClick = { destination = AppDestination.SETTINGS },
+                                        modifier = Modifier.weight(1f)
                                     )
                                 }
                             }
@@ -481,7 +488,7 @@ class MainActivity : FragmentActivity() {
                                 )
                                 navigationPositionStore.savePosition(xFraction, yFraction)
                             },
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize().imePadding()
                         )
                     }
                 }

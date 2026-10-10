@@ -37,8 +37,11 @@ internal data class UiPreferences(
     val buttonStyle: UiButtonStyle = UiButtonStyle.FILLED
 )
 
-internal class UiPreferencesStore(context: Context) {
-    private val preferences = context.getSharedPreferences("ritav_ui_preferences", Context.MODE_PRIVATE)
+internal class UiPreferencesStore(
+    context: Context,
+    preferencesName: String = "ritav_ui_preferences"
+) {
+    private val preferences = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
 
     fun load(): UiPreferences {
         val mode = runCatching {
