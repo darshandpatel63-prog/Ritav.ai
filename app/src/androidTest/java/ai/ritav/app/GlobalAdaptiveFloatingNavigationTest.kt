@@ -46,11 +46,15 @@ internal class GlobalAdaptiveFloatingNavigationTest {
         composeRule.onNodeWithContentDescription("Settings, selected").assertIsDisplayed()
     }
     @Test
-    fun navigation_exposes_expanded_state_and_android_back_collapses_the_menu() {
+    fun navigation_back_collapses_menu_before_destination_back_handler_runs() {
         completeOnboardingIfRequired()
 
         val toggle = composeRule.onNodeWithContentDescription("Ritav global navigation, movable")
         toggle.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
+
+        toggle.performClick()
+        composeRule.onNodeWithContentDescription("Security").performClick()
+        composeRule.onNodeWithText("Permission Center").assertIsDisplayed()
 
         toggle.performClick()
         toggle.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
@@ -59,7 +63,10 @@ internal class GlobalAdaptiveFloatingNavigationTest {
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
         }
         composeRule.waitForIdle()
+
         toggle.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
+        // The higher-level destination BackHandler must not navigate away in the same press.
+        composeRule.onNodeWithText("Permission Center").assertIsDisplayed()
     }
 
     @Test
