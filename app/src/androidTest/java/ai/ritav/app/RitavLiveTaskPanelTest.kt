@@ -1,6 +1,11 @@
 package ai.ritav.app
 
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -24,6 +29,30 @@ class RitavLiveTaskPanelTest {
         composeRule.onNodeWithText(
             "No task is currently being executed. Ritav will only show live progress when an authoritative runtime state exists."
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun live_task_status_uses_polite_live_region_semantics() {
+        val taskName = "Open approved app"
+        val step = "Dispatching approved action"
+        val summary = "Approved action is being dispatched through the security-owned adapter."
+        val accessibleState =
+            "Task executing: $taskName. Current step: $step. $summary"
+
+        composeRule.setContent {
+            RitavTheme(preferences = UiPreferences()) {
+                RitavLiveTaskPanel(
+                    state = RitavTaskUiState.EXECUTING,
+                    taskName = taskName,
+                    currentStep = step,
+                    summary = summary
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription(accessibleState).assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)
+        )
     }
 
     @Test
