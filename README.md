@@ -1503,3 +1503,7 @@ The current UI implementation head is tracked separately from CI evidence. Andro
 - Do not merge/rebase blindly; integrate the four main-only commits only under a deliberate plan.
 - Start Phase 2 — Policy Engine only after Phase 1 UI closure per `RITAV_BLUEPRINT.md`.
 - Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%. These are planning estimates, not formal metrics.
+
+## AI Model & Training Preparation Plan (planning only — 2026-10-14)
+
+A vendor/model-neutral preparation roadmap is recorded in [`docs/RITAV_AI_MODEL_TRAINING_PLAN.md`](docs/RITAV_AI_MODEL_TRAINING_PLAN.md). This is planning documentation only: no base model, dataset, provider, training code or weights have been selected or added. Preserve Blueprint phase order and all deterministic security controls. The production model/provider runtime remains unavailable/fail-closed.
