@@ -51,11 +51,14 @@ class AndroidExecutionRuntime internal constructor(
         auditLog = securityState.auditLog
     )
 
+    private val taskRuntimeStateStore = TaskRuntimeStateStore()
     val executionBridge: SecureExecutionPort = ExecutionBridge(
         capabilityPolicyGate = CapabilityPolicyGate(capabilityRegistry),
         securityPipeline = securityPipeline,
-        adapter = AndroidIntentActionAdapter(activity.applicationContext, capabilityRegistry)
+        adapter = AndroidIntentActionAdapter(activity.applicationContext, capabilityRegistry),
+        taskRuntimeState = taskRuntimeStateStore
     )
+    val taskRuntimeState: TaskRuntimeStatePort = taskRuntimeStateStore
 
     private val capabilityGrantService: CapabilityGrantService =
         CapabilityGrantService(

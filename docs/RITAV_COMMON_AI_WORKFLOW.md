@@ -117,3 +117,18 @@ When present, `docs/RITAV_ELITE_SECURITY_ADDENDUM.md` is an additive hardening l
 
 ## 38. GitHub Actions efficiency and verification preservation
 When auditing or changing GitHub Actions, inspect every `.github/workflows/*.yml` and `.yaml` workflow and its actual trigger paths before editing. Minimize unnecessary workflow runs and monthly Actions-minute usage with precise branch/path filters, safe concurrency, cache reuse, and removal of genuinely duplicate work, while preserving all required CI, verification, security checks, tests, instrumentation coverage, and APK/release functionality. Do not reduce workflow count merely for appearance. Do not delete, disable, merge, or narrow a workflow until its functionality is traced and shown to remain covered. Release/APK workflows must remain explicitly controlled; ordinary code/documentation changes must not cause unnecessary release builds, while intended manual release triggers must remain available when part of the design. Prefer minimal, evidence-based changes. After optimization, perform a final trigger matrix and accidental-skip review, and never claim Actions savings or verification success without evidence.
+
+## 39. Repository-local Ultra Secure App Builder skill
+
+`skills/ultra-secure-app-builder/SKILL.md` and `docs/RITAV_ULTRA_SECURE_APP_BUILDER.md` are mandatory additive process instructions for app creation, feature work, UI/UX, architecture, privacy, security and release hardening.
+
+- Use the skill's existing-app path for Ritav; do not restart the whole project merely because the skill is now adopted.
+- Treat Ritav as Tier 3 for process depth.
+- `RITAV_BLUEPRINT.md` is the canonical Blueprint equivalent.
+- For new features, apply feature intelligence/research where relevant, the Extras Gate for unrequested additions, Design DNA/distinctness, threat/data/permission updates, and continuous security regression.
+- Treat every new endpoint, screen, SDK, permission, data field or privileged capability as a new trust surface until its call path and security controls are traced.
+- Preserve the existing deterministic security architecture and choose the stricter security behavior on conflict.
+- Do not create duplicate responsibility-equivalent components, placeholder security artifacts, speculative integrations or unnecessary dependencies.
+- Plain chat must not be described as running independent parallel agents; use honest role passes unless real sub-agents are available.
+- The skill's completion checks are additive to the existing Ritav completion/audit gates; neither replaces the other.
+
