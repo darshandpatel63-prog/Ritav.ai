@@ -2222,3 +2222,37 @@ Wait for Run #690 to complete; then perform the consolidated onboarding + conver
 - Do not merge/rebase blindly; integrate the four main-only commits only under a deliberate plan.
 - Start Phase 2 — Policy Engine only after Phase 1 UI closure per `RITAV_BLUEPRINT.md`.
 - Informal planning estimates: Phase 1 UI ~90–91%, overall project ~58%, security foundation ~99%. These are planning estimates, not formal metrics.
+
+## 2026-10-14 — AI Model & Training Preparation Plan — planning-only checkpoint
+
+### Repository / branch truth
+- Active branch: `ui/conversational-shell`.
+- UI PR #31 was confirmed **OPEN · DRAFT · NOT MERGED** at the start of this planning update: https://github.com/darshandpatel63-prog/Ritav.ai/pull/31.
+- Source/test head before these documentation-only commits: `5d14040f1284ff876a0f22a015e614e9e89aeeed`.
+- Training-plan content commit SHA: `70b1072304f069c881b66a386f7fa19fa26a4185`.
+- No merge/rebase or direct-main push was performed.
+
+### Completed
+- Read the common AI workflow and Elite Security Addendum, plus the current README, persistent project state, Blueprint, master requirements matrix, cross-platform architecture and repository-local app-builder process binding.
+- Added `docs/RITAV_AI_MODEL_TRAINING_PLAN.md` with a 15-session paper plan, candidate/model scorecard, dataset provenance and privacy gates, baseline/evaluation approach, training-pipeline outline and training-readiness checklist.
+- The plan preserves the Blueprint's `LocalModelProvider` abstraction; distinguishes local personalization/memory from retrieval, inference, fine-tuning and pretraining; and explicitly keeps model output outside the deterministic security authority.
+- Confirmed both `.github/workflows/android-test.yml` and `.github/workflows/android-release.yml` require build/runtime-relevant paths for automatic push/PR runs; documentation-only changes in this update do not match those path filters. Manual `workflow_dispatch` remains available. No CI workflow was intentionally triggered by this plan.
+
+### Verified / not verified
+- **Verified:** planning document and README pointer were committed to `ui/conversational-shell`; no application source, dependency, permissions, provider, model artifact, dataset or training pipeline was changed.
+- **Not executed:** unit tests, builds, model inference, benchmarking or training. They were not needed for a documentation-only plan.
+- **Not verified:** current Actions storage/cache usage, exact reset/billing-cycle date, any candidate-model license, local-device model performance, dataset rights or training feasibility. No model/provider is approved.
+
+### Known limitations
+- The production model/provider runtime remains unavailable/fail-closed.
+- UI Phase 1 remains in progress; Phase 2 Policy Engine and subsequent Blueprint phases must not be bypassed merely to start model work.
+- The “15 sessions” are a preparation checklist, not a calendar promise or guarantee of a trained model.
+
+### Next action
+- Use the 15-session plan to define Ritav's intended tasks, model-ownership meaning, evaluation criteria and data-governance rules on paper.
+- Before actual training, identify the precise GitHub storage error and current quota state, and verify model/dataset rights, available hardware, baseline quality and all security-readiness gates.
+- Continue current UI Phase 1 in Blueprint order; do not add a model dependency or begin training just because Actions availability returns.
+
+### Exact checkpoint SHA
+- AI training-plan document commit: `70b1072304f069c881b66a386f7fa19fa26a4185`.
+- README link update commit: `f4511f4b4e0cb7e8568403cd5da60740c1616e35`.
